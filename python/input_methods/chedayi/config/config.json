@@ -29,6 +29,7 @@
     "candMaxItems": 100,
     "showPhrase": false,
     "sortByPhrase": true,
+    "intelligentSelect": true,
     "compositionBufferMode": false,
     "autoMoveCursorInBrackets": false,
     "imeReverseLookup": false,

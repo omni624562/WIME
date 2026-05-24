@@ -21,6 +21,7 @@ class Cin(object):
         self.selkey = ""
         self.keynames = {}
         self.cincount = {}
+        self._count_dirty = False
         self.chardefs = {}
         self.privateuse = {}
         self.dupchardefs = {}
@@ -57,7 +58,7 @@ class Cin(object):
                         newvalue.remove(value)
                 self.chardefs[key] = newvalue
 
-        self.saveCountFile()
+        self.loadCountFile()
 
 
     def __del__(self):
@@ -211,20 +212,37 @@ class Cin(object):
                             self.chardefs[key.lower()] = [root]
 
 
-    def saveCountFile(self):
+    def loadCountFile(self):
         filename = self.getCountFile()
-        tempcincount = {}
-
-        if os.path.exists(filename) and not os.stat(filename).st_size == 0:
-            with open(filename, "r") as f:
-                tempcincount.update(json.load(f))
-
-        if not tempcincount == self.cincount:
+        if os.path.exists(filename) and os.stat(filename).st_size > 0:
             try:
-                with open(filename, "w") as f:
-                    js = json.dump(self.cincount, f, sort_keys=True, indent=4)
+                with open(filename, "r", encoding="utf-8") as f:
+                    self.cincount.update(json.load(f))
             except Exception:
-                pass # FIXME: handle I/O errors?
+                pass
+
+    def saveCountFile(self):
+        if not self._count_dirty:
+            return
+        filename = self.getCountFile()
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(self.cincount, f, ensure_ascii=False, sort_keys=True, indent=2)
+            self._count_dirty = False
+        except Exception:
+            pass
+
+    def addCount(self, key, char):
+        if key not in self.cincount:
+            self.cincount[key] = {}
+        self.cincount[key][char] = self.cincount[key].get(char, 0) + 1
+        self._count_dirty = True
+
+    def sortByCount(self, key, candidates):
+        if key not in self.cincount:
+            return candidates
+        counts = self.cincount[key]
+        return sorted(candidates, key=lambda c: counts.get(c, 0), reverse=True)
 
 
     def getCountDir(self):

@@ -110,6 +110,7 @@ class CinBase:
         cbTS.easySymbolsWithShift = False
         cbTS.showPhrase = False
         cbTS.sortByPhrase = False
+        cbTS.intelligentSelect = False
         cbTS.compositionBufferMode = False
         cbTS.autoMoveCursorInBrackets = False
         cbTS.imeReverseLookup = False
@@ -296,6 +297,9 @@ class CinBase:
             del cbTS.extendtable
         if hasattr(cbTS, 'dsymbols'):
             del cbTS.dsymbols
+
+        if hasattr(cbTS, 'cin'):
+            cbTS.cin.saveCountFile()
 
 
     # 使用者按下按鍵，在 app 收到前先過濾那些鍵是輸入法需要的。
@@ -691,6 +695,7 @@ class CinBase:
             menu_playSoundWhenNonCand = "☑ 拆錯字碼時發出警告嗶聲提示" if cbTS.playSoundWhenNonCand else "☐ 拆錯字碼時發出警告嗶聲提示"
             menu_showPhrase = "☑ 輸出字串後顯示聯想字詞" if cbTS.showPhrase else "☐ 輸出字串後顯示聯想字詞"
             menu_sortByPhrase = "☑ 優先以聯想字詞排序候選清單" if cbTS.sortByPhrase else "☐ 優先以聯想字詞排序候選清單"
+            menu_intelligentSelect = "☑ 智慧選字" if cbTS.intelligentSelect else "☐ 智慧選字"
             menu_supportWildcard = "☑ 萬用字元查詢" if cbTS.supportWildcard else "☐ 萬用字元查詢"
             menu_imeReverseLookup = "☑ 反查輸入字根" if cbTS.imeReverseLookup else "☐ 反查輸入字根"
             menu_homophoneQuery = "☑ 同音字查詢" if cbTS.homophoneQuery else "☐ 同音字查詢"
@@ -702,8 +707,8 @@ class CinBase:
                 cbTS.smenucandidates = [menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup]
                 cbTS.smenuitems = ["autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup"]
             elif cbTS.imeDirName == "chearray" or cbTS.imeDirName == "chedayi":
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
+                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_intelligentSelect, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
+                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "intelligentSelect", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
             else:
                 cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
                 cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
@@ -1445,6 +1450,8 @@ class CinBase:
                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                 if cbTS.sortByPhrase and candidates:
                     candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                if cbTS.intelligentSelect and candidates:
+                    candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
                 if cbTS.compositionBufferMode and not cbTS.selcandmode:
                     cbTS.compositionBufferType = "default"
             elif cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[cbTS.cfg.selCinType] == "thpinyin.json" and not cbTS.ctrlsymbolsmode:
@@ -1452,6 +1459,8 @@ class CinBase:
                     candidates = cbTS.cin.getCharDef(cbTS.compositionChar + '1')
                     if cbTS.sortByPhrase and candidates:
                         candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                    if cbTS.intelligentSelect and candidates:
+                        candidates = cbTS.cin.sortByCount(cbTS.compositionChar + "1", candidates)
                     if cbTS.compositionBufferMode and not cbTS.selcandmode:
                         cbTS.compositionBufferType = "default"
             elif cbTS.fullShapeSymbols and cbTS.fsymbols.isInCharDef(cbTS.compositionChar) and cbTS.closemenu:
@@ -1488,6 +1497,8 @@ class CinBase:
                 cbTS.isWildcardChardefs = True
                 if cbTS.sortByPhrase and candidates:
                     candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                if cbTS.intelligentSelect and candidates:
+                    candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
 
         # 組字編輯模式
         if cbTS.compositionBufferMode and cbTS.isComposing() and cbTS.compositionChar == "" and cbTS.closemenu and not cbTS.multifunctionmode and not cbTS.phrasemode and not cbTS.selcandmode:
@@ -1590,6 +1601,8 @@ class CinBase:
                             candidates = cbTS.cin.getCharDef(sellist[1])
                             if cbTS.sortByPhrase and candidates:
                                 candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                            if cbTS.intelligentSelect and candidates:
+                                candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
                             cbTS.selcandmode = True
                     else:
                         if cbTS.cin.isHaveKey(cbTS.compositionBufferString[cbTS.compositionBufferCursor]):
@@ -1597,6 +1610,8 @@ class CinBase:
                             candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                             if cbTS.sortByPhrase and candidates:
                                 candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                            if cbTS.intelligentSelect and candidates:
+                                candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
                             cbTS.selcandmode = True
                         else:
                             cbTS.selcandmode = False
@@ -1641,6 +1656,8 @@ class CinBase:
                                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                 if cbTS.sortByPhrase and candidates:
                                     candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                if cbTS.intelligentSelect and candidates:
+                                    candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
                 # 如果是碼表標點
                 if cbTS.cin.isInKeyName(cbTS.compositionChar[0]):
                     if cbTS.cin.getKeyName(cbTS.compositionChar[0]) in cbTS.directCommitSymbolList:
@@ -1666,6 +1683,8 @@ class CinBase:
                                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                 if cbTS.sortByPhrase and candidates:
                                     candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                if cbTS.intelligentSelect and candidates:
+                                    candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
 
             if cbTS.langMode == CHINESE_MODE and cbTS.dayisymbolsmode and len(cbTS.compositionChar) == 1 and (keyCode == VK_SPACE or keyCode == VK_RETURN):
                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
@@ -1846,6 +1865,8 @@ class CinBase:
                                 i = cbTS.selKeys.index(charStr)
                             if i < cbTS.candPerPage and i < len(cbTS.candidateList):
                                 commitStr = cbTS.candidateList[i]
+                                if cbTS.intelligentSelect and cbTS.compositionChar:
+                                    cbTS.cin.addCount(cbTS.compositionChar, commitStr)
                                 cbTS.lastCommitString = commitStr
                                 self.setOutputString(cbTS, RCinTable, commitStr)
                                 if cbTS.showPhrase and not cbTS.selcandmode:
@@ -1935,6 +1956,8 @@ class CinBase:
                         if not cbTS.homophoneselpinyinmode:
                             # 找出目前游標位置的選字鍵 (1234..., asdf...等等)
                             commitStr = cbTS.candidateList[candCursor]
+                            if cbTS.intelligentSelect and cbTS.compositionChar:
+                                cbTS.cin.addCount(cbTS.compositionChar, commitStr)
                             cbTS.lastCommitString = commitStr
                             self.setOutputString(cbTS, RCinTable, commitStr)
                             if cbTS.showPhrase and not cbTS.selcandmode:
@@ -2200,6 +2223,8 @@ class CinBase:
                                     candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                     if cbTS.sortByPhrase and candidates:
                                         candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                    if cbTS.intelligentSelect and candidates:
+                                        candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
                                 if candidates:
                                     pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
@@ -2603,6 +2628,8 @@ class CinBase:
                 cbTS.showPhrase = not cbTS.showPhrase
             elif commandItem == "sortByPhrase":
                 cbTS.sortByPhrase = not cbTS.sortByPhrase
+            elif commandItem == "intelligentSelect":
+                cbTS.intelligentSelect = not cbTS.intelligentSelect
             elif commandItem == "imeReverseLookup":
                 cbTS.imeReverseLookup = not cbTS.imeReverseLookup
             elif commandItem == "homophoneQuery":
@@ -3126,6 +3153,9 @@ class CinBase:
 
         # 優先以聯想字詞排序候選清單?
         cbTS.sortByPhrase = cfg.sortByPhrase
+
+        # 智慧選字 (依使用者選字頻率自動排序候選清單)?
+        cbTS.intelligentSelect = getattr(cfg, 'intelligentSelect', True)
 
         # 拆錯字碼時自動清除輸入字串?
         cbTS.autoClearCompositionChar = cfg.autoClearCompositionChar
