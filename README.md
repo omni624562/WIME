@@ -10,11 +10,30 @@ Implement input methods easily for Windows via Text Services Framework:
 
 All parts are licensed under GNU LGPL v2.1 license.
 
+## Improvements in this fork
+
+This fork (based on [EasyIME/PIME](https://github.com/EasyIME/PIME)) includes the following fixes and performance improvements:
+
+**Bug fixes**
+*   Fixed extra space inserted after character selection in cinbase-based input methods.
+*   Fixed `[json.exception.type_error.302]` crash when backend response arrives before C++ timeout — all `ret["return"].get<bool>()` calls now use `ret.value("return", false)` to handle absent fields safely.
+*   Fixed `updateCandidateList` crash when `showCandidates` field is absent in response JSON.
+
+**Performance improvements**
+*   Added `PYTHONUNBUFFERED=1` when spawning Python backends — eliminates 8 KB block-buffering delay that was the root cause of all input lag.
+*   Added `flush=True` to all `print()` calls in `python/server.py` as a secondary safeguard.
+*   Redirected debug/error prints in `server.py` from stdout to stderr, preventing protocol pollution.
+*   Fixed `BackendManager::get_backend_input()` in PIMELauncher to release the async mutex *before* spawning a new backend process, eliminating cold-start blocking of all other clients.
+*   Increased pipe read buffer from 1 KB to 8 KB in PIMEClient to reduce syscall round-trips for large candidate-list responses.
+*   Reduced `connectPipe` timeout from 30 s × 5 attempts to 3 s × 3 attempts to prevent UI freeze when PIMELauncher is unavailable.
+*   Changed watchdog tick logging from `info!` to `debug!` level to reduce console noise.
+*   Optimised `parse_backend_output()` in protocol.rs to use `strip_prefix`/`find` instead of `splitn().collect()`, avoiding heap allocation per message.
+
 # Development
 
 ## Tool Requirements
 *   [CMake](http://www.cmake.org/) >= 3.0
-*   [Visual Studio 2019](https://visualstudio.microsoft.com/vs)
+*   [Visual Studio 2022](https://visualstudio.microsoft.com/vs)
 *   [Rust Toolchain](https://rustup.rs/) (Stable channel with `i686-pc-windows-msvc` target)
 *   [git](http://windows.github.com/)
 *   [Node.js](https://nodejs.org/) (Required for some backends like McBopomofo)
@@ -32,11 +51,11 @@ All parts are licensed under GNU LGPL v2.1 license.
 
 *   Use `build.bat` to build everything, or use the following CMake commands to generate Visual Studio project.
 
-        cmake . -Bbuild -G "Visual Studio 16 2019" -A Win32
+        cmake . -Bbuild -G "Visual Studio 17 2022" -A Win32
         cmake --build build --config Release
 
         # For 64-bit Text Service (Required for 64-bit apps)
-        cmake . -Bbuild64 -G "Visual Studio 16 2019" -A x64
+        cmake . -Bbuild64 -G "Visual Studio 17 2022" -A x64
         cmake --build build64 --config Release --target PIMETextService
 
 *   The generated installer will be in the `installer` folder after running `makensis`.

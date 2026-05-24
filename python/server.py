@@ -84,7 +84,7 @@ class Server(object):
                     # create a Client instance for the client
                     client = Client(self)
                     self.clients[client_id] = client
-                    print("new client:", client_id)
+                    print("new client:", client_id, file=sys.stderr)
                 if msg.get("method") == "close":  # special handling for closing a client
                     self.remove_client(client_id)
                 else:
@@ -92,23 +92,23 @@ class Server(object):
                     # Send the response to the client via stdout
                     # one response per line in the format "PIME_MSG|<client_id>|<json reply>"
                     reply_line = '|'.join(["PIME_MSG", client_id, json.dumps(ret, ensure_ascii=False)])
-                    print(reply_line)
+                    print(reply_line, flush=True)
             except EOFError:
                 # stop the server
                 break
             except Exception as e:
-                print("ERROR:", e, line)
+                print("ERROR:", e, line, file=sys.stderr)
                 # print the exception traceback for ease of debugging
                 traceback.print_exc()
                 # generate an empty output containing {success: False} to prevent the client from being blocked
                 reply_line = '|'.join(["PIME_MSG", client_id, '{"success":false}'])
-                print(reply_line)
+                print(reply_line, flush=True)
                 # Just terminate the python server process if any unknown error happens.
                 # The python server will be restarted later by PIMELauncher.
                 sys.exit(1)
 
     def remove_client(self, client_id):
-        print("client disconnected:", client_id)
+        print("client disconnected:", client_id, file=sys.stderr)
         try:
             del self.clients[client_id]
         except KeyError:
