@@ -237,7 +237,7 @@ void TextService::createCandidateWindow(Ime::EditSession* session) {
 			BOOL pbShow = false;
 			if (validCandidateListElementId_ =
 				(elementMgr->BeginUIElement(candidateWindow_, &pbShow, &candidateListElementId_) == S_OK)) {
-				candidateWindow_->Show(pbShow);
+				candidateWindow_->Show(TRUE);  // DEBUG: force show to test UI-less mode
 			}
 		}
 	}
@@ -274,8 +274,9 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	for (int i = 0; i < candidates_.size(); ++i) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
-	candidateWindow_->recalculateSize();
-	candidateWindow_->refresh();
+	// setHeader calls recalculateSize() and refresh() internally;
+	// called after items are added so measurements are accurate.
+	candidateWindow_->setHeader(L"DIRECT");
 
 	RECT textRect;
 	// get the position of composition area from TSF

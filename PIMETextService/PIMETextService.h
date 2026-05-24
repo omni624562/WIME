@@ -122,6 +122,14 @@ public:
 		return showingCandidates_;
 	}
 
+	const std::wstring& candidateHeader() const {
+		return candidateHeader_;
+	}
+
+	void setCandidateHeader(const std::wstring& header) {
+		candidateHeader_ = header;
+	}
+
 	// candidate window
 	void showCandidates(Ime::EditSession* session);
 	void updateCandidates(Ime::EditSession* session);
@@ -162,6 +170,7 @@ private:
 	std::wstring selKeys_;
 	bool candUseCursor_;
 	std::wstring candFontName_;
+	std::wstring candidateHeader_;
 	int candFontSize_;
 
 	HMENU popupMenu_;

@@ -111,6 +111,7 @@ class CinBase:
         cbTS.showPhrase = False
         cbTS.sortByPhrase = False
         cbTS.intelligentSelect = False
+        cbTS.hideComposition = False
         cbTS.compositionBufferMode = False
         cbTS.autoMoveCursorInBrackets = False
         cbTS.imeReverseLookup = False
@@ -1094,8 +1095,8 @@ class CinBase:
         if not cbTS.showmenu:
             if cbTS.imeDirName == "chedayi":
                 cbTS.selKeys = "'[]-\\"
-                if not self.candselKeys == "0'[]-\\":
-                    self.candselKeys = "0'[]-\\"
+                if not self.candselKeys == "␣'[]-\\":
+                    self.candselKeys = "␣'[]-\\"
                     cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
                     cbTS.isSelKeysChanged = True
 
@@ -1820,8 +1821,20 @@ class CinBase:
                                 if keyCode == VK_SPACE:
                                     cbTS.canUseSpaceAsPageKey = False
                     else:
-                        cbTS.isShowCandidates = True
-                        cbTS.canSetCommitString = True
+                        if len(candidates) == 1 and not cbTS.selcandmode and not cbTS.multifunctionmode and len(cbTS.compositionChar) >= cbTS.maxCharLength:
+                            commitStr = candidates[0]
+                            if cbTS.intelligentSelect and cbTS.compositionChar:
+                                cbTS.cin.addCount(cbTS.compositionChar, commitStr)
+                            cbTS.lastCommitString = commitStr
+                            self.setOutputString(cbTS, RCinTable, commitStr)
+                            if cbTS.showPhrase and not cbTS.selcandmode:
+                                cbTS.phrasemode = True
+                            self.resetComposition(cbTS)
+                            candCursor = 0
+                            currentCandPage = 0
+                        else:
+                            cbTS.isShowCandidates = True
+                            cbTS.canSetCommitString = True
 
                 if cbTS.isShowCandidates:
                     candCursor = cbTS.candidateCursor  # 目前的游標位置
@@ -2286,6 +2299,19 @@ class CinBase:
         #print('Cursor = ' + str(cbTS.compositionBufferCursor))
         #print('Type = ' + cbTS.compositionBufferType)
         #print(cbTS.compositionBufferChar)
+
+        if cbTS.hideComposition:
+            if cbTS.compositionString:
+                cbTS.currentReply["compositionString"] = "​"
+                cbTS.currentReply["compositionCursor"] = 0
+            cbTS.currentReply["candidateHeader"] = " ".join(cbTS.compositionString)
+
+        # DEBUG
+        try:
+            with open("C:\\Users\\nan\\AppData\\Local\\Temp\\pime_debug.txt", "a", encoding="utf-8") as _f:
+                _f.write(f"hideComp={cbTS.hideComposition} compStr={repr(cbTS.compositionString)} header={repr(cbTS.currentReply.get('candidateHeader','<not set>'))} showCand={cbTS.currentReply.get('showCandidates','<not set>')}\n")
+        except Exception:
+            pass
 
         return True
 
@@ -3113,7 +3139,7 @@ class CinBase:
 
         # 設定 UI 外觀
         cbTS.customizeUI(candFontSize = cfg.fontSize,
-                        candFontName = 'MingLiu',
+                        candFontName = 'Microsoft JhengHei',
                         candPerRow = cfg.candPerRow,
                         candUseCursor = cfg.cursorCandList)
 
@@ -3156,6 +3182,9 @@ class CinBase:
 
         # 智慧選字 (依使用者選字頻率自動排序候選清單)?
         cbTS.intelligentSelect = getattr(cfg, 'intelligentSelect', True)
+
+        # 隱藏組字串 (打字根時不在欄位顯示字根，選字後才 commit)?
+        cbTS.hideComposition = getattr(cfg, 'hideComposition', False)
 
         # 拆錯字碼時自動清除輸入字串?
         cbTS.autoClearCompositionChar = cfg.autoClearCompositionChar

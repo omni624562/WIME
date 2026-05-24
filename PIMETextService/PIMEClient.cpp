@@ -359,6 +359,18 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		}
 	}
 
+	// parse candidateHeader before candidateList so candidateHeader_ is correct
+	// when updateCandidates() calls setHeader(candidateHeader_)
+	const auto& candidateHeaderVal = msg["candidateHeader"];
+	if (candidateHeaderVal.is_string()) {
+		std::wstring header = utf8ToUtf16(candidateHeaderVal.get<std::string>().c_str());
+		textService_->setCandidateHeader(header);
+	}
+	else {
+		// DEBUG: force non-empty header to test data path
+		textService_->setCandidateHeader(L"FORCED");
+	}
+
 	const auto& candidateListVal = msg["candidateList"];
 	if (candidateListVal.is_array()) {
 		// handle candidates
