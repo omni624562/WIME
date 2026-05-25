@@ -54,6 +54,63 @@ bool uuidFromString(const char* uuidStr, UUID& result) {
 	return SUCCEEDED(CLSIDFromString(utf16UuidStr.c_str(), &result));
 }
 
+static bool parseHexColor(const json& value, COLORREF& color) {
+	if (!value.is_string())
+		return false;
+	std::string text = value.get<std::string>();
+	if (text.size() != 7 || text[0] != '#')
+		return false;
+	char* end = nullptr;
+	unsigned long rgb = std::strtoul(text.c_str() + 1, &end, 16);
+	if (end == nullptr || *end != '\0')
+		return false;
+	color = RGB((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff);
+	return true;
+}
+
+static void parseHexColorMember(const json& object, const char* name, COLORREF& color) {
+	auto it = object.find(name);
+	if (it != object.end())
+		parseHexColor(*it, color);
+}
+
+static void candidateThemeColors(const std::string& theme,
+	COLORREF& panelBackground,
+	COLORREF& panelBorder,
+	COLORREF& textPrimary,
+	COLORREF& textSecondary,
+	COLORREF& highlightBackground,
+	COLORREF& highlightBorder,
+	COLORREF& highlightText) {
+	if (theme == "dark") {
+		panelBackground = RGB(32, 35, 39);
+		panelBorder = RGB(58, 63, 70);
+		textPrimary = RGB(242, 244, 247);
+		textSecondary = RGB(170, 178, 189);
+		highlightBackground = RGB(49, 90, 140);
+		highlightBorder = RGB(86, 132, 194);
+		highlightText = RGB(255, 255, 255);
+	}
+	else if (theme == "soft") {
+		panelBackground = RGB(247, 244, 236);
+		panelBorder = RGB(217, 210, 195);
+		textPrimary = RGB(38, 35, 30);
+		textSecondary = RGB(116, 109, 98);
+		highlightBackground = RGB(220, 234, 216);
+		highlightBorder = RGB(159, 192, 151);
+		highlightText = RGB(31, 77, 43);
+	}
+	else {
+		panelBackground = RGB(255, 255, 255);
+		panelBorder = RGB(218, 221, 227);
+		textPrimary = RGB(32, 36, 42);
+		textSecondary = RGB(107, 114, 128);
+		highlightBackground = RGB(220, 235, 255);
+		highlightBorder = RGB(156, 199, 255);
+		highlightText = RGB(11, 58, 117);
+	}
+}
+
 Client::Client(TextService* service, REFIID langProfileGuid):
 	textService_(service),
 	pipe_(INVALID_HANDLE_VALUE),
@@ -367,8 +424,7 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		textService_->setCandidateHeader(header);
 	}
 	else {
-		// DEBUG: force non-empty header to test data path
-		textService_->setCandidateHeader(L"FORCED");
+		textService_->setCandidateHeader(L"");
 	}
 
 	const auto& candidateListVal = msg["candidateList"];
@@ -378,7 +434,9 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		vector<wstring>& candidates = textService_->candidates_;
 		candidates.clear();
 		for (const auto& candidate : candidateListVal) {
-			candidates.emplace_back(utf8ToUtf16(candidate.get<string>().c_str()));
+			if (candidate.is_string()) {
+				candidates.emplace_back(utf8ToUtf16(candidate.get<string>().c_str()));
+			}
 		}
 		textService_->updateCandidates(session);
 		if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>()) {

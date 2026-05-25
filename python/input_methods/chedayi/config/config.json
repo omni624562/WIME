@@ -31,6 +31,25 @@
     "sortByPhrase": true,
     "intelligentSelect": true,
     "hideComposition": true,
+    "candidateModernStyle": false,
+    "candidateLayout": "horizontal",
+    "candidatePerRow": 10,
+    "candidateEdgeAvoidance": true,
+    "candidateTheme": "light",
+    "candidateColors": {
+        "panelBackground": "#FFFFFF",
+        "panelBorder": "#DADDE3",
+        "textPrimary": "#20242A",
+        "textSecondary": "#6B7280",
+        "highlightBackground": "#DCEBFF",
+        "highlightBorder": "#9CC7FF",
+        "highlightText": "#0B3A75"
+    },
+    "candidateStyle": {
+        "contentMargin": 8,
+        "textMargin": 6,
+        "borderRadius": 8
+    },
     "compositionBufferMode": false,
     "autoMoveCursorInBrackets": false,
     "imeReverseLookup": false,

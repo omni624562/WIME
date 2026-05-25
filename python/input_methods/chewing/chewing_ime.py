@@ -141,10 +141,27 @@ class ChewingTextService(TextService):
         chewingContext.set_spaceAsSelection(cfg.spaceKeyAction)
 
         # 設定 UI 外觀
-        self.customizeUI(candFontName='MingLiu',
-                         candFontSize=cfg.fontSize,
-                         candPerRow=cfg.candPerRow,
-                         candUseCursor=not(cfg.leftRightAction and cfg.upDownAction))
+        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
+            uiCandPerRow = getattr(cfg, 'candidatePerRow', 10)
+        else:
+            uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
+        ui_args = {
+            "candFontName": 'MingLiu',
+            "candFontSize": cfg.fontSize,
+            "candPerRow": uiCandPerRow,
+            "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
+        }
+        if getattr(cfg, 'candidateModernStyle', False):
+            ui_args.update({
+                "candidateModernStyle": True,
+                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+                "candidateColors": getattr(cfg, 'candidateColors', {}),
+                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+            })
+        self.customizeUI(**ui_args)
 
         # 設定是否啟用自動學習功能
         self.setAutoLearn(cfg.autoLearn)

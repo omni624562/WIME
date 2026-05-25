@@ -29,6 +29,18 @@ sys.path.append(os.path.dirname(__file__))
 from serviceManager import textServiceMgr
 
 
+def append_error_log(message):
+    try:
+        log_dir = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "PIME", "Logs")
+        os.makedirs(log_dir, mode=0o700, exist_ok=True)
+        with open(os.path.join(log_dir, "python_backend.log"), "a", encoding="utf-8") as log_file:
+            log_file.write(message)
+            if not message.endswith("\n"):
+                log_file.write("\n")
+    except Exception:
+        pass
+
+
 class Client(object):
     def __init__(self, server):
         self.server = server
@@ -39,7 +51,7 @@ class Client(object):
         self.isWindows8Above = msg["isWindows8Above"]
         self.isMetroApp = msg["isMetroApp"]
         self.isUiLess = msg["isUiLess"]
-        self.isUiLess = msg["isConsole"]
+        self.isConsole = msg["isConsole"]
         # create the text service
         self.service = textServiceMgr.createService(self, self.guid)
         return (self.service is not None)
@@ -77,7 +89,12 @@ class Server(object):
                 # parse PIME requests (one request per line):
                 # request format: "<client_id>|<JSON string>\n"
                 # response format: "PIME_MSG|<client_id>|<JSON string>\n"
-                client_id, msg_text = line.split('|', maxsplit=1)
+                parts = line.split('|', maxsplit=1)
+                if len(parts) != 2:
+                    print("ERROR: malformed request:", line, file=sys.stderr)
+                    append_error_log("ERROR: malformed request: {0}\n".format(line))
+                    continue
+                client_id, msg_text = parts
                 msg = json.loads(msg_text)
                 client = self.clients.get(client_id)
                 if not client:
@@ -100,12 +117,13 @@ class Server(object):
                 print("ERROR:", e, line, file=sys.stderr)
                 # print the exception traceback for ease of debugging
                 traceback.print_exc()
+                append_error_log("ERROR: {0}\nREQUEST: {1}\n{2}\n".format(e, line, traceback.format_exc()))
                 # generate an empty output containing {success: False} to prevent the client from being blocked
                 reply_line = '|'.join(["PIME_MSG", client_id, '{"success":false}'])
                 print(reply_line, flush=True)
-                # Just terminate the python server process if any unknown error happens.
-                # The python server will be restarted later by PIMELauncher.
-                sys.exit(1)
+                # Keep the backend alive after a single bad request. Exiting here can
+                # tear down an active TSF session and destabilize the foreground app.
+                continue
 
     def remove_client(self, client_id):
         print("client disconnected:", client_id, file=sys.stderr)

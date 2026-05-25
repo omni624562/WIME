@@ -79,6 +79,25 @@ class CinBaseConfig:
         self.selDayiSymbolCharType = 0
         self.intelligentSelect = True
         self.hideComposition = False
+        self.candidateModernStyle = False
+        self.candidateLayout = "horizontal"
+        self.candidatePerRow = 10
+        self.candidateEdgeAvoidance = True
+        self.candidateTheme = "light"
+        self.candidateColors = {
+            "panelBackground": "#FFFFFF",
+            "panelBorder": "#DADDE3",
+            "textPrimary": "#20242A",
+            "textSecondary": "#6B7280",
+            "highlightBackground": "#DCEBFF",
+            "highlightBorder": "#9CC7FF",
+            "highlightText": "#0B3A75",
+        }
+        self.candidateStyle = {
+            "contentMargin": 8,
+            "textMargin": 6,
+            "borderRadius": 8,
+        }
 
         self.ignoreSaveList = ["ignoreSaveList", "curdir", "cinFileList", "selCinFile", "imeDirName", "_version", "_lastUpdateTime"]
         self.curdir = os.path.abspath(os.path.dirname(__file__))

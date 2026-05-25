@@ -2306,13 +2306,6 @@ class CinBase:
                 cbTS.currentReply["compositionCursor"] = 0
             cbTS.currentReply["candidateHeader"] = " ".join(cbTS.compositionString)
 
-        # DEBUG
-        try:
-            with open("C:\\Users\\nan\\AppData\\Local\\Temp\\pime_debug.txt", "a", encoding="utf-8") as _f:
-                _f.write(f"hideComp={cbTS.hideComposition} compStr={repr(cbTS.compositionString)} header={repr(cbTS.currentReply.get('candidateHeader','<not set>'))} showCand={cbTS.currentReply.get('showCandidates','<not set>')}\n")
-        except Exception:
-            pass
-
         return True
 
     # 使用者放開按鍵，在 app 收到前先過濾那些鍵是輸入法需要的。
@@ -3129,6 +3122,11 @@ class CinBase:
 
         # 每列顯示幾個候選字
         cbTS.candPerRow = cfg.candPerRow
+        if getattr(cfg, 'candidateModernStyle', False):
+            if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical':
+                cbTS.candPerRow = 1
+            else:
+                cbTS.candPerRow = getattr(cfg, 'candidatePerRow', 10)
 
         # 如果程式為 UiLess 模式就取代設定
         if cbTS.client.isUiLess:
@@ -3138,10 +3136,23 @@ class CinBase:
         cbTS.candPerPage = cfg.candPerPage
 
         # 設定 UI 外觀
-        cbTS.customizeUI(candFontSize = cfg.fontSize,
-                        candFontName = 'Microsoft JhengHei',
-                        candPerRow = cfg.candPerRow,
-                        candUseCursor = cfg.cursorCandList)
+        ui_args = {
+            "candFontSize": cfg.fontSize,
+            "candFontName": 'Microsoft JhengHei',
+            "candPerRow": cbTS.candPerRow,
+            "candUseCursor": cfg.cursorCandList,
+        }
+        if getattr(cfg, 'candidateModernStyle', False):
+            ui_args.update({
+                "candidateModernStyle": True,
+                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+                "candidateColors": getattr(cfg, 'candidateColors', {}),
+                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+            })
+        cbTS.customizeUI(**ui_args)
 
         # 設定選字按鍵 (123456..., asdf.... 等)
         # if cbTS.cin.getSelection():

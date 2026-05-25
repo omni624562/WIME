@@ -130,6 +130,25 @@ public:
 		candidateHeader_ = header;
 	}
 
+	void setCandidateTheme(COLORREF panelBackground,
+		COLORREF panelBorder,
+		COLORREF textPrimary,
+		COLORREF textSecondary,
+		COLORREF highlightBackground,
+		COLORREF highlightBorder,
+		COLORREF highlightText);
+
+	void setCandidateSpacing(int contentMargin, int textMargin, int borderRadius);
+
+	void setCandidateEdgeAvoidance(bool enabled) {
+		candidateEdgeAvoidance_ = enabled;
+	}
+
+	void setCandidateModernStyle(bool enabled) {
+		candidateModernStyle_ = enabled;
+		applyCandidateWindowStyle();
+	}
+
 	// candidate window
 	void showCandidates(Ime::EditSession* session);
 	void updateCandidates(Ime::EditSession* session);
@@ -152,6 +171,8 @@ private:
 	void updateLangButtons(); // update status of language bar buttons
 
 	void createCandidateWindow(Ime::EditSession* session);
+	void applyCandidateWindowStyle();
+	void moveCandidateWindow(Ime::EditSession* session);
 	int candFontHeight();
 
 	void closeClient();
@@ -172,6 +193,18 @@ private:
 	std::wstring candFontName_;
 	std::wstring candidateHeader_;
 	int candFontSize_;
+	bool candidateModernStyle_;
+	bool candidateEdgeAvoidance_;
+	COLORREF candidatePanelBackground_;
+	COLORREF candidatePanelBorder_;
+	COLORREF candidateTextPrimary_;
+	COLORREF candidateTextSecondary_;
+	COLORREF candidateHighlightBackground_;
+	COLORREF candidateHighlightBorder_;
+	COLORREF candidateHighlightText_;
+	int candidateContentMargin_;
+	int candidateTextMargin_;
+	int candidateBorderRadius_;
 
 	HMENU popupMenu_;
 

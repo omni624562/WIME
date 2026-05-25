@@ -217,7 +217,12 @@ class Cin(object):
         if os.path.exists(filename) and os.stat(filename).st_size > 0:
             try:
                 with open(filename, "r", encoding="utf-8") as f:
-                    self.cincount.update(json.load(f))
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        self.cincount.update({
+                            key: value for key, value in data.items()
+                            if isinstance(key, str) and isinstance(value, dict)
+                        })
             except Exception:
                 pass
 
@@ -233,13 +238,15 @@ class Cin(object):
             pass
 
     def addCount(self, key, char):
-        if key not in self.cincount:
+        if not isinstance(key, str) or not isinstance(char, str):
+            return
+        if key not in self.cincount or not isinstance(self.cincount[key], dict):
             self.cincount[key] = {}
         self.cincount[key][char] = self.cincount[key].get(char, 0) + 1
         self._count_dirty = True
 
     def sortByCount(self, key, candidates):
-        if key not in self.cincount:
+        if key not in self.cincount or not isinstance(self.cincount[key], dict):
             return candidates
         counts = self.cincount[key]
         return sorted(candidates, key=lambda c: counts.get(c, 0), reverse=True)

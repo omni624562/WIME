@@ -71,6 +71,25 @@ class ChewingConfig:
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT
         self.upDownAction = 0
         self.upperCaseWithShift = True
+        self.candidateModernStyle = False
+        self.candidateLayout = "horizontal"
+        self.candidatePerRow = 10
+        self.candidateEdgeAvoidance = True
+        self.candidateTheme = "light"
+        self.candidateColors = {
+            "panelBackground": "#FFFFFF",
+            "panelBorder": "#DADDE3",
+            "textPrimary": "#20242A",
+            "textSecondary": "#6B7280",
+            "highlightBackground": "#DCEBFF",
+            "highlightBorder": "#9CC7FF",
+            "highlightText": "#0B3A75",
+        }
+        self.candidateStyle = {
+            "contentMargin": 8,
+            "textMargin": 6,
+            "borderRadius": 8,
+        }
 
         # version: last modified time of (config.json, symbols.dat, swkb.dat)
         self._version = (0.0, 0.0, 0.0)

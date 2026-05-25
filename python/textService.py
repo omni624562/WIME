@@ -257,7 +257,9 @@ class TextService:
 
     '''
     Valid arguments:
-    candFontName, cadFontSize, candPerRow, candUseCursor
+    candFontName, cadFontSize, candPerRow, candUseCursor,
+    candidateModernStyle, candidateLayout, candidatePerRow,
+    candidateEdgeAvoidance, candidateTheme, candidateColors, candidateStyle
     '''
     def customizeUI(self, **kwargs):
         data = self.currentReply.setdefault("customizeUI", {})
