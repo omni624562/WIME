@@ -287,9 +287,9 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	for (int i = 0; i < candidates_.size(); ++i) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
-	// setHeader calls recalculateSize() and refresh() internally;
-	// called after items are added so measurements are accurate.
-	candidateWindow_->setHeader(L"");
+	candidateWindow_->setHeader(candidateHeader_);
+	candidateWindow_->recalculateSize();
+	candidateWindow_->refresh();
 
 	RECT textRect;
 	// get the position of composition area from TSF

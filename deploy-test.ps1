@@ -361,6 +361,7 @@ try {
     Write-Host "Backup path: $BackupPath"
 
     Stop-PimeProcesses -Root $script:PimeRoot
+    Clear-PendingPimeReplacements -Root $script:PimeRoot
     if (-not $ScheduleLockedFiles) {
         Assert-DllsUnlocked -Root $script:PimeRoot
     }
