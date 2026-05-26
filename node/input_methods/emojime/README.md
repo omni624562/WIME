@@ -1,6 +1,6 @@
 Emoji Input Method Editor
 =============
-The 'real' input method editor of Emoji on windows. Implement by [emojione](http://emojione.com/), [PIME](https://github.com/EasyIME/PIME), [NIME](https://github.com/EasyIME/NIME).
+The 'real' input method editor of Emoji on windows. Implement by [emojione](http://emojione.com/), [WIME](https://github.com/omni624562/WIME), [NIME](https://github.com/EasyIME/NIME).
 
 
 #### Node
@@ -14,7 +14,7 @@ The 'real' input method editor of Emoji on windows. Implement by [emojione](http
 Now NIME doesn't has it own installation, so we use PIME for development `emojime`.
 
 - Prepare Node v6.x environment.
-- Install [PIME](https://github.com/EasyIME/PIME/releases) v0.14.x
+- Install [WIME](https://github.com/omni624562/WIME/releases)
 - Create `emojime` folder into `C:\Program Files (x86)\PIME\server\input_methods\`
 - Copy `ime.json` and `icon.ico` into `C:\Program Files (x86)\PIME\server\input_methods\emojime\`
 - `regsvr32 "C:\Program Files (X86)\PIME\x86\PIMETextService.dll" (run as administrator)`
@@ -34,7 +34,7 @@ It is following [emojione codes](http://emoji.codes/).
 
 ## Reference
 
-- [PIME](https://github.com/EasyIME/PIME)
+- [WIME](https://github.com/omni624562/WIME)
 - [Virtual-Key Codes](https://msdn.microsoft.com/zh-tw/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 - [NIME](https://github.com/EasyIME/NIME)
 - [emojione](http://emojione.com/)

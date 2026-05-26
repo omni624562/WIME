@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EasyIME/pime-go/pime"
+	"github.com/omni624562/WIME/go-backend/pime"
 )
 
 type testDictEntry struct {

@@ -1,7 +1,6 @@
-# PIME
+# WIME
 
-[![Build status](https://ci.appveyor.com/api/projects/status/ju8c225nt9qgxeee?svg=true)](https://ci.appveyor.com/project/EasyIME/PIME)
-[![GitHub release](https://img.shields.io/github/release/EasyIME/PIME.svg)](https://github.com/EasyIME/PIME/releases)
+[![GitHub release](https://img.shields.io/github/release/omni624562/WIME.svg)](https://github.com/omni624562/WIME/releases)
 
 Implement input methods easily for Windows via Text Services Framework:
 *   LibIME contains a library which aims to be a simple wrapper for Windows Text Service Framework (TSF).
@@ -12,7 +11,7 @@ All parts are licensed under GNU LGPL v2.1 license.
 
 ## Improvements in this fork
 
-This fork (based on [EasyIME/PIME](https://github.com/EasyIME/PIME)) includes the following fixes and performance improvements:
+WIME is based on the original PIME project and includes the following fixes and performance improvements:
 
 **Bug fixes**
 *   Fixed extra space inserted after character selection in cinbase-based input methods.
@@ -41,8 +40,8 @@ This fork (based on [EasyIME/PIME](https://github.com/EasyIME/PIME)) includes th
 ## How to Build
 *   Get source from github.
 
-        git clone https://github.com/EasyIME/PIME.git
-        cd PIME
+        git clone https://github.com/omni624562/WIME.git
+        cd WIME
         git submodule update --init
 
 *   Ensure the 32-bit Rust target is installed:
@@ -101,7 +100,7 @@ This fork (based on [EasyIME/PIME](https://github.com/EasyIME/PIME)) includes th
 *   NOTICE: the `regsvr32` command needs to be run as Administrator. Otherwise you'll get access denied error.
 
 # Bug Report
-Please report any issue to [here](https://github.com/EasyIME/PIME/issues).
+Please report any issue to [here](https://github.com/omni624562/WIME/issues).
 
 # Debugging
 If you encounter issues, you can run PIMELauncher.exe with the /console argument:

@@ -61,6 +61,6 @@ menu:
   - text: "PIME輸入法平臺(&P)"
     submenu:
       - text: "PIME開發討論區"
-        uri: "https://github.com/EasyIME/forum/issues"
+        uri: "https://github.com/omni624562/WIME/issues"
       - text: "PIME建議及錯誤回報"
-        uri: "https://github.com/EasyIME/PIME/issues"
+        uri: "https://github.com/omni624562/WIME/issues"

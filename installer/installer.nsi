@@ -46,7 +46,7 @@ AllowSkipFiles off ; cannot skip a file
 !define /file PRODUCT_VERSION "..\version.txt"
 
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
-!define HOMEPAGE_URL "https://github.com/EasyIME/"
+!define HOMEPAGE_URL "https://github.com/omni624562/WIME"
 
 Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"

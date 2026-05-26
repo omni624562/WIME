@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/EasyIME/pime-go/pime"
+	"github.com/omni624562/WIME/go-backend/pime"
 )
 
 func TestConvertResponseIncludesClearedCompositionState(t *testing.T) {

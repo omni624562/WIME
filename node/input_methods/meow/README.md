@@ -1,8 +1,8 @@
 喵喵輸入法
 =============
-This is reimplement of [PIME's 喵喵輸入法](https://github.com/EasyIME/PIME/tree/master/server/input_methods/meow) by using NIME.
+This is reimplement of WIME's 喵喵輸入法 by using NIME.
 
-The `chi.ico`, `icon.ico` and `ime.json` are copied from [PIME's 喵喵輸入法](https://github.com/EasyIME/PIME/tree/master/server/input_methods/meow). These are under LGPL 2.0 License.
+The `chi.ico`, `icon.ico` and `ime.json` are copied from WIME's 喵喵輸入法. These are under LGPL 2.0 License.
 
 NIME is under MIT License.
 

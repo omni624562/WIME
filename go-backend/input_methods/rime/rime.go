@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/EasyIME/pime-go/pime"
+	"github.com/omni624562/WIME/go-backend/pime"
 )
 
 const (

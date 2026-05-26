@@ -6,7 +6,7 @@ import (
 	"log"
 	"unicode/utf8"
 
-	"github.com/EasyIME/pime-go/pime"
+	"github.com/omni624562/WIME/go-backend/pime"
 )
 
 // IME 喵喵输入法结构

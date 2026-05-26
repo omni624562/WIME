@@ -2453,11 +2453,11 @@ class CinBase:
         elif commandId == ID_MODE_ICON: # windows 8 mode icon
             self.toggleLanguageMode(cbTS)  # 切換中英文模式
         elif commandId == ID_WEBSITE: # visit chewing website
-            os.startfile("https://github.com/EasyIME/PIME")
+            os.startfile("https://github.com/omni624562/WIME")
         elif commandId == ID_BUGREPORT: # visit bug tracker page
-            os.startfile("https://github.com/EasyIME/PIME/issues")
+            os.startfile("https://github.com/omni624562/WIME/issues")
         elif commandId == ID_FORUM:
-            os.startfile("https://github.com/EasyIME/forum")
+            os.startfile("https://github.com/omni624562/WIME/issues")
         elif commandId == ID_MOEDICT: # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
         elif commandId == ID_DICT: # online Chinese dictonary

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	fcitx5ime "github.com/EasyIME/pime-go/input_methods/fcitx5"
-	meowime "github.com/EasyIME/pime-go/input_methods/meow"
-	rimeime "github.com/EasyIME/pime-go/input_methods/rime"
-	simplepinyinime "github.com/EasyIME/pime-go/input_methods/simple_pinyin"
-	"github.com/EasyIME/pime-go/pime"
+	fcitx5ime "github.com/omni624562/WIME/go-backend/input_methods/fcitx5"
+	meowime "github.com/omni624562/WIME/go-backend/input_methods/meow"
+	rimeime "github.com/omni624562/WIME/go-backend/input_methods/rime"
+	simplepinyinime "github.com/omni624562/WIME/go-backend/input_methods/simple_pinyin"
+	"github.com/omni624562/WIME/go-backend/pime"
 )
 
 const testMeowGUID = "{7A1C2E93-5B64-4F88-AE21-3D9C6B70F145}"

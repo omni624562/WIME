@@ -12,13 +12,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EasyIME/pime-go/pime"
+	"github.com/omni624562/WIME/go-backend/pime"
 
 	// 导入输入法包
-	"github.com/EasyIME/pime-go/input_methods/fcitx5"
-	"github.com/EasyIME/pime-go/input_methods/meow"
-	"github.com/EasyIME/pime-go/input_methods/rime"
-	simplepinyin "github.com/EasyIME/pime-go/input_methods/simple_pinyin"
+	"github.com/omni624562/WIME/go-backend/input_methods/fcitx5"
+	"github.com/omni624562/WIME/go-backend/input_methods/meow"
+	"github.com/omni624562/WIME/go-backend/input_methods/rime"
+	simplepinyin "github.com/omni624562/WIME/go-backend/input_methods/simple_pinyin"
 )
 
 // Client 客户端连接
