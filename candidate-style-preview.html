@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WIME Candidate Window Preview</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page-bg: #eef1f5;
+      --page-text: #1f2328;
+      --page-muted: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f7f8fa;
+      --line: #d7dbe2;
+      --shadow: 0 18px 50px rgba(31, 35, 40, 0.14), 0 3px 12px rgba(31, 35, 40, 0.10);
+      --blue: #2563eb;
+      --blue-soft: #dceaff;
+      --blue-line: #9cc7ff;
+      --blue-text: #0b3a75;
+      --editor-bg: #fbfbfc;
+      --editor-line: #dfe3ea;
+      --caret: #2563eb;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(238, 241, 245, 0.88)),
+        var(--page-bg);
+      color: var(--page-text);
+      letter-spacing: 0;
+    }
+
+    .page {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 680;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: var(--page-muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      min-width: 250px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.66);
+      color: #3f4652;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .showcase {
+      display: grid;
+      grid-template-columns: 1.22fr 0.78fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .workspace {
+      position: relative;
+      min-height: 470px;
+      overflow: hidden;
+      border: 1px solid var(--editor-line);
+      border-radius: 8px;
+      background: var(--editor-bg);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .editor-bar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--editor-line);
+      background: #f3f5f8;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #c3c8d1;
+    }
+
+    .file-name {
+      margin-left: 6px;
+      color: #5f6672;
+      font-size: 13px;
+    }
+
+    .editor {
+      position: relative;
+      padding: 42px 44px;
+      font-size: 19px;
+      line-height: 2;
+    }
+
+    .line {
+      color: #2b3038;
+      white-space: nowrap;
+    }
+
+    .muted-line {
+      color: #8a929f;
+    }
+
+    .active-text {
+      position: relative;
+      display: inline-block;
+      color: #111827;
+      font-weight: 520;
+    }
+
+    .active-text::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      bottom: 7px;
+      width: 2px;
+      height: 24px;
+      background: var(--caret);
+      animation: blink 1s steps(2, start) infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .candidate {
+      position: absolute;
+      width: max-content;
+      max-width: min(560px, calc(100vw - 64px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      font-size: 16px;
+      transform: translateZ(0);
+    }
+
+    .candidate.light {
+      --panel-bg: #ffffff;
+      --panel-bg-soft: #f8fafc;
+      --panel-line: #d7dbe2;
+      --panel-text: #20242a;
+      --panel-muted: #6b7280;
+      --selected-bg: #dceaff;
+      --selected-line: #9cc7ff;
+      --selected-text: #0b3a75;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+    }
+
+    .candidate.dark {
+      --panel-bg: #242629;
+      --panel-bg-soft: #1d1f22;
+      --panel-line: #3f4248;
+      --panel-text: #f3f4f6;
+      --panel-muted: #a1a1aa;
+      --selected-bg: #3b82f6;
+      --selected-line: #60a5fa;
+      --selected-text: #ffffff;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35), 0 3px 12px rgba(0, 0, 0, 0.22);
+    }
+
+    .candidate-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+    }
+
+    .composition {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      min-height: 31px;
+      padding: 7px 10px 6px;
+      border-bottom: 1px solid var(--panel-line);
+      background: var(--panel-bg-soft);
+      color: var(--panel-text);
+      white-space: nowrap;
+    }
+
+    .composition-label {
+      color: var(--panel-muted);
+      font-size: 12px;
+    }
+
+    .composition-text {
+      font-weight: 650;
+      letter-spacing: 0.02em;
+    }
+
+    .candidate-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      min-height: 30px;
+      padding: 4px 7px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--panel-text);
+      white-space: nowrap;
+    }
+
+    .candidate-item.selected {
+      border-color: var(--selected-line);
+      background: var(--selected-bg);
+      color: var(--selected-text);
+    }
+
+    .index {
+      color: var(--panel-muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .selected .index,
+    .selected .comment {
+      color: currentColor;
+      opacity: 0.88;
+    }
+
+    .word {
+      font-size: 17px;
+      font-weight: 560;
+    }
+
+    .comment {
+      color: var(--panel-muted);
+      font-size: 12px;
+    }
+
+    .status {
+      margin-left: 2px;
+      padding-left: 8px;
+      border-left: 1px solid var(--panel-line);
+      color: var(--panel-muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .preview-main {
+      left: 176px;
+      top: 154px;
+    }
+
+    .preview-dark {
+      left: 176px;
+      top: 276px;
+    }
+
+    .side {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .spec-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: #4b5563;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .spec-list strong {
+      color: #20242a;
+      font-weight: 650;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .mini-stage {
+      position: relative;
+      min-height: 164px;
+      border: 1px solid var(--editor-line);
+      border-radius: 8px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .mini-label {
+      padding: 12px 14px;
+      color: #697282;
+      font-size: 13px;
+    }
+
+    .vertical {
+      left: 22px;
+      top: 45px;
+      width: 226px;
+      max-width: 226px;
+    }
+
+    .vertical .candidate-main {
+      display: grid;
+      gap: 4px;
+      padding: 7px;
+    }
+
+    .vertical .candidate-item {
+      display: grid;
+      grid-template-columns: 20px minmax(40px, auto) 1fr;
+      align-items: center;
+      width: 100%;
+    }
+
+    .compact {
+      left: 22px;
+      top: 62px;
+    }
+
+    .compact .candidate-main {
+      padding: 6px;
+      gap: 4px;
+    }
+
+    .compact .candidate-item {
+      min-height: 28px;
+      padding: 3px 6px;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .swatch {
+      min-height: 52px;
+      border: 1px solid rgba(31, 35, 40, 0.12);
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      align-items: end;
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 11px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+    }
+
+    .swatch.light-text {
+      color: #1f2328;
+      text-shadow: none;
+    }
+
+    @media (max-width: 920px) {
+      .topbar,
+      .showcase {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .legend {
+        justify-content: start;
+      }
+
+      .workspace {
+        min-height: 430px;
+      }
+
+      .editor {
+        padding: 36px 24px;
+        font-size: 17px;
+      }
+
+      .preview-main,
+      .preview-dark {
+        left: 24px;
+      }
+
+      .candidate {
+        max-width: calc(100vw - 64px);
+      }
+
+      .candidate-main {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1>WIME 候選字框樣式示意</h1>
+        <p class="lead">參考 fcitx5 Linux 候選框的輕量浮層形式：貼近游標、鍵盤優先、資訊密度高、狀態不喧賓奪主。這份畫面可作為實作前的 UI 尺寸、色彩和狀態基準。</p>
+      </div>
+      <div class="legend" aria-label="design tokens">
+        <span class="chip">8px radius</span>
+        <span class="chip">16-18px candidate</span>
+        <span class="chip">light / dark</span>
+        <span class="chip">horizontal first</span>
+      </div>
+    </header>
+
+    <section class="showcase">
+      <div class="workspace" aria-label="candidate window desktop preview">
+        <div class="editor-bar">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="file-name">notes.txt</span>
+        </div>
+
+        <div class="editor">
+          <div class="line muted-line">今天測試新的輸入法候選框，目標是更像桌面原生浮層。</div>
+          <div class="line">我想輸入：<span class="active-text">ni hao</span></div>
+          <div class="line muted-line">候選框需要穩定、清楚，而且不要遮住正在輸入的文字。</div>
+        </div>
+
+        <div class="candidate light preview-main">
+          <div class="composition">
+            <span class="composition-label">組字</span>
+            <span class="composition-text">ni hao</span>
+          </div>
+          <div class="candidate-main">
+            <span class="candidate-item selected"><span class="index">1</span><span class="word">你好</span><span class="comment">nǐ hǎo</span></span>
+            <span class="candidate-item"><span class="index">2</span><span class="word">妳好</span></span>
+            <span class="candidate-item"><span class="index">3</span><span class="word">你號</span></span>
+            <span class="candidate-item"><span class="index">4</span><span class="word">擬好</span></span>
+            <span class="candidate-item"><span class="index">5</span><span class="word">泥豪</span></span>
+            <span class="status">1/3 · 半</span>
+          </div>
+        </div>
+
+        <div class="candidate dark preview-dark">
+          <div class="candidate-main">
+            <span class="candidate-item"><span class="index">1</span><span class="word">候選</span></span>
+            <span class="candidate-item selected"><span class="index">2</span><span class="word">候選字</span><span class="comment">詞</span></span>
+            <span class="candidate-item"><span class="index">3</span><span class="word">後選</span></span>
+            <span class="candidate-item"><span class="index">4</span><span class="word">厚選</span></span>
+            <span class="status">2/5 · 中</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <section class="panel">
+          <h2>設計規格</h2>
+          <ul class="spec-list">
+            <li><strong>預設布局：</strong>橫排候選，組字區可在上方或隱藏。</li>
+            <li><strong>選取狀態：</strong>以淡藍底加邊框標示，深色模式用實心藍。</li>
+            <li><strong>密度：</strong>每項最小高度 28-30px，適合連續輸入。</li>
+            <li><strong>邊界處理：</strong>靠近螢幕邊緣時自動向上或向左翻轉。</li>
+            <li><strong>動效：</strong>只使用 opacity / translate，80-120ms。</li>
+          </ul>
+        </section>
+
+        <section class="stack">
+          <div class="mini-stage">
+            <div class="mini-label">直排模式：適合長詞與註解</div>
+            <div class="candidate light vertical">
+              <div class="candidate-main">
+                <span class="candidate-item selected"><span class="index">1</span><span class="word">輸入法</span><span class="comment">shū rù fǎ</span></span>
+                <span class="candidate-item"><span class="index">2</span><span class="word">輸入</span><span class="comment">verb</span></span>
+                <span class="candidate-item"><span class="index">3</span><span class="word">樹乳</span><span class="comment">同音</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-stage">
+            <div class="mini-label">極簡模式：只顯示候選與頁碼</div>
+            <div class="candidate light compact">
+              <div class="candidate-main">
+                <span class="candidate-item selected"><span class="index">1</span><span class="word">我</span></span>
+                <span class="candidate-item"><span class="index">2</span><span class="word">握</span></span>
+                <span class="candidate-item"><span class="index">3</span><span class="word">窩</span></span>
+                <span class="status">1/1</span>
+              </div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <h2>建議色票</h2>
+            <div class="palette" aria-label="color palette">
+              <div class="swatch light-text" style="background:#ffffff;">panel</div>
+              <div class="swatch light-text" style="background:#d7dbe2;">border</div>
+              <div class="swatch" style="background:#20242a;">text</div>
+              <div class="swatch" style="background:#2563eb;">active</div>
+              <div class="swatch light-text" style="background:#dceaff;">active soft</div>
+            </div>
+          </section>
+        </section>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
