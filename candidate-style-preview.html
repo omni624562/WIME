@@ -205,6 +205,58 @@
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35), 0 3px 12px rgba(0, 0, 0, 0.22);
     }
 
+    .candidate.mint {
+      --panel-bg: #ffffff;
+      --panel-bg-soft: #f5fbf8;
+      --panel-line: #cfded7;
+      --panel-text: #1f2a26;
+      --panel-muted: #68756f;
+      --selected-bg: #dff5ea;
+      --selected-line: #90d7b4;
+      --selected-text: #0f5132;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+    }
+
+    .candidate.grape {
+      --panel-bg: #ffffff;
+      --panel-bg-soft: #faf8ff;
+      --panel-line: #d9d2ea;
+      --panel-text: #272330;
+      --panel-muted: #716a80;
+      --selected-bg: #ece4ff;
+      --selected-line: #bda7f2;
+      --selected-text: #4c1d95;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+    }
+
+    .candidate.amber {
+      --panel-bg: #ffffff;
+      --panel-bg-soft: #fffaf2;
+      --panel-line: #e2d6c3;
+      --panel-text: #2a251d;
+      --panel-muted: #7a6d5a;
+      --selected-bg: #fff0c7;
+      --selected-line: #e5b95f;
+      --selected-text: #6f4300;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+    }
+
+    .candidate.graphite {
+      --panel-bg: #fbfbfc;
+      --panel-bg-soft: #f3f4f6;
+      --panel-line: #cfd3da;
+      --panel-text: #20242a;
+      --panel-muted: #69717d;
+      --selected-bg: #e8eaee;
+      --selected-line: #b5bbc6;
+      --selected-text: #171a1f;
+      background: var(--panel-bg);
+      border-color: var(--panel-line);
+    }
+
     .candidate-main {
       display: flex;
       align-items: center;
@@ -252,13 +304,13 @@
       color: var(--selected-text);
     }
 
-    .index {
+    .key {
       color: var(--panel-muted);
       font-size: 12px;
       font-variant-numeric: tabular-nums;
     }
 
-    .selected .index,
+    .selected .key,
     .selected .comment {
       color: currentColor;
       opacity: 0.88;
@@ -369,6 +421,94 @@
       width: 100%;
     }
 
+    .dayi-stage {
+      min-height: 224px;
+    }
+
+    .dayi {
+      left: 22px;
+      top: 44px;
+      width: 86px;
+      max-width: 86px;
+      border-radius: 0;
+      box-shadow: 0 10px 24px rgba(31, 35, 40, 0.13);
+    }
+
+    .dayi .candidate-main {
+      display: grid;
+      gap: 0;
+      padding: 2px 3px;
+    }
+
+    .dayi .candidate-item {
+      display: grid;
+      grid-template-columns: 25px 1fr;
+      align-items: center;
+      min-height: 30px;
+      width: 100%;
+      padding: 1px 3px;
+      border-radius: 0;
+    }
+
+    .dayi .candidate-item.selected {
+      border-color: #111111;
+      background: #111111;
+      color: #ffffff;
+    }
+
+    .dayi .key {
+      color: #123dff;
+      font-size: 17px;
+      line-height: 1;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .dayi .selected .key {
+      color: #7892ff;
+    }
+
+    .dayi .word {
+      font-size: 21px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .dayi-horizontal-stage {
+      min-height: 132px;
+    }
+
+    .dayi-horizontal {
+      left: 22px;
+      top: 58px;
+      border-radius: 6px;
+      max-width: calc(100% - 44px);
+    }
+
+    .dayi-horizontal .candidate-main {
+      gap: 5px;
+      padding: 6px;
+    }
+
+    .dayi-horizontal .candidate-item {
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      gap: 5px;
+      align-items: baseline;
+      min-height: 30px;
+      padding: 3px 7px;
+    }
+
+    .dayi-horizontal .key {
+      color: #123dff;
+      font-size: 15px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .dayi-horizontal .word {
+      font-size: 18px;
+      font-weight: 540;
+    }
+
     .compact {
       left: 22px;
       top: 62px;
@@ -408,6 +548,152 @@
       text-shadow: none;
     }
 
+    .theme-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .theme-row {
+      position: relative;
+      min-height: 66px;
+      border: 1px solid var(--editor-line);
+      border-radius: 8px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .theme-name {
+      position: absolute;
+      left: 12px;
+      top: 9px;
+      color: #687282;
+      font-size: 12px;
+    }
+
+    .theme-sample {
+      left: 88px;
+      top: 17px;
+      box-shadow: 0 8px 20px rgba(31, 35, 40, 0.10);
+    }
+
+    .theme-sample .candidate-main {
+      padding: 5px 6px;
+      gap: 5px;
+    }
+
+    .theme-sample .candidate-item {
+      min-height: 27px;
+      padding: 2px 7px;
+    }
+
+    .operation-demo {
+      margin-top: 18px;
+      border: 1px solid var(--editor-line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      overflow: hidden;
+    }
+
+    .operation-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--editor-line);
+      background: #f5f7fa;
+    }
+
+    .operation-head h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .operation-head span {
+      color: #687282;
+      font-size: 13px;
+    }
+
+    .operation-stage {
+      position: relative;
+      min-height: 285px;
+      padding: 34px 38px 96px;
+      background:
+        linear-gradient(90deg, rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+        #fbfcfe;
+      background-size: 42px 42px;
+    }
+
+    .operation-line {
+      font-size: 23px;
+      line-height: 1.8;
+      color: #1f2328;
+      white-space: nowrap;
+    }
+
+    .operation-line .active-text::after {
+      bottom: 8px;
+      height: 28px;
+    }
+
+    .operation-candidate {
+      left: 196px;
+      top: 86px;
+      max-width: calc(100% - 236px);
+    }
+
+    .operation-candidate .candidate-main {
+      padding: 8px 9px;
+    }
+
+    .key-rail {
+      position: absolute;
+      left: 38px;
+      right: 38px;
+      bottom: 28px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .key-action {
+      min-height: 50px;
+      border: 1px solid #d8dde6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 8px 10px;
+      box-shadow: 0 5px 14px rgba(31, 35, 40, 0.06);
+    }
+
+    .keycap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 30px;
+      height: 24px;
+      padding: 0 7px;
+      border: 1px solid #c8ced8;
+      border-bottom-color: #aeb5c1;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #20242a;
+      font-size: 12px;
+      font-weight: 650;
+      box-shadow: inset 0 -1px 0 rgba(31, 35, 40, 0.10);
+    }
+
+    .key-action strong {
+      display: block;
+      margin-top: 5px;
+      color: #424a57;
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 560;
+    }
+
     @media (max-width: 920px) {
       .topbar,
       .showcase {
@@ -440,6 +726,22 @@
       .candidate-main {
         flex-wrap: wrap;
       }
+
+      .operation-stage {
+        padding: 28px 22px 220px;
+      }
+
+      .operation-candidate {
+        left: 22px;
+        top: 90px;
+        max-width: calc(100vw - 78px);
+      }
+
+      .key-rail {
+        left: 22px;
+        right: 22px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -454,7 +756,7 @@
         <span class="chip">8px radius</span>
         <span class="chip">16-18px candidate</span>
         <span class="chip">light / dark</span>
-        <span class="chip">horizontal first</span>
+        <span class="chip">select-key labels</span>
       </div>
     </header>
 
@@ -479,21 +781,21 @@
             <span class="composition-text">ni hao</span>
           </div>
           <div class="candidate-main">
-            <span class="candidate-item selected"><span class="index">1</span><span class="word">你好</span><span class="comment">nǐ hǎo</span></span>
-            <span class="candidate-item"><span class="index">2</span><span class="word">妳好</span></span>
-            <span class="candidate-item"><span class="index">3</span><span class="word">你號</span></span>
-            <span class="candidate-item"><span class="index">4</span><span class="word">擬好</span></span>
-            <span class="candidate-item"><span class="index">5</span><span class="word">泥豪</span></span>
+            <span class="candidate-item selected"><span class="key">1</span><span class="word">你好</span><span class="comment">nǐ hǎo</span></span>
+            <span class="candidate-item"><span class="key">2</span><span class="word">妳好</span></span>
+            <span class="candidate-item"><span class="key">3</span><span class="word">你號</span></span>
+            <span class="candidate-item"><span class="key">4</span><span class="word">擬好</span></span>
+            <span class="candidate-item"><span class="key">5</span><span class="word">泥豪</span></span>
             <span class="status">1/3 · 半</span>
           </div>
         </div>
 
         <div class="candidate dark preview-dark">
           <div class="candidate-main">
-            <span class="candidate-item"><span class="index">1</span><span class="word">候選</span></span>
-            <span class="candidate-item selected"><span class="index">2</span><span class="word">候選字</span><span class="comment">詞</span></span>
-            <span class="candidate-item"><span class="index">3</span><span class="word">後選</span></span>
-            <span class="candidate-item"><span class="index">4</span><span class="word">厚選</span></span>
+            <span class="candidate-item"><span class="key">1</span><span class="word">候選</span></span>
+            <span class="candidate-item selected"><span class="key">2</span><span class="word">候選字</span><span class="comment">詞</span></span>
+            <span class="candidate-item"><span class="key">3</span><span class="word">後選</span></span>
+            <span class="candidate-item"><span class="key">4</span><span class="word">厚選</span></span>
             <span class="status">2/5 · 中</span>
           </div>
         </div>
@@ -503,7 +805,8 @@
         <section class="panel">
           <h2>設計規格</h2>
           <ul class="spec-list">
-            <li><strong>預設布局：</strong>橫排候選，組字區可在上方或隱藏。</li>
+            <li><strong>選字鍵：</strong>不要寫死數字，需由輸入法傳入，例如大易可顯示符號鍵。</li>
+            <li><strong>預設布局：</strong>橫排候選，組字區可在上方或隱藏；大易可在水平與窄版直排間切換。</li>
             <li><strong>選取狀態：</strong>以淡藍底加邊框標示，深色模式用實心藍。</li>
             <li><strong>密度：</strong>每項最小高度 28-30px，適合連續輸入。</li>
             <li><strong>邊界處理：</strong>靠近螢幕邊緣時自動向上或向左翻轉。</li>
@@ -512,13 +815,41 @@
         </section>
 
         <section class="stack">
+          <div class="mini-stage dayi-stage">
+            <div class="mini-label">大易模式：左側是選字鍵，不是數字序號</div>
+            <div class="candidate light dayi">
+              <div class="candidate-main">
+                <span class="candidate-item selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate-item"><span class="key">'</span><span class="word">夕</span></span>
+                <span class="candidate-item"><span class="key">[</span><span class="word">角</span></span>
+                <span class="candidate-item"><span class="key">]</span><span class="word">魚</span></span>
+                <span class="candidate-item"><span class="key">-</span><span class="word">互</span></span>
+                <span class="candidate-item"><span class="key">\</span><span class="word">リ</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-stage dayi-horizontal-stage">
+            <div class="mini-label">大易水平模式：符號選字鍵也可以橫排</div>
+            <div class="candidate light dayi-horizontal">
+              <div class="candidate-main">
+                <span class="candidate-item selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate-item"><span class="key">'</span><span class="word">夕</span></span>
+                <span class="candidate-item"><span class="key">[</span><span class="word">角</span></span>
+                <span class="candidate-item"><span class="key">]</span><span class="word">魚</span></span>
+                <span class="candidate-item"><span class="key">-</span><span class="word">互</span></span>
+                <span class="candidate-item"><span class="key">\</span><span class="word">リ</span></span>
+              </div>
+            </div>
+          </div>
+
           <div class="mini-stage">
             <div class="mini-label">直排模式：適合長詞與註解</div>
             <div class="candidate light vertical">
               <div class="candidate-main">
-                <span class="candidate-item selected"><span class="index">1</span><span class="word">輸入法</span><span class="comment">shū rù fǎ</span></span>
-                <span class="candidate-item"><span class="index">2</span><span class="word">輸入</span><span class="comment">verb</span></span>
-                <span class="candidate-item"><span class="index">3</span><span class="word">樹乳</span><span class="comment">同音</span></span>
+                <span class="candidate-item selected"><span class="key">1</span><span class="word">輸入法</span><span class="comment">shū rù fǎ</span></span>
+                <span class="candidate-item"><span class="key">2</span><span class="word">輸入</span><span class="comment">verb</span></span>
+                <span class="candidate-item"><span class="key">3</span><span class="word">樹乳</span><span class="comment">同音</span></span>
               </div>
             </div>
           </div>
@@ -527,9 +858,9 @@
             <div class="mini-label">極簡模式：只顯示候選與頁碼</div>
             <div class="candidate light compact">
               <div class="candidate-main">
-                <span class="candidate-item selected"><span class="index">1</span><span class="word">我</span></span>
-                <span class="candidate-item"><span class="index">2</span><span class="word">握</span></span>
-                <span class="candidate-item"><span class="index">3</span><span class="word">窩</span></span>
+                <span class="candidate-item selected"><span class="key">1</span><span class="word">我</span></span>
+                <span class="candidate-item"><span class="key">2</span><span class="word">握</span></span>
+                <span class="candidate-item"><span class="key">3</span><span class="word">窩</span></span>
                 <span class="status">1/1</span>
               </div>
             </div>
@@ -545,8 +876,115 @@
               <div class="swatch light-text" style="background:#dceaff;">active soft</div>
             </div>
           </section>
+
+          <section class="panel">
+            <h2>不同選取色</h2>
+            <div class="theme-grid" aria-label="candidate color variants">
+              <div class="theme-row">
+                <span class="theme-name">Blue</span>
+                <div class="candidate light theme-sample">
+                  <div class="candidate-main">
+                    <span class="candidate-item selected"><span class="key">1</span><span class="word">你好</span></span>
+                    <span class="candidate-item"><span class="key">2</span><span class="word">妳好</span></span>
+                    <span class="status">1/3</span>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-row">
+                <span class="theme-name">Mint</span>
+                <div class="candidate mint theme-sample">
+                  <div class="candidate-main">
+                    <span class="candidate-item selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                    <span class="candidate-item"><span class="key">[</span><span class="word">角</span></span>
+                    <span class="status">1/2</span>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-row">
+                <span class="theme-name">Grape</span>
+                <div class="candidate grape theme-sample">
+                  <div class="candidate-main">
+                    <span class="candidate-item selected"><span class="key">1</span><span class="word">輸入</span></span>
+                    <span class="candidate-item"><span class="key">2</span><span class="word">書入</span></span>
+                    <span class="status">1/4</span>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-row">
+                <span class="theme-name">Amber</span>
+                <div class="candidate amber theme-sample">
+                  <div class="candidate-main">
+                    <span class="candidate-item selected"><span class="key">1</span><span class="word">候選</span></span>
+                    <span class="candidate-item"><span class="key">2</span><span class="word">後選</span></span>
+                    <span class="status">2/5</span>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-row">
+                <span class="theme-name">Graphite</span>
+                <div class="candidate graphite theme-sample">
+                  <div class="candidate-main">
+                    <span class="candidate-item selected"><span class="key">1</span><span class="word">我</span></span>
+                    <span class="candidate-item"><span class="key">2</span><span class="word">握</span></span>
+                    <span class="status">1/1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
       </aside>
+    </section>
+
+    <section class="operation-demo" aria-label="friendly operation preview">
+      <div class="operation-head">
+        <h2>友善操作示範畫面</h2>
+        <span>選字鍵由輸入法提供，布局與顏色由 UI 設定控制</span>
+      </div>
+      <div class="operation-stage">
+        <div class="operation-line">我想輸入：<span class="active-text">hou xuan</span></div>
+        <div class="candidate light operation-candidate">
+          <div class="composition">
+            <span class="composition-label">組字</span>
+            <span class="composition-text">hou xuan</span>
+          </div>
+          <div class="candidate-main">
+            <span class="candidate-item"><span class="key">1</span><span class="word">後選</span></span>
+            <span class="candidate-item selected"><span class="key">2</span><span class="word">候選</span><span class="comment">目前游標</span></span>
+            <span class="candidate-item"><span class="key">3</span><span class="word">候選字</span></span>
+            <span class="candidate-item"><span class="key">4</span><span class="word">侯選</span></span>
+            <span class="candidate-item"><span class="key">5</span><span class="word">厚選</span></span>
+            <span class="status">1/4 · 中</span>
+          </div>
+        </div>
+        <div class="key-rail">
+          <div class="key-action">
+            <span class="keycap">2</span>
+            <strong>送出候選</strong>
+          </div>
+          <div class="key-action">
+            <span class="keycap">Space</span>
+            <strong>選第一候選</strong>
+          </div>
+          <div class="key-action">
+            <span class="keycap">←</span>
+            <span class="keycap">→</span>
+            <strong>移動選取</strong>
+          </div>
+          <div class="key-action">
+            <span class="keycap">PgDn</span>
+            <strong>下一頁</strong>
+          </div>
+          <div class="key-action">
+            <span class="keycap">Esc</span>
+            <strong>關閉候選</strong>
+          </div>
+          <div class="key-action">
+            <span class="keycap">A</span>
+            <strong>無候選時正常輸入</strong>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 </body>
