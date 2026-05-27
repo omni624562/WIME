@@ -26,7 +26,9 @@ function Set-Utf8Output {
     [Console]::InputEncoding = $utf8NoBom
     [Console]::OutputEncoding = $utf8NoBom
     $script:OutputEncoding = $utf8NoBom
-    $PSStyle.OutputRendering = "PlainText"
+    if ($null -ne (Get-Variable -Name PSStyle -ErrorAction SilentlyContinue)) {
+        $PSStyle.OutputRendering = "PlainText"
+    }
     $env:PYTHONUTF8 = "1"
     $env:PYTHONIOENCODING = "utf-8"
     chcp.com 65001 | Out-Null

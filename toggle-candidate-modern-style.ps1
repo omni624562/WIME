@@ -3,6 +3,7 @@ param(
     [bool]$Enabled,
 
     [string]$ImeName = "chedayi",
+    [string]$Theme = "dark",
     [switch]$RestartBackend
 )
 
@@ -14,7 +15,9 @@ function Set-Utf8Output {
     [Console]::InputEncoding = $utf8NoBom
     [Console]::OutputEncoding = $utf8NoBom
     $script:OutputEncoding = $utf8NoBom
-    $PSStyle.OutputRendering = "PlainText"
+    if ($null -ne (Get-Variable -Name "PSStyle" -ErrorAction SilentlyContinue)) {
+        $PSStyle.OutputRendering = "PlainText"
+    }
     $env:PYTHONUTF8 = "1"
     $env:PYTHONIOENCODING = "utf-8"
     chcp.com 65001 | Out-Null
@@ -65,22 +68,41 @@ $config | Add-Member -NotePropertyName "candidateModernStyle" -NotePropertyValue
 $config | Add-Member -NotePropertyName "candidateLayout" -NotePropertyValue "horizontal" -Force
 $config | Add-Member -NotePropertyName "candidatePerRow" -NotePropertyValue 10 -Force
 $config | Add-Member -NotePropertyName "candidateEdgeAvoidance" -NotePropertyValue $true -Force
-$config | Add-Member -NotePropertyName "candidateTheme" -NotePropertyValue "light" -Force
+$config | Add-Member -NotePropertyName "candidateTheme" -NotePropertyValue $Theme -Force
+$config | Add-Member -NotePropertyName "compositionBufferMode" -NotePropertyValue $true -Force
 
-$candidateColors = [ordered]@{
-    panelBackground = "#FFFFFF"
-    panelBorder = "#DADDE3"
-    textPrimary = "#20242A"
-    textSecondary = "#6B7280"
-    highlightBackground = "#DCEBFF"
-    highlightBorder = "#9CC7FF"
-    highlightText = "#0B3A75"
+if ($Theme -eq "dark") {
+    $candidateColors = [ordered]@{
+        panelBackground     = "#1E1E24"
+        panelBorder         = "#4B5563" # 調亮灰色邊緣，防止在暗色桌面背景中融合
+        textPrimary         = "#F3F4F6"
+        textSecondary       = "#8E9AA8"
+        highlightBackground = "#3B82F6"
+        highlightBorder     = "#3B82F6"
+        highlightText       = "#FFFFFF"
+    }
+    $candidateStyle = [ordered]@{
+        contentMargin = 12
+        textMargin    = 8
+        borderRadius  = 6
+    }
+} else {
+    $candidateColors = [ordered]@{
+        panelBackground     = "#F8F9FA"
+        panelBorder         = "#E5E7EB"
+        textPrimary         = "#2E3440"
+        textSecondary       = "#9CA3AF"
+        highlightBackground = "#88C0D0"
+        highlightBorder     = "#88C0D0"
+        highlightText       = "#ECEFF4"
+    }
+    $candidateStyle = [ordered]@{
+        contentMargin = 14
+        textMargin    = 10
+        borderRadius  = 8
+    }
 }
-$candidateStyle = [ordered]@{
-    contentMargin = 8
-    textMargin = 6
-    borderRadius = 8
-}
+
 $config | Add-Member -NotePropertyName "candidateColors" -NotePropertyValue $candidateColors -Force
 $config | Add-Member -NotePropertyName "candidateStyle" -NotePropertyValue $candidateStyle -Force
 

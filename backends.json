@@ -3,7 +3,7 @@
         "name": "python",
         "command": "python\\python3\\python.exe",
         "workingDir": "python",
-        "params": "server.py"
+        "params": "-O server.py"
     },
     {
         "name": "node",

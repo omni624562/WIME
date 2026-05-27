@@ -305,11 +305,15 @@ Function .onInit
 
 	File "/oname=$PLUGINSDIR\PIMETextService_x86.dll" "..\build\PIMETextService\Release\PIMETextService.dll"
 	File "/oname=$PLUGINSDIR\PIMETextService_x64.dll" "..\build64\PIMETextService\Release\PIMETextService.dll"
-	File "/oname=$PLUGINSDIR\PIMETextService_arm64.dll" "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
+	!if /FileExists "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
+		File "/oname=$PLUGINSDIR\PIMETextService_arm64.dll" "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
+	!endif
 
 	StrCpy $UPDATEX86DLL "True"
 	StrCpy $UPDATEX64DLL "True"
-	StrCpy $UPDATEARM64DLL "True"
+	!if /FileExists "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
+		StrCpy $UPDATEARM64DLL "True"
+	!endif
 
 	StrCpy $INST_PYTHON "False"
 	StrCpy $INST_CINBASE "False"
@@ -633,6 +637,7 @@ Section "" Register
 		ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\x64\PIMETextService.dll"'
 	${EndIf}
 
+	!if /FileExists "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
 	${If} ${IsNativeARM64} ; This is a native ARM64 Windows system
 		SetOutPath "$INSTDIR\arm64"
 		${If} $UPDATEARM64DLL == "True"
@@ -641,6 +646,7 @@ Section "" Register
 		; Register COM objects (NSIS RegDLL command is broken and cannot be used)
 		ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\arm64\PIMETextService.dll"'
 	${EndIf}
+	!endif
 
 	SetOutPath "$INSTDIR\x86"
 	${If} $UPDATEX86DLL == "True"

@@ -48,7 +48,21 @@ class Cin(object):
         self.charsetRange['cjkCId'] = [int('0xFA2E', 16), int('0xFB00', 16)]
         self.charsetRange['cjkCIS'] = [int('0x2F800', 16), int('0x2FA20', 16)]
 
-        self.__dict__.update(json.load(fs))
+        try:
+            import orjson
+            content = fs.read()
+            self.__dict__.update(orjson.loads(content))
+        except Exception:
+            try:
+                import ujson
+                fs.seek(0)
+                self.__dict__.update(ujson.load(fs))
+            except Exception:
+                try:
+                    fs.seek(0)
+                except Exception:
+                    pass
+                self.__dict__.update(json.load(fs))
 
         if self.ignorePrivateUseArea:
             for key in self.privateuse:

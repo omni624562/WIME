@@ -15,7 +15,17 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import json
+try:
+    import orjson as json
+    # orjson returns bytes for dumps, so we wrap it to ensure string or handle it
+    _has_orjson = True
+except ImportError:
+    try:
+        import ujson as json
+        _has_orjson = False
+    except ImportError:
+        import json
+        _has_orjson = False
 import sys
 import traceback
 import os
@@ -108,7 +118,11 @@ class Server(object):
                     ret = client.handleRequest(msg)
                     # Send the response to the client via stdout
                     # one response per line in the format "PIME_MSG|<client_id>|<json reply>"
-                    reply_line = '|'.join(["PIME_MSG", client_id, json.dumps(ret, ensure_ascii=False)])
+                    if _has_orjson:
+                        json_str = json.dumps(ret).decode('utf-8')
+                    else:
+                        json_str = json.dumps(ret, ensure_ascii=False)
+                    reply_line = '|'.join(["PIME_MSG", client_id, json_str])
                     print(reply_line, flush=True)
             except EOFError:
                 # stop the server

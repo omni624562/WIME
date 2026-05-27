@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大易輸入法 - 互動式極簡美學示範網頁</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --glass-bg: rgba(30, 30, 40, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.25); /* 提高透明白灰邊界的不透明度，使其更為明亮清晰 */
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --accent-border: #3b82f6;
+      --card-radius: 16px;
+      --font-display: 'Outfit', 'Noto Sans TC', sans-serif;
+      --font-body: 'Inter', 'Noto Sans TC', sans-serif;
+      transition: all 0.3s ease;
+    }
+
+    body.theme-light {
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --glass-bg: rgba(255, 255, 255, 0.94); /* 增加不透明度防止融合 */
+      --glass-border: rgba(15, 23, 42, 0.16); /* 提高邊框對比度 */
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #88c0d0;
+      --accent-soft: rgba(136, 192, 208, 0.2);
+      --accent-border: #88c0d0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    .container {
+      width: min(1000px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      padding: 16px 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span.badge {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .theme-toggle {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25);
+    }
+
+    /* Main Stage */
+    .stage-card {
+      backdrop-filter: blur(20px);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      padding: 48px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .editor-sim {
+      font-size: 26px;
+      font-weight: 400;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .muted-text {
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    .active-input {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 4px;
+      position: relative;
+      font-weight: 600;
+    }
+
+    .active-input::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      bottom: 2px;
+      width: 2px;
+      height: 30px;
+      background: var(--accent);
+      animation: blink 1s steps(2, start) infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* Modern Candidate Box */
+    .ime-candidate-window {
+      position: absolute;
+      left: 48px;
+      top: 55%;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border); /* 改回精緻優雅的微光邊框，非高調藍色 */
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5), 
+        0 0 0 1px rgba(255, 255, 255, 0.05), /* 內側微弱高光 */
+        0 0 15px rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.theme-light .ime-candidate-window {
+      border: 1px solid var(--glass-border);
+      box-shadow: 
+        0 25px 50px -12px rgba(15, 23, 42, 0.15),
+        0 0 0 1px rgba(0, 0, 0, 0.02);
+    }
+
+    .ime-candidate-window.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .ime-composition {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .comp-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .comp-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+
+    .candidate-list {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      gap: 6px;
+    }
+
+    .candidate-item {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .candidate-item.selected {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    body.theme-light .candidate-item.selected {
+      color: #2e3440;
+      box-shadow: 0 4px 15px rgba(136, 192, 208, 0.3);
+    }
+
+    .candidate-key {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .candidate-item.selected .candidate-key {
+      color: currentColor;
+      opacity: 0.8;
+    }
+
+    .candidate-word {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .window-status {
+      padding-left: 12px;
+      margin-left: 6px;
+      border-left: 1px solid var(--glass-border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Virtual Keyboard */
+    .keyboard-card {
+      backdrop-filter: blur(12px);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .keycap {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: var(--font-body);
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    body.theme-light .keycap {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .keycap:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .keycap:active, .keycap.active {
+      transform: translateY(0);
+      background: var(--accent);
+      color: #ffffff !important;
+    }
+
+    body.theme-light .keycap:active, body.theme-light .keycap.active {
+      color: #2e3440 !important;
+    }
+
+    .key-letter {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .key-radical {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .keycap.spacebar {
+      width: 280px;
+    }
+
+    .keycap.backspace {
+      width: 78px;
+    }
+
+    /* Tips & Helpers */
+    .tips-card {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .tips-card strong {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body class="theme-dark">
+  <div class="container">
+    
+    <!-- Header -->
+    <header>
+      <h1>大易輸入法 <span class="badge">極簡美學互動示範</span></h1>
+      <button class="theme-toggle" id="themeBtn">
+        <span id="themeText">切換北歐亮色</span>
+      </button>
+    </header>
+
+    <!-- Interactive Typing Stage -->
+    <div class="stage-card">
+      <div class="editor-sim">
+        <span class="muted-text">我想輸入：</span>
+        <span class="muted-text" id="typedSentence">今天天氣真好，想和朋友一起去</span><span class="active-input" id="currentComposition"></span>
+      </div>
+
+      <!-- Simulated Floating Candidate Window -->
+      <div class="ime-candidate-window" id="candWindow">
+        <div class="ime-composition">
+          <span class="comp-label">大易字根</span>
+          <span class="comp-text" id="compText"></span>
+        </div>
+        <div class="candidate-list" id="candList">
+          <!-- Items will be generated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Virtual Keyboard representing Dayi keys -->
+    <div class="keyboard-card" id="keyboard">
+      <!-- Row 1 -->
+      <div class="keyboard-row">
+        <div class="keycap" data-key="q"><span class="key-letter">Q</span><span class="key-radical">石</span></div>
+        <div class="keycap" data-key="w"><span class="key-letter">W</span><span class="key-radical">山</span></div>
+        <div class="keycap" data-key="e"><span class="key-letter">E</span><span class="key-radical">田</span></div>
+        <div class="keycap" data-key="r"><span class="key-letter">R</span><span class="key-radical">工</span></div>
+        <div class="keycap" data-key="t"><span class="key-letter">T</span><span class="key-radical">得</span></div>
+        <div class="keycap" data-key="y"><span class="key-letter">Y</span><span class="key-radical">卜</span></div>
+        <div class="keycap" data-key="u"><span class="key-letter">U</span><span class="key-radical">齒</span></div>
+        <div class="keycap" data-key="i"><span class="key-letter">I</span><span class="key-radical">木</span></div>
+        <div class="keycap" data-key="o"><span class="key-letter">O</span><span class="key-radical">火</span></div>
+        <div class="keycap" data-key="p"><span class="key-letter">P</span><span class="key-radical">門</span></div>
+        <div class="keycap backspace" data-key="backspace"><span class="key-radical">⌫</span></div>
+      </div>
+      <!-- Row 2 -->
+      <div class="keyboard-row">
+        <div class="keycap" data-key="a"><span class="key-letter">A</span><span class="key-radical">人</span></div>
+        <div class="keycap" data-key="s"><span class="key-letter">S</span><span class="key-radical">革</span></div>
+        <div class="keycap" data-key="d"><span class="key-letter">D</span><span class="key-radical">日</span></div>
+        <div class="keycap" data-key="f"><span class="key-letter">F</span><span class="key-radical">土</span></div>
+        <div class="keycap" data-key="g"><span class="key-letter">G</span><span class="key-radical">手</span></div>
+        <div class="keycap" data-key="h"><span class="key-letter">H</span><span class="key-radical">鳥</span></div>
+        <div class="keycap" data-key="j"><span class="key-letter">J</span><span class="key-radical">月</span></div>
+        <div class="keycap" data-key="k"><span class="key-letter">K</span><span class="key-radical">立</span></div>
+        <div class="keycap" data-key="l"><span class="key-letter">L</span><span class="key-radical">米</span></div>
+      </div>
+      <!-- Row 3 -->
+      <div class="keyboard-row">
+        <div class="keycap" data-key="z"><span class="key-letter">Z</span><span class="key-radical">心</span></div>
+        <div class="keycap" data-key="x"><span class="key-letter">X</span><span class="key-radical">水</span></div>
+        <div class="keycap" data-key="c"><span class="key-letter">C</span><span class="key-radical">金</span></div>
+        <div class="keycap" data-key="v"><span class="key-letter">V</span><span class="key-radical">女</span></div>
+        <div class="keycap" data-key="b"><span class="key-letter">B</span><span class="key-radical">馬</span></div>
+        <div class="keycap" data-key="n"><span class="key-letter">N</span><span class="key-radical">魚</span></div>
+        <div class="keycap" data-key="m"><span class="key-letter">M</span><span class="key-radical">雨</span></div>
+      </div>
+      <!-- Spacebar Row -->
+      <div class="keyboard-row">
+        <div class="keycap spacebar" data-key=" "><span class="key-radical">Space</span></div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips-card">
+      <p>💡 **互動提示**：您可以點選虛擬鍵盤，或者直接在您的**實體鍵盤**上敲擊對應按鍵！<br>
+      嘗試輸入 **`x` (水)** 和 **`i` (木)** 拆解，並按 **`Space`** 或是 **選字鍵** 來模擬送出「**說**」！</p>
+    </div>
+
+  </div>
+
+  <script>
+    // Theme Switcher
+    const body = document.body;
+    const themeBtn = document.getElementById('themeBtn');
+    const themeText = document.getElementById('themeText');
+
+    themeBtn.addEventListener('click', () => {
+      if (body.classList.contains('theme-dark')) {
+        body.classList.remove('theme-dark');
+        body.classList.add('theme-light');
+        themeText.textContent = '切換極簡深色';
+      } else {
+        body.classList.remove('theme-light');
+        body.classList.add('theme-dark');
+        themeText.textContent = '切換北歐亮色';
+      }
+    });
+
+    // Dayi radical mapping
+    const dayiMap = {
+      'q': '石', 'w': '山', 'e': '田', 'r': '工', 't': '得', 'y': '卜', 'u': '齒', 'i': '木', 'o': '火', 'p': '門',
+      'a': '人', 's': '革', 'd': '日', 'f': '土', 'g': '手', 'h': '鳥', 'j': '月', 'k': '立', 'l': '米',
+      'z': '心', 'x': '水', 'c': '金', 'v': '女', 'b': '馬', 'n': '魚', 'm': '雨'
+    };
+
+    // Dayi candidates mapping for demo
+    const candidateDatabase = {
+      '水': ['水', '又', '叉', '支', '小'],
+      '水木': ['說', '設', '討', '記', '謝'],
+      '人': ['人', '入', '八', '乂', '個'],
+      '金': ['金', '全', '命', '合', '企'],
+      '革日土手': ['對', '是', '這', '個', '字'],
+      '火': ['火', '燈', '秋', '炮', '炒']
+    };
+
+    let composition = '';
+    let selectionIndex = 0;
+
+    const currentCompositionSpan = document.getElementById('currentComposition');
+    const candWindow = document.getElementById('candWindow');
+    const compText = document.getElementById('compText');
+    const candList = document.getElementById('candList');
+    const typedSentence = document.getElementById('typedSentence');
+
+    function updateUI() {
+      if (composition === '') {
+        currentCompositionSpan.textContent = '';
+        candWindow.classList.remove('active');
+        return;
+      }
+
+      // Map keys to Dayi radicals
+      const radicals = composition.split('').map(k => dayiMap[k] || k).join('');
+      currentCompositionSpan.textContent = radicals;
+      compText.textContent = radicals;
+
+      // Find candidates
+      const candidates = candidateDatabase[radicals] || ['？', '！', '…'];
+      
+      // Render candidate items (using Dayi selection keys: ㄅ, ', [, ], -, \ as select labels)
+      const selectKeys = ['ㄅ', "'", '[', ']', '-', '\\'];
+      candList.innerHTML = '';
+      candidates.forEach((cand, idx) => {
+        const item = document.createElement('div');
+        item.className = 'candidate-item' + (idx === selectionIndex ? ' selected' : '');
+        item.innerHTML = `<span class="candidate-key">${selectKeys[idx] || (idx+1)}</span><span class="candidate-word">${cand}</span>`;
+        item.addEventListener('click', () => {
+          commitWord(cand);
+        });
+        candList.appendChild(item);
+      });
+
+      // Add active status
+      const status = document.createElement('span');
+      status.className = 'window-status';
+      status.textContent = '1/1 · 大易';
+      candList.appendChild(status);
+
+      candWindow.classList.add('active');
+    }
+
+    function commitWord(word) {
+      typedSentence.textContent += word;
+      composition = '';
+      selectionIndex = 0;
+      updateUI();
+    }
+
+    function handleKeyPress(key) {
+      const lowerKey = key.toLowerCase();
+      
+      // Animate keycap on virtual keyboard
+      const keycap = document.querySelector(`.keycap[data-key="${lowerKey}"]`);
+      if (keycap) {
+        keycap.classList.add('active');
+        setTimeout(() => keycap.classList.remove('active'), 150);
+      }
+
+      if (lowerKey === 'backspace') {
+        composition = composition.slice(0, -1);
+        selectionIndex = 0;
+        updateUI();
+      } else if (lowerKey === ' ' || lowerKey === 'spacebar' || key === 'Enter') {
+        if (composition !== '') {
+          const radicals = composition.split('').map(k => dayiMap[k] || k).join('');
+          const candidates = candidateDatabase[radicals] || [];
+          if (candidates.length > 0) {
+            commitWord(candidates[selectionIndex]);
+          } else {
+            composition = '';
+            updateUI();
+          }
+        }
+      } else if (dayiMap[lowerKey]) {
+        if (composition.length < 4) { // Dayi usually has max 4 radicals per character
+          composition += lowerKey;
+          selectionIndex = 0;
+          updateUI();
+        }
+      }
+    }
+
+    // Physical Keyboard Listeners
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' || e.key === ' ' || dayiMap[e.key.toLowerCase()]) {
+        e.preventDefault();
+        handleKeyPress(e.key);
+      }
+    });
+
+    // Virtual Keyboard Listeners
+    document.querySelectorAll('.keycap').forEach(keycap => {
+      keycap.addEventListener('click', () => {
+        const key = keycap.getAttribute('data-key');
+        handleKeyPress(key);
+      });
+    });
+
+  </script>
+</body>
+</html>

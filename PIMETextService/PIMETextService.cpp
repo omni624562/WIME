@@ -291,12 +291,7 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	candidateWindow_->recalculateSize();
 	candidateWindow_->refresh();
 
-	RECT textRect;
-	// get the position of composition area from TSF
-	if (selectionRect(session, &textRect)) {
-		// FIXME: where should we put the candidate window?
-		candidateWindow_->move(textRect.left, textRect.bottom);
-	}
+	moveCandidateWindow(session);
 
 	if (validCandidateListElementId_) {
 		auto elementMgr = Ime::ComPtr<ITfUIElementMgr>::queryFrom(threadMgr());

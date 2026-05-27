@@ -152,6 +152,9 @@ bool Client::handleRpcResponse(json& msg, Ime::EditSession* session) {
 }
 
 void Client::updateUI(json& data) {
+	bool pendingModernStyle = false;
+	bool hasModernStyle = false;
+
 	for (auto it = data.begin(); it != data.end(); ++it) {
 		const std::string& name = it.key();
 		const json& value = it.value();
@@ -168,6 +171,50 @@ void Client::updateUI(json& data) {
 		else if (value.is_boolean() && name == "candUseCursor") {
 			textService_->setCandUseCursor(value.get<bool>());
 		}
+		else if (value.is_boolean() && name == "candidateModernStyle") {
+			// Defer until theme/spacing are applied so applyCandidateWindowStyle()
+			// runs once with the final state instead of triggering early with stale colors.
+			pendingModernStyle = value.get<bool>();
+			hasModernStyle = true;
+		}
+		else if (value.is_boolean() && name == "candidateEdgeAvoidance") {
+			textService_->setCandidateEdgeAvoidance(value.get<bool>());
+		}
+	}
+
+	// Apply theme colors (preset) with optional per-key overrides from candidateColors
+	auto themeIt = data.find("candidateTheme");
+	auto colorsIt = data.find("candidateColors");
+	if ((themeIt != data.end() && themeIt->is_string()) ||
+	    (colorsIt != data.end() && colorsIt->is_object())) {
+		COLORREF panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText;
+		std::string theme = (themeIt != data.end() && themeIt->is_string()) ? themeIt->get<std::string>() : "light";
+		candidateThemeColors(theme, panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
+		if (colorsIt != data.end() && colorsIt->is_object()) {
+			parseHexColorMember(*colorsIt, "panelBackground", panelBg);
+			parseHexColorMember(*colorsIt, "panelBorder", panelBorder);
+			parseHexColorMember(*colorsIt, "textPrimary", textPrimary);
+			parseHexColorMember(*colorsIt, "textSecondary", textSecondary);
+			parseHexColorMember(*colorsIt, "highlightBackground", highlightBg);
+			parseHexColorMember(*colorsIt, "highlightBorder", highlightBorder);
+			parseHexColorMember(*colorsIt, "highlightText", highlightText);
+		}
+		textService_->setCandidateTheme(panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
+	}
+
+	// Apply spacing style
+	auto styleIt = data.find("candidateStyle");
+	if (styleIt != data.end() && styleIt->is_object()) {
+		int contentMargin = styleIt->value("contentMargin", 8);
+		int textMargin = styleIt->value("textMargin", 6);
+		int borderRadius = styleIt->value("borderRadius", 8);
+		textService_->setCandidateSpacing(contentMargin, textMargin, borderRadius);
+	}
+
+	// Apply modernStyle last: triggers the final applyCandidateWindowStyle() with
+	// theme and spacing already in their new state.
+	if (hasModernStyle) {
+		textService_->setCandidateModernStyle(pendingModernStyle);
 	}
 }
 
@@ -480,7 +527,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, 250);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -492,7 +539,7 @@ bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, 250);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -504,7 +551,7 @@ bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, 250);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -516,7 +563,7 @@ bool Client::onKeyUp(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, 250);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -735,13 +782,12 @@ bool Client::callPipeIO(bool isRead, void *buffer, DWORD size, DWORD *rlen, int 
 	return ok;
 }
 
-bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std::string& serializedReply) {
+bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std::string& serializedReply, int timeoutMs) {
 	std::string request = serializedRequest;
 	if (request.empty() || request.back() != '\n') {
 		request += '\n';
 	}
 
-	const int timeoutMs = 2000;
 	DWORD wlen = 0;
 	if (!callPipeIO(false, (void*)request.data(), (DWORD)request.size(), &wlen, timeoutMs)) {
 		return false;
@@ -767,7 +813,7 @@ bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std:
 
 // send the request to the server
 // a sequence number will be added to the req object automatically.
-bool Client::callRpcMethod(json& request, json & response) {
+bool Client::callRpcMethod(json& request, json & response, int timeoutMs) {
 	if (shouldWaitConnection_ && !waitForRpcConnection()) {
 		return false;
 	}
@@ -780,7 +826,7 @@ bool Client::callRpcMethod(json& request, json & response) {
 
 	std::string serializedResponse;
 	bool success = false;
-	if (callRpcPipe(pipe_, serializedRequest, serializedResponse)) {
+	if (callRpcPipe(pipe_, serializedRequest, serializedResponse, timeoutMs)) {
 		try {
 			response = json::parse(serializedResponse);
 			success = true;

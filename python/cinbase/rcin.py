@@ -21,7 +21,21 @@ class RCin(object):
         self.cincount = {}
         self.chardefs = {}
 
-        self.__dict__.update(json.load(fs))
+        try:
+            import orjson
+            content = fs.read()
+            self.__dict__.update(orjson.loads(content))
+        except Exception:
+            try:
+                import ujson
+                fs.seek(0)
+                self.__dict__.update(ujson.load(fs))
+            except Exception:
+                try:
+                    fs.seek(0)
+                except Exception:
+                    pass
+                self.__dict__.update(json.load(fs))
 
 
     def __del__(self):
