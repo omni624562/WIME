@@ -499,6 +499,7 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 			StrCpy $INST_CINBASE "True"
 		SectionEnd
 
+		; 大易列入標準安裝（SectionIn 1），其他 CIN 輸入法僅 full install（SectionIn 2）
 		Section $(CHEDAYI) chedayi
 			SectionIn 1 2
 			SetOutPath "$INSTDIR\python\input_methods\chedayi"

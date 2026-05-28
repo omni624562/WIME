@@ -4,6 +4,7 @@ param(
 
     [string]$ImeName = "chedayi",
     [string]$Theme = "dark",
+    [int]$CandidatePerRow = 0,
     [switch]$RestartBackend
 )
 
@@ -65,10 +66,18 @@ $jsonText = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8
 $config = $jsonText | ConvertFrom-Json
 $config | Add-Member -NotePropertyName "candidateModernStyle" -NotePropertyValue $Enabled -Force
 
-$config | Add-Member -NotePropertyName "candidateLayout" -NotePropertyValue "horizontal" -Force
-$config | Add-Member -NotePropertyName "candidatePerRow" -NotePropertyValue 10 -Force
-$config | Add-Member -NotePropertyName "candidateEdgeAvoidance" -NotePropertyValue $true -Force
 $config | Add-Member -NotePropertyName "candidateTheme" -NotePropertyValue $Theme -Force
+if (-not ($config.PSObject.Properties.Name -contains "candidateLayout")) {
+    $config | Add-Member -NotePropertyName "candidateLayout" -NotePropertyValue "horizontal"
+}
+if (-not ($config.PSObject.Properties.Name -contains "candidateEdgeAvoidance")) {
+    $config | Add-Member -NotePropertyName "candidateEdgeAvoidance" -NotePropertyValue $true
+}
+if ($CandidatePerRow -gt 0) {
+    $config | Add-Member -NotePropertyName "candidatePerRow" -NotePropertyValue $CandidatePerRow -Force
+} elseif (-not ($config.PSObject.Properties.Name -contains "candidatePerRow")) {
+    $config | Add-Member -NotePropertyName "candidatePerRow" -NotePropertyValue 10
+}
 
 if ($Theme -eq "dark") {
     $candidateColors = [ordered]@{
