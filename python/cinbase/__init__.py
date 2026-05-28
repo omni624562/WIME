@@ -2304,6 +2304,9 @@ class CinBase:
             if cbTS.compositionString:
                 cbTS.currentReply["compositionString"] = "​"
                 cbTS.currentReply["compositionCursor"] = 0
+                if not cbTS.showCandidates:
+                    cbTS.setCandidateList([])
+                    cbTS.setShowCandidates(True)
             cbTS.currentReply["candidateHeader"] = " ".join(cbTS.compositionString)
 
         return True

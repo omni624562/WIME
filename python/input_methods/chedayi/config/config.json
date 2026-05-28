@@ -31,7 +31,7 @@
     "sortByPhrase": true,
     "intelligentSelect": true,
     "hideComposition": true,
-    "candidateModernStyle": false,
+    "candidateModernStyle": true,
     "candidateLayout": "horizontal",
     "candidatePerRow": 10,
     "candidateEdgeAvoidance": true,

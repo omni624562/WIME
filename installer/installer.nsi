@@ -500,7 +500,7 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 		SectionEnd
 
 		Section $(CHEDAYI) chedayi
-			SectionIn 2
+			SectionIn 1 2
 			SetOutPath "$INSTDIR\python\input_methods\chedayi"
 			File /r "..\python\input_methods\chedayi\*.*"
 			StrCpy $INST_PYTHON "True"

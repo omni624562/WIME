@@ -69,7 +69,6 @@ $config | Add-Member -NotePropertyName "candidateLayout" -NotePropertyValue "hor
 $config | Add-Member -NotePropertyName "candidatePerRow" -NotePropertyValue 10 -Force
 $config | Add-Member -NotePropertyName "candidateEdgeAvoidance" -NotePropertyValue $true -Force
 $config | Add-Member -NotePropertyName "candidateTheme" -NotePropertyValue $Theme -Force
-$config | Add-Member -NotePropertyName "compositionBufferMode" -NotePropertyValue $true -Force
 
 if ($Theme -eq "dark") {
     $candidateColors = [ordered]@{
