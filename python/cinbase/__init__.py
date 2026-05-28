@@ -316,7 +316,7 @@ class CinBase:
         if cbTS.lastKeyDownTime == 0.0:
             cbTS.lastKeyDownTime = time.time()
 
-        if CinTable.loading:
+        if CinTable.loading or not getattr(cbTS, 'cin', None):
             return True
 
         # 使用者開始輸入，還沒送出前的編輯區內容稱 composition string
@@ -430,7 +430,7 @@ class CinBase:
         charStr = chr(charCode)
         charStrLow = charStr.lower()
 
-        if CinTable.loading:
+        if CinTable.loading or not getattr(cbTS, 'cin', None):
             if not cbTS.client.isUiLess:
                 messagestr = '正在載入輸入法碼表，請稍候...'
                 cbTS.isShowMessage = True
