@@ -162,8 +162,7 @@ class CinBaseConfig:
         filename = self.getConfigFile()
         try:
             with open(filename, "w") as f:
-                jsondata = {key: value for key, value in self.__dict__.items() if not key in self.ignoreSaveList}
-                js = json.dump(jsondata, f, sort_keys=True, indent=4)
+                json.dump(self.toJson(), f, sort_keys=True, indent=4)
             self.update()
         except Exception:
             pass # FIXME: handle I/O errors?
