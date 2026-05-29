@@ -73,13 +73,13 @@ class ChewingConfig:
         self.upperCaseWithShift = True
         self.candidateModernStyle = True
         self.candidateLayout = "horizontal"
-        self.candidatePerRow = 10
+        self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
         self.candidateTheme = "Night Comfort"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 340
+        self.candidateMaxWidth = 300
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

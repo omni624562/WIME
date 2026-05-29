@@ -223,7 +223,7 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	shouldWaitConnection_{ true },
 	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) } {
 	if (usesModernCandidateDefault(guid_)) {
-		textService_->setCandPerRow(10);
+		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
 		textService_->setCandidateTheme(
 			RGB(27, 28, 32),
@@ -235,7 +235,7 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 			RGB(238, 244, 255));
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
-		textService_->setCandidateMaxWidth(true, 340);
+		textService_->setCandidateMaxWidth(true, 300);
 		textService_->setCandidateModernStyle(true);
 	}
 }

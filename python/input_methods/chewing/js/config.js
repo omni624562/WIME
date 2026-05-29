@@ -42,13 +42,13 @@ $(function () {
             chewingConfig.candidateWrapToMaxWidth = true;
         }
         if (typeof chewingConfig.candidateMaxWidth === "undefined" || chewingConfig.candidateMaxWidth < 220) {
-            chewingConfig.candidateMaxWidth = 340;
+            chewingConfig.candidateMaxWidth = 300;
         }
         if (typeof chewingConfig.candidateTheme === "undefined") {
             chewingConfig.candidateTheme = "Night Comfort";
         }
         if (typeof chewingConfig.candidatePerRow === "undefined") {
-            chewingConfig.candidatePerRow = 10;
+            chewingConfig.candidatePerRow = 6;
         }
         if (typeof chewingConfig.candidateEdgeAvoidance === "undefined") {
             chewingConfig.candidateEdgeAvoidance = true;

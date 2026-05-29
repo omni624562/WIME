@@ -83,18 +83,18 @@ class CinBaseConfig:
         self.imeDisplayName = ""
         self.candidateModernStyle = False
         self.candidateLayout = "horizontal"
-        self.candidatePerRow = 10
+        self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
         self.candidateTheme = "Night Comfort"
         self.candidateStableWidth = False
         self.candidateMinWidth = 0
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 340
+        self.candidateMaxWidth = 300
         self.candidateColors = {}
         self.candidateStyle = {
-            "contentMargin": 8,
-            "textMargin": 6,
-            "borderRadius": 8,
+            "contentMargin": 6,
+            "textMargin": 4,
+            "borderRadius": 6,
         }
 
         self.ignoreSaveList = ["ignoreSaveList", "curdir", "cinFileList", "selCinFile", "imeDirName", "_version", "_lastUpdateTime"]

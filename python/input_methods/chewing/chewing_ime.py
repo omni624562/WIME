@@ -148,7 +148,7 @@ class ChewingTextService(TextService):
     def customizeCandidateUI(self):
         cfg = chewingConfig
         if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
-            uiCandPerRow = getattr(cfg, 'candidatePerRow', 10)
+            uiCandPerRow = getattr(cfg, 'candidatePerRow', 6)
         else:
             uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
         ui_args = {
@@ -161,7 +161,7 @@ class ChewingTextService(TextService):
             ui_args.update({
                 "candidateModernStyle": True,
                 "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
                 "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
                 "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
                 "candidateColors": candidateColorsForTheme(cfg),
@@ -169,7 +169,7 @@ class ChewingTextService(TextService):
                 "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
                 "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
                 "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 340),
+                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
             })
         self.customizeUI(**ui_args)
 

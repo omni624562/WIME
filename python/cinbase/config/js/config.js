@@ -162,13 +162,13 @@ function applyCandidateDefaults() {
         checjConfig.candidateWrapToMaxWidth = true;
     }
     if (typeof checjConfig.candidateMaxWidth === "undefined" || checjConfig.candidateMaxWidth < 220) {
-        checjConfig.candidateMaxWidth = 340;
+        checjConfig.candidateMaxWidth = 300;
     }
     if (typeof checjConfig.candidateTheme === "undefined") {
         checjConfig.candidateTheme = "Night Comfort";
     }
     if (typeof checjConfig.candidatePerRow === "undefined") {
-        checjConfig.candidatePerRow = 10;
+        checjConfig.candidatePerRow = 6;
     }
     if (typeof checjConfig.candidateEdgeAvoidance === "undefined") {
         checjConfig.candidateEdgeAvoidance = true;

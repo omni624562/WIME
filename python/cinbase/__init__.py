@@ -3229,7 +3229,7 @@ class CinBase:
             ui_args.update({
                 "candidateModernStyle": True,
                 "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
                 "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
                 "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
                 "candidateColors": candidateColorsForTheme(cfg),
@@ -3237,7 +3237,7 @@ class CinBase:
                 "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
                 "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
                 "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 340),
+                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
             })
         cbTS.customizeUI(**ui_args)
 
@@ -3251,7 +3251,7 @@ class CinBase:
             if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical':
                 cbTS.candPerRow = 1
             else:
-                cbTS.candPerRow = getattr(cfg, 'candidatePerRow', 10)
+                cbTS.candPerRow = getattr(cfg, 'candidatePerRow', 6)
 
         # 如果程式為 UiLess 模式就取代設定
         if cbTS.client.isUiLess:
