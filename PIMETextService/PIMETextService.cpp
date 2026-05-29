@@ -245,6 +245,7 @@ void TextService::createCandidateWindow(Ime::EditSession* session) {
 		candidateWindow_->Release();  // decrease ref count caused by new
 
 		candidateWindow_->setFont(font_);
+		applyCandidateWindowStyle();
 		auto elementMgr = Ime::ComPtr<ITfUIElementMgr>::queryFrom(threadMgr());
 		if (elementMgr) {
 			BOOL pbShow = false;
