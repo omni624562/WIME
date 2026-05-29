@@ -72,6 +72,9 @@ class Cin(object):
                         newvalue.remove(value)
                 self.chardefs[key] = newvalue
 
+        self._chardef_prefix_cache_count = None
+        self._chardef_prefixes = set()
+
         self.loadCountFile()
 
 
@@ -126,6 +129,24 @@ class Cin(object):
         will return a list conaining all possible result
         """
         return self.chardefs[key]
+
+
+    def isCharDefPrefix(self, key):
+        if not key:
+            return False
+        if key in self.chardefs:
+            return True
+
+        chardef_count = len(self.chardefs)
+        if self._chardef_prefix_cache_count != chardef_count:
+            prefixes = set()
+            for chardef in self.chardefs:
+                for length in range(1, len(chardef) + 1):
+                    prefixes.add(chardef[:length])
+            self._chardef_prefixes = prefixes
+            self._chardef_prefix_cache_count = chardef_count
+
+        return key in self._chardef_prefixes
 
 
     def haveNextCharDef(self, key):
@@ -224,6 +245,8 @@ class Cin(object):
                             self.chardefs[key.lower()].append(root)
                         except KeyError:
                             self.chardefs[key.lower()] = [root]
+            self._chardef_prefix_cache_count = None
+            self._chardef_prefixes = set()
 
 
     def loadCountFile(self):

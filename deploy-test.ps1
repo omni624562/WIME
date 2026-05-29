@@ -384,9 +384,17 @@ try {
         "cinbase\__init__.py",
         "cinbase\cin.py",
         "cinbase\config.py",
+        "cinbase\config\config.htm",
+        "cinbase\config\css\config.css",
+        "cinbase\config\js\config.js",
+        "input_methods\checj\config\config.json",
         "input_methods\chedayi\config\config.json",
+        "input_methods\cheliu\config\config.json",
+        "input_methods\chewing\config_tool.html",
+        "input_methods\chewing\css\config.css",
         "input_methods\chewing\chewing_config.py",
-        "input_methods\chewing\chewing_ime.py"
+        "input_methods\chewing\chewing_ime.py",
+        "input_methods\chewing\js\config.js"
     )
 
     foreach ($file in $pythonFiles) {

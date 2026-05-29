@@ -70,6 +70,34 @@ ID_PROVERBDICT = 17
 ID_OUTPUT_SIMP_CHINESE = 18
 ID_USER_PHRASE_EDITOR = 19
 
+LEGACY_LIGHT_CANDIDATE_COLORS = {
+    "panelBackground": "#FFFFFF",
+    "panelBorder": "#DADDE3",
+    "textPrimary": "#20242A",
+    "textSecondary": "#6B7280",
+    "highlightBackground": "#DCEBFF",
+    "highlightBorder": "#9CC7FF",
+    "highlightText": "#0B3A75",
+}
+
+
+def candidateColorsForTheme(cfg):
+    colors = getattr(cfg, 'candidateColors', {})
+    if not isinstance(colors, dict) or not colors:
+        return {}
+
+    theme = ''.join(ch.lower() for ch in str(getattr(cfg, 'candidateTheme', '')) if ch.isalnum())
+    legacyKeys = set(LEGACY_LIGHT_CANDIDATE_COLORS.keys())
+    if set(colors.keys()) == legacyKeys:
+        legacyColors = True
+        for key, value in LEGACY_LIGHT_CANDIDATE_COLORS.items():
+            if str(colors.get(key, '')).strip().lower() != value.lower():
+                legacyColors = False
+                break
+        if legacyColors and theme not in ('', 'light'):
+            return {}
+    return colors
+
 # from libchewing/include/global.h
 AUTOLEARN_ENABLED = 0
 AUTOLEARN_DISABLED = 1
@@ -117,6 +145,48 @@ class ChewingTextService(TextService):
             # 只有偵測到設定檔變更，需要套用新設定
             self.applyConfig()
 
+    def customizeCandidateUI(self):
+        cfg = chewingConfig
+        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
+            uiCandPerRow = getattr(cfg, 'candidatePerRow', 10)
+        else:
+            uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
+        ui_args = {
+            "candFontName": 'Microsoft JhengHei' if getattr(cfg, 'candidateModernStyle', False) else 'MingLiu',
+            "candFontSize": cfg.fontSize,
+            "candPerRow": uiCandPerRow,
+            "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
+        }
+        if getattr(cfg, 'candidateModernStyle', False):
+            ui_args.update({
+                "candidateModernStyle": True,
+                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+                "candidateColors": candidateColorsForTheme(cfg),
+                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+                "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
+                "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
+            })
+        self.customizeUI(**ui_args)
+
+    def updateCandidateHeader(self, rootStr="", forceWindow=False):
+        self.currentReply["candidateHeader"] = "新酷音" + (" " + rootStr if rootStr else "")
+
+        totalPage = 0
+        currentPage = 0
+        try:
+            totalPage = self.chewingContext.cand_TotalPage()
+            currentPage = self.chewingContext.cand_CurrentPage()
+        except Exception:
+            pass
+        self.currentReply["candidatePageInfo"] = f"{currentPage + 1}/{totalPage}" if totalPage > 0 else ""
+
+        if forceWindow and "candidateList" not in self.currentReply:
+            self.setCandidateList(self.candidateList if self.showCandidates and self.candidateList else [])
+            self.setShowCandidates(True)
+
     def applyConfig(self):
         cfg = chewingConfig  # globally shared config object
         self.configVersion = cfg.getVersion()
@@ -141,27 +211,7 @@ class ChewingTextService(TextService):
         chewingContext.set_spaceAsSelection(cfg.spaceKeyAction)
 
         # 設定 UI 外觀
-        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
-            uiCandPerRow = getattr(cfg, 'candidatePerRow', 10)
-        else:
-            uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
-        ui_args = {
-            "candFontName": 'MingLiu',
-            "candFontSize": cfg.fontSize,
-            "candPerRow": uiCandPerRow,
-            "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
-        }
-        if getattr(cfg, 'candidateModernStyle', False):
-            ui_args.update({
-                "candidateModernStyle": True,
-                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
-                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
-                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
-                "candidateColors": getattr(cfg, 'candidateColors', {}),
-                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
-            })
-        self.customizeUI(**ui_args)
+        self.customizeCandidateUI()
 
         # 設定是否啟用自動學習功能
         self.setAutoLearn(cfg.autoLearn)
@@ -681,20 +731,19 @@ class ChewingTextService(TextService):
                 compStr = chewingContext.buffer_String().decode("UTF-8")
 
             # 輸入到一半，還沒組成字的注音符號 (bopomofo)
+            bopomofoStr = ""
             if chewingContext.bopomofo_Check():
-                bopomofoStr = ""
                 bopomofoStr = chewingContext.bopomofo_String(
                     None).decode("UTF-8")
-                # 把輸入到一半，還沒組成字的注音字串，也插入到編輯區內，並且更新游標位置
-                pos = chewingContext.cursor_Current()
-                compStr = compStr[:pos] + bopomofoStr + compStr[pos:]
-                self.setCompositionCursor(
-                    chewingContext.cursor_Current() + len(bopomofoStr))
-            else:
-                self.setCompositionCursor(chewingContext.cursor_Current())
+            self.setCompositionCursor(chewingContext.cursor_Current())
 
-            # 更新編輯區內容 (composition string)
+            # 已經組成的中文字保留在編輯區；尚未成字的注音提示放在候選窗 header。
             self.setCompositionString(compStr)
+            if bopomofoStr:
+                if not compStr:
+                    self.currentReply["compositionString"] = "\u200b"
+                    self.currentReply["compositionCursor"] = 0
+                self.updateCandidateHeader(bopomofoStr, forceWindow=True)
 
             # 顯示額外提示訊息 (例如：Ctrl+ 數字加入自訂詞之後，會顯示提示)
             if chewingContext.aux_Check():
@@ -709,6 +758,11 @@ class ChewingTextService(TextService):
 
         # 依照目前狀態，更新語言列顯示的圖示
         self.updateLangButtons()
+
+        if "candidateList" in self.currentReply or "showCandidates" in self.currentReply:
+            if "candidateHeader" not in self.currentReply and self.currentReply.get("showCandidates", True):
+                self.updateCandidateHeader()
+            self.customizeCandidateUI()
 
         return keyHandled  # 告知系統我們是否有處理這個按鍵
 

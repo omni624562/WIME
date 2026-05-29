@@ -99,6 +99,215 @@ textarea {
     text-transform: none;
 }
 
+.candidate_window_settings {
+    background: #fbfcfe;
+    border: 1px solid #d9dee8;
+    border-radius: 6px;
+    margin-top: 1.25em;
+    max-width: 1180px;
+    padding: 1em;
+}
+
+.candidate-appearance-shell {
+    max-width: 1180px;
+}
+
+.candidate-theme-select {
+    display: none;
+}
+
+.candidate-toolbar {
+    align-items: flex-end;
+    background: #ffffff;
+    border: 1px solid #d9dee8;
+    border-radius: 6px;
+    display: grid;
+    gap: 14px 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    margin-bottom: 18px;
+    padding: 14px 16px;
+}
+
+.candidate-config-field {
+    min-height: 38px;
+}
+
+.candidate-config-field>label {
+    color: #273142;
+    display: block;
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+
+.candidate-config-field input[type="number"] {
+    max-width: 172px;
+}
+
+.candidate-config-check {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    min-height: 40px;
+}
+
+.candidate-config-check input[type="checkbox"] {
+    margin: 0;
+}
+
+.candidate-config-check label {
+    color: #273142;
+    font-weight: 600;
+    margin: 0;
+}
+
+.candidate-theme-heading {
+    align-items: baseline;
+    color: #202938;
+    display: flex;
+    font-weight: 700;
+    justify-content: space-between;
+    margin: 4px 0 10px;
+}
+
+.candidate-theme-current {
+    color: #5f6d7e;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.candidate-theme-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+}
+
+.candidate-theme-card {
+    background: #ffffff;
+    border: 1px solid #d8dee9;
+    border-radius: 6px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    color: inherit;
+    cursor: pointer;
+    padding: 10px;
+    text-align: left;
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.candidate-theme-card:hover {
+    border-color: #9aa8bd;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.candidate-theme-card.selected {
+    border-color: #3f6fe8;
+    box-shadow: 0 0 0 2px rgba(63, 111, 232, 0.18), 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.candidate-theme-card-header {
+    align-items: center;
+    display: flex;
+    font-size: 12px;
+    font-weight: 700;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.candidate-theme-card-name {
+    color: #28313d;
+}
+
+.candidate-theme-card-state {
+    color: #2d64d8;
+    font-size: 11px;
+    min-width: 26px;
+    text-align: right;
+}
+
+.candidate-preview {
+    background: #1b1c20;
+    border: 1px solid #4a4d57;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    box-sizing: border-box;
+    color: #e5e8ee;
+    display: block;
+    font-family: "Microsoft JhengHei", "MingLiu", sans-serif;
+    font-size: 14px;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+
+.candidate-preview-header {
+    align-items: center;
+    border-bottom: 1px solid #30323a;
+    display: flex;
+    gap: 12px;
+    min-height: 28px;
+    padding: 4px 9px;
+}
+
+.candidate-preview-name,
+.candidate-preview-page {
+    color: #a9afba;
+}
+
+.candidate-preview-root {
+    color: #b8c7e8;
+    font-weight: 600;
+}
+
+.candidate-preview-page {
+    margin-left: auto;
+}
+
+.candidate-preview-body {
+    display: flex;
+    gap: 8px;
+    min-height: 36px;
+    padding: 6px;
+}
+
+.candidate-preview-item {
+    align-items: center;
+    display: inline-flex;
+    gap: 4px;
+    justify-content: center;
+    min-height: 24px;
+    min-width: 38px;
+    padding: 2px 7px;
+    white-space: nowrap;
+}
+
+.candidate-preview-item span {
+    color: #aeb9cf;
+}
+
+.candidate-preview-item.active {
+    background: #405f8a;
+    border: 1px solid #5e7ea7;
+    border-radius: 6px;
+    color: #eef4ff;
+}
+
+.candidate-preview-item.active span {
+    color: #eef4ff;
+}
+
+@media (max-width: 720px) {
+    .candidate_window_settings {
+        padding: 0.85em;
+    }
+
+    .candidate-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .candidate-theme-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .info {
     font-size: small;
 }

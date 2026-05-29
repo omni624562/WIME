@@ -58,7 +58,9 @@ TextService::TextService(ImeModule* module):
 	candidateHighlightText_(RGB(11, 58, 117)),
 	candidateContentMargin_(8),
 	candidateTextMargin_(6),
-	candidateBorderRadius_(8) {
+	candidateBorderRadius_(8),
+	candidateStableWidth_(false),
+	candidateMinWidth_(0) {
 
 	// font for candidate and mesasge windows
 	font_ = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
@@ -260,6 +262,7 @@ void TextService::createCandidateWindow(Ime::EditSession* session) {
 void TextService::updateCandidates(Ime::EditSession* session) {
 	createCandidateWindow(session);
 	candidateWindow_->clear();
+	candidateWindow_->setMessage(candidateMessage_);
 
 	// FIXME: is this the right place to do it?
 	if (updateFont_) {
@@ -350,6 +353,7 @@ void TextService::applyCandidateWindowStyle() {
 		candidateHighlightBorder_,
 		candidateHighlightText_);
 	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
+	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
 }
 
 void TextService::moveCandidateWindow(Ime::EditSession* session) {

@@ -19,12 +19,168 @@ $(function () {
             CONFIG_URL,
             function (data, status) {
                 chewingConfig = data.config;
+                applyCandidateDefaults();
                 $("#symbols").val(data.symbols);
                 $("#ez_symbols").val(data.swkb);
                 initializeUI();
             },
             "json"
         );
+    }
+
+    function applyCandidateDefaults() {
+        if (typeof chewingConfig.candidateModernStyle === "undefined") {
+            chewingConfig.candidateModernStyle = true;
+        }
+        if (typeof chewingConfig.candidateStableWidth === "undefined") {
+            chewingConfig.candidateStableWidth = true;
+        }
+        if (typeof chewingConfig.candidateMinWidth === "undefined" || chewingConfig.candidateMinWidth < 160) {
+            chewingConfig.candidateMinWidth = 286;
+        }
+        if (typeof chewingConfig.candidateTheme === "undefined") {
+            chewingConfig.candidateTheme = "Night Comfort";
+        }
+        if (typeof chewingConfig.candidatePerRow === "undefined") {
+            chewingConfig.candidatePerRow = 10;
+        }
+        if (typeof chewingConfig.candidateEdgeAvoidance === "undefined") {
+            chewingConfig.candidateEdgeAvoidance = true;
+        }
+    }
+
+    let candidateThemeNames = [
+        "Night Comfort",
+        "Soft Focus",
+        "Warm Gray",
+        "Graphite",
+        "Slate Teal",
+        "Olive",
+        "Plum",
+        "Amber",
+        "Light",
+        "Paper",
+        "Mist Light",
+        "Sepia Dim",
+    ];
+
+    let candidateThemePalette = {
+        "Night Comfort": ["#1b1c20", "#4a4d57", "#30323a", "#e5e8ee", "#a9afba", "#b8c7e8", "#405f8a", "#5e7ea7", "#eef4ff", "#aeb9cf"],
+        "Soft Focus": ["#191d21", "#44525a", "#2b343a", "#e4ebee", "#a8b5ba", "#9cc8bd", "#3f6f6b", "#6a9993", "#ecfbf8", "#a4bcb6"],
+        "Warm Gray": ["#20201d", "#58554b", "#39372f", "#ebe7dc", "#b7b1a3", "#d7c48e", "#5f684d", "#87936f", "#f7f3e7", "#c1b8a2"],
+        "Graphite": ["#12141a", "#444a57", "#292e38", "#f3f5fa", "#aeb5c4", "#8fb3ff", "#4169d7", "#6f92eb", "#edf3ff", "#9eb0d5"],
+        "Slate Teal": ["#152027", "#3f5a64", "#263943", "#f0f8fb", "#a5bac2", "#87d4dd", "#2f7f9f", "#60adc8", "#e9fbff", "#98c2ca"],
+        "Olive": ["#171b16", "#4b5941", "#2c3328", "#f4f7ef", "#b4bda7", "#b6df88", "#5d7f36", "#91b962", "#f4ffe8", "#b9c8a8"],
+        "Plum": ["#1d1721", "#604b66", "#382c3e", "#fbf4ff", "#c0adca", "#e0a7ff", "#7a55b8", "#aa83e6", "#fbf3ff", "#c5a9d1"],
+        "Amber": ["#211a12", "#68533a", "#3c2f22", "#fff8ed", "#cfbda4", "#ffc46f", "#9a6730", "#d59a58", "#fff3de", "#d4baa0"],
+        "Light": ["#f7f9fc", "#aeb8cb", "#dbe2ed", "#182235", "#657187", "#2f66dc", "#2f6eea", "#1d56c4", "#ffffff", "#44639a"],
+        "Paper": ["#fbfaf6", "#b7ac9c", "#e4ded4", "#272119", "#786b5d", "#8a4f17", "#315f87", "#244967", "#f7fbff", "#6f665c"],
+        "Mist Light": ["#e9edf0", "#a8b3bc", "#d4dce1", "#24303a", "#66727d", "#426b85", "#5f7f94", "#4b687b", "#f7fbfd", "#577385"],
+        "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"],
+    };
+
+    function getCandidatePreviewSample() {
+        return {
+            name: "新酷音",
+            root: "ㄅ",
+            candidates: ["班", "般", "搬", "斑", "伴", "辦", "半", "板", "版", "頒"],
+        };
+    }
+
+    function applyCandidatePreviewTheme(preview, theme, modern) {
+        preview.css({
+            "background-color": modern ? theme[0] : "#ffffff",
+            "border-color": modern ? theme[1] : "#000000",
+            "border-radius": modern ? "6px" : "0",
+            color: modern ? theme[3] : "#000000",
+        });
+        preview.find(".candidate-preview-header").css("border-bottom-color", modern ? theme[2] : "#d0d0d0");
+        preview.find(".candidate-preview-name, .candidate-preview-page").css("color", modern ? theme[4] : "#0000b4");
+        preview.find(".candidate-preview-root").css("color", modern ? theme[5] : "#0000b4");
+        preview.find(".candidate-preview-item span").css("color", modern ? theme[9] : "#0000ff");
+        preview.find(".candidate-preview-item.active").css({
+            "background-color": modern ? theme[6] : "#000000",
+            "border-color": modern ? theme[7] : "#000000",
+            "border-radius": modern ? "6px" : "0",
+            color: modern ? theme[8] : "#ffffff",
+        });
+        preview.find(".candidate-preview-item.active span").css("color", modern ? theme[8] : "#ffffff");
+    }
+
+    function fillCandidatePreviewItems(preview, sample) {
+        let count = Number.parseInt($("#candidatePerRow").val()) || 4;
+        count = Math.max(1, Math.min(count, 6));
+        let body = preview.find(".candidate-preview-body");
+        body.empty();
+
+        for (let i = 0; i < count; ++i) {
+            let item = $("<span>").addClass("candidate-preview-item");
+            if (i === 0) {
+                item.addClass("active");
+            }
+            item.append($("<span>").text(String(i + 1).slice(-1)));
+            item.append(document.createTextNode(sample.candidates[i % sample.candidates.length]));
+            body.append(item);
+        }
+    }
+
+    function createCandidatePreview(sample) {
+        let preview = $("<div>").addClass("candidate-preview");
+        let header = $("<div>").addClass("candidate-preview-header");
+        header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
+        header.append($("<span>").addClass("candidate-preview-root").text(sample.root));
+        header.append($("<span>").addClass("candidate-preview-page").text("1/1"));
+        preview.append(header);
+        preview.append($("<div>").addClass("candidate-preview-body"));
+        fillCandidatePreviewItems(preview, sample);
+        return preview;
+    }
+
+    function renderCandidateThemeGallery() {
+        let grid = $("#candidateThemeGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        let sample = getCandidatePreviewSample();
+        grid.empty();
+        for (let i = 0; i < candidateThemeNames.length; ++i) {
+            let themeName = candidateThemeNames[i];
+            let card = $("<button>").attr("type", "button").addClass("candidate-theme-card").data("theme", themeName);
+            let header = $("<div>").addClass("candidate-theme-card-header");
+            header.append($("<span>").addClass("candidate-theme-card-name").text(themeName));
+            header.append($("<span>").addClass("candidate-theme-card-state"));
+            card.append(header);
+            card.append(createCandidatePreview(sample));
+            grid.append(card);
+        }
+    }
+
+    function updateCandidateThemeGallery() {
+        let grid = $("#candidateThemeGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        let selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        let modern = $("#candidateModernStyle").prop("checked");
+        let stableWidth = $("#candidateStableWidth").prop("checked");
+        let sample = getCandidatePreviewSample();
+        $("#candidateMinWidth").prop("disabled", !stableWidth);
+        $("#candidateThemeCurrent").text(selectedTheme);
+
+        grid.find(".candidate-theme-card").each(function () {
+            let card = $(this);
+            let themeName = card.data("theme");
+            let selected = themeName === selectedTheme;
+            let preview = card.find(".candidate-preview");
+            card.toggleClass("selected", selected);
+            card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
+            preview.find(".candidate-preview-name").text(sample.name);
+            preview.find(".candidate-preview-root").text(sample.root);
+            fillCandidatePreviewItems(preview, sample);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Night Comfort"], modern);
+        });
     }
 
     function saveConfig(callbackFunc) {
@@ -98,16 +254,17 @@ $(function () {
 
     // Update chewingConfig object with the value set by the user
     function updateConfig() {
-        // Reset chewingConfig, for change config_tool
-        chewingConfig = {};
+        // Preserve settings that are not shown on the current page.
+        chewingConfig = $.extend(true, {}, chewingConfig);
 
-        // Get values from checkboxes, text and radio
+        // Get values from checkboxes, text, hidden and radio
         $(".container input").each(function (index, inputItem) {
             switch (inputItem.type) {
                 case "checkbox":
                     chewingConfig[inputItem.name] = inputItem.checked;
                     break;
                 case "text":
+                case "hidden":
                 case "number":
                     chewingConfig[inputItem.name] = Number.parseInt(inputItem.value);
                     break;
@@ -122,9 +279,18 @@ $(function () {
         // Get values from select
         $(".container select").each(function (index, selectItem) {
             if (selectItem.value) {
-                chewingConfig[selectItem.name] = Number.parseInt(selectItem.value);
+                if ($(selectItem).data("value-type") === "string") {
+                    chewingConfig[selectItem.name] = selectItem.value;
+                }
+                else {
+                    chewingConfig[selectItem.name] = Number.parseInt(selectItem.value);
+                }
             }
         });
+
+        if (chewingConfig.candidateTheme) {
+            chewingConfig.candidateColors = {};
+        }
     }
 
     // Initialize UI
@@ -157,6 +323,20 @@ $(function () {
             },
             selKeyType: ["1234567890", "asdfghjkl;", "asdfzxcv89", "asdfjkl789", "aoeuhtn789", "1234qweras"],
             addPhraseForward: ["後方的詞", "前方的詞"],
+            candidateTheme: {
+                "Night Comfort": "Night Comfort",
+                "Soft Focus": "Soft Focus",
+                "Warm Gray": "Warm Gray",
+                "Graphite": "Graphite",
+                "Slate Teal": "Slate Teal",
+                "Olive": "Olive",
+                "Plum": "Plum",
+                "Amber": "Amber",
+                "Light": "Light",
+                "Paper": "Paper",
+                "Mist Light": "Mist Light",
+                "Sepia Dim": "Sepia Dim",
+            },
         };
 
         $.each(selectOptions, function (id, options) {
@@ -172,7 +352,7 @@ $(function () {
         $("#switchLangWithWhichShift").prop("disabled", !chewingConfig["switchLangWithShift"]);
 
         // Bind Bootstrap
-        $(".container select").selectpicker();
+        $(".container select").not(".candidate-theme-select").selectpicker();
         $('[data-toggle="popover"]').popover();
 
         // When switchLangWithShift's value changed, update switchLangWithWhichShift's disabled property
@@ -196,6 +376,13 @@ $(function () {
         // Setup select phrase example & Bind updateSelExample event
         updateSelExample();
         $("#ui_tab input, #ui_tab select").on("change keyup", updateSelExample);
+        renderCandidateThemeGallery();
+        updateCandidateThemeGallery();
+        $(".candidate_window_settings input, .candidate_window_settings select").on("change keyup", updateCandidateThemeGallery);
+        $("#candidateThemeGrid").on("click", ".candidate-theme-card", function () {
+            $("#candidateTheme").val($(this).data("theme"));
+            updateCandidateThemeGallery();
+        });
 
         // Setup keybord page
         let keyboardNames = [

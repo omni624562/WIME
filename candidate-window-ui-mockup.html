@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dayi Candidate Window Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page-bg: #242424;
+      --page-text: #eef0f7;
+      --page-muted: #b8bdca;
+      --rail: #303030;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page-bg);
+      color: var(--page-text);
+      font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+      display: grid;
+      gap: 30px;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+
+    h2 {
+      font-size: 15px;
+      color: #f4f5fb;
+    }
+
+    p {
+      max-width: 760px;
+      margin: 6px 0 0;
+      color: var(--page-muted);
+    }
+
+    .section {
+      display: grid;
+      gap: 14px;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, max-content));
+      gap: 18px 22px;
+      align-items: start;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, max-content));
+      gap: 18px 28px;
+      align-items: start;
+    }
+
+    .sample {
+      display: grid;
+      gap: 8px;
+      justify-items: start;
+    }
+
+    .caption {
+      color: #d5d8e3;
+      font-size: 13px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+    }
+
+    .field {
+      width: 58px;
+      height: 28px;
+      background: #f7f8fb;
+      border: 1px solid #cdd2dc;
+      border-right: 0;
+    }
+
+    .flow {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      background: #2a2a2a;
+      border: 1px solid #3b3b3b;
+      border-radius: 8px;
+    }
+
+    .candidate-window {
+      --panel: #1b1c20;
+      --border: #4a4d57;
+      --divider: #30323a;
+      --text: #e5e8ee;
+      --muted: #a9afba;
+      --root: #b8c7e8;
+      --key: #aeb9cf;
+      --accent: #405f8a;
+      --accent-border: #5e7ea7;
+      --accent-text: #eef4ff;
+      width: max-content;
+      min-width: var(--min-width, auto);
+      max-width: min(92vw, 540px);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .candidate-window.stable {
+      --min-width: 286px;
+    }
+
+    .candidate-window.narrow {
+      --min-width: 248px;
+    }
+
+    .candidate-window.wide {
+      --min-width: 328px;
+    }
+
+    .candidate-header {
+      min-height: 27px;
+      padding: 3px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--divider);
+      white-space: nowrap;
+    }
+
+    .candidate-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .candidate-root {
+      color: var(--root);
+      font-size: 16px;
+      font-weight: 650;
+      min-width: 1.25em;
+    }
+
+    .candidate-page {
+      margin-left: auto;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .candidate-row {
+      min-height: 32px;
+      padding: 4px 8px 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .candidate {
+      min-height: 23px;
+      padding: 0 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 6px;
+      color: var(--text);
+    }
+
+    .candidate.selected {
+      padding: 0 8px;
+      color: var(--accent-text);
+      background: var(--accent);
+      border: 1px solid var(--accent-border);
+    }
+
+    .key {
+      color: var(--key);
+      font-size: 13px;
+    }
+
+    .selected .key {
+      color: var(--accent-text);
+    }
+
+    .word {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .before .candidate-window {
+      min-width: auto;
+    }
+
+    .before .candidate-window:nth-child(1) {
+      width: 184px;
+    }
+
+    .before .candidate-window:nth-child(2) {
+      width: 306px;
+    }
+
+    .before .candidate-window:nth-child(3) {
+      width: 230px;
+    }
+
+    .token-table {
+      width: min(760px, 100%);
+      border-collapse: collapse;
+      color: #d6d9e6;
+      font-size: 13px;
+    }
+
+    .token-table th,
+    .token-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #3d3d45;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .token-table th {
+      color: #f0f1f7;
+      font-weight: 650;
+    }
+
+    .theme-night-comfort {
+      --panel: #1b1c20;
+      --border: #4a4d57;
+      --divider: #30323a;
+      --text: #e5e8ee;
+      --muted: #a9afba;
+      --root: #b8c7e8;
+      --key: #aeb9cf;
+      --accent: #405f8a;
+      --accent-border: #5e7ea7;
+      --accent-text: #eef4ff;
+    }
+
+    .theme-soft-focus {
+      --panel: #191d21;
+      --border: #44525a;
+      --divider: #2b343a;
+      --text: #e4ebee;
+      --muted: #a8b5ba;
+      --root: #9cc8bd;
+      --key: #a4bcb6;
+      --accent: #3f6f6b;
+      --accent-border: #6a9993;
+      --accent-text: #ecfbf8;
+    }
+
+    .theme-warm-gray {
+      --panel: #20201d;
+      --border: #58554b;
+      --divider: #39372f;
+      --text: #ebe7dc;
+      --muted: #b7b1a3;
+      --root: #d7c48e;
+      --key: #c1b8a2;
+      --accent: #5f684d;
+      --accent-border: #87936f;
+      --accent-text: #f7f3e7;
+    }
+
+    .theme-graphite {
+      --panel: #12141a;
+      --border: #444a57;
+      --divider: #292e38;
+      --text: #f3f5fa;
+      --muted: #aeb5c4;
+      --root: #8fb3ff;
+      --key: #9eb0d5;
+      --accent: #4169d7;
+      --accent-border: #6f92eb;
+      --accent-text: #edf3ff;
+    }
+
+    .theme-slate-teal {
+      --panel: #152027;
+      --border: #3f5a64;
+      --divider: #263943;
+      --text: #f0f8fb;
+      --muted: #a5bac2;
+      --root: #87d4dd;
+      --key: #98c2ca;
+      --accent: #2f7f9f;
+      --accent-border: #60adc8;
+      --accent-text: #e9fbff;
+    }
+
+    .theme-olive {
+      --panel: #171b16;
+      --border: #4b5941;
+      --divider: #2c3328;
+      --text: #f4f7ef;
+      --muted: #b4bda7;
+      --root: #b6df88;
+      --key: #b9c8a8;
+      --accent: #5d7f36;
+      --accent-border: #91b962;
+      --accent-text: #f4ffe8;
+    }
+
+    .theme-plum {
+      --panel: #1d1721;
+      --border: #604b66;
+      --divider: #382c3e;
+      --text: #fbf4ff;
+      --muted: #c0adca;
+      --root: #e0a7ff;
+      --key: #c5a9d1;
+      --accent: #7a55b8;
+      --accent-border: #aa83e6;
+      --accent-text: #fbf3ff;
+    }
+
+    .theme-amber {
+      --panel: #211a12;
+      --border: #68533a;
+      --divider: #3c2f22;
+      --text: #fff8ed;
+      --muted: #cfbda4;
+      --root: #ffc46f;
+      --key: #d4baa0;
+      --accent: #9a6730;
+      --accent-border: #d59a58;
+      --accent-text: #fff3de;
+    }
+
+    .theme-light {
+      --panel: #f7f9fc;
+      --border: #aeb8cb;
+      --divider: #dbe2ed;
+      --text: #182235;
+      --muted: #657187;
+      --root: #2f66dc;
+      --key: #44639a;
+      --accent: #2f6eea;
+      --accent-border: #1d56c4;
+      --accent-text: #ffffff;
+      box-shadow: 0 8px 16px rgba(5, 15, 35, 0.18);
+    }
+
+    .theme-paper {
+      --panel: #fbfaf6;
+      --border: #b7ac9c;
+      --divider: #e4ded4;
+      --text: #272119;
+      --muted: #786b5d;
+      --root: #8a4f17;
+      --key: #6f665c;
+      --accent: #315f87;
+      --accent-border: #244967;
+      --accent-text: #f7fbff;
+      box-shadow: 0 8px 16px rgba(30, 22, 14, 0.16);
+    }
+
+    .theme-mist-light {
+      --panel: #e9edf0;
+      --border: #a8b3bc;
+      --divider: #d4dce1;
+      --text: #24303a;
+      --muted: #66727d;
+      --root: #426b85;
+      --key: #577385;
+      --accent: #5f7f94;
+      --accent-border: #4b687b;
+      --accent-text: #f7fbfd;
+      box-shadow: 0 8px 16px rgba(12, 24, 34, 0.14);
+    }
+
+    .theme-sepia-dim {
+      --panel: #28251f;
+      --border: #5d564a;
+      --divider: #403a31;
+      --text: #ebe2d3;
+      --muted: #b9ad9a;
+      --root: #dfc58e;
+      --key: #c7b79e;
+      --accent: #6d6547;
+      --accent-border: #958a63;
+      --accent-text: #f8efd9;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="section-title">
+      <h1>大易候選窗重構 mockup</h1>
+      <p>整理後的方向：候選窗維持緊湊雙列、同一段組字期間寬度穩定、配色做成 theme presets。先看結論版，再看寬度與配色比較。</p>
+    </header>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>結論版</h2>
+        <p>預設建議用 Night Comfort。寬度固定在舒服的最小值，短候選不會忽然縮小，長候選才需要擴張。</p>
+      </div>
+      <div class="field-row">
+        <span class="field"></span>
+        <div class="candidate-window stable theme-night-comfort">
+          <div class="candidate-header">
+            <span class="candidate-label">大易字根</span>
+            <span class="candidate-root">魚</span>
+            <span class="candidate-page">1/1</span>
+          </div>
+          <div class="candidate-row">
+            <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+            <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
+            <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
+            <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
+            <span class="candidate"><span class="key">-</span><span class="word">魚</span></span>
+            <span class="candidate"><span class="key">\</span><span class="word">互</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>寬度穩定化</h2>
+        <p>左邊是目前容易出現的體感問題：候選窗跟著內容忽大忽小。右邊是建議行為：同一段組字期間維持穩定寬度，只在內容真的放不下時變寬。</p>
+      </div>
+      <div class="compare-grid">
+        <div class="sample before">
+          <div class="caption">Before：內容變短就縮，視覺會跳</div>
+          <div class="flow">
+            <div class="candidate-window theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">月</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
+              </div>
+            </div>
+            <div class="candidate-window theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">魚</span>
+                <span class="candidate-page">1/1</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
+                <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
+                <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
+              </div>
+            </div>
+            <div class="candidate-window theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">水</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">又</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="caption">After：同一段組字期間維持穩定寬度</div>
+          <div class="flow">
+            <div class="candidate-window stable theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">月</span>
+                <span class="candidate-page">1/1</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
+              </div>
+            </div>
+            <div class="candidate-window stable theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">魚</span>
+                <span class="candidate-page">1/1</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
+                <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
+                <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
+              </div>
+            </div>
+            <div class="candidate-window stable theme-night-comfort">
+              <div class="candidate-header">
+                <span class="candidate-label">大易字根</span>
+                <span class="candidate-root">水</span>
+                <span class="candidate-page">1/1</span>
+              </div>
+              <div class="candidate-row">
+                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span>
+                <span class="candidate"><span class="key">'</span><span class="word">又</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>低疲勞推薦</h2>
+        <p>這三個最適合長時間打字。選中項清楚，但不使用高飽和亮藍，背景也避開純黑與純白。</p>
+      </div>
+      <div class="grid">
+        <div class="sample">
+          <div class="caption">E1 Night Comfort：預設推薦</div>
+          <div class="candidate-window stable theme-night-comfort">
+            <div class="candidate-header">
+              <span class="candidate-label">大易字根</span>
+              <span class="candidate-root">魚</span>
+              <span class="candidate-page">1/1</span>
+            </div>
+            <div class="candidate-row">
+              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+              <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
+              <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
+              <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="caption">E5 Soft Focus：灰綠低刺激</div>
+          <div class="candidate-window stable theme-soft-focus">
+            <div class="candidate-header">
+              <span class="candidate-label">大易字根</span>
+              <span class="candidate-root">木</span>
+              <span class="candidate-page">1/1</span>
+            </div>
+            <div class="candidate-row">
+              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span>
+              <span class="candidate"><span class="key">'</span><span class="word">森</span></span>
+              <span class="candidate"><span class="key">[</span><span class="word">枝</span></span>
+              <span class="candidate"><span class="key">]</span><span class="word">本</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="caption">E2 Warm Gray：夜間最柔和</div>
+          <div class="candidate-window stable theme-warm-gray">
+            <div class="candidate-header">
+              <span class="candidate-label">大易字根</span>
+              <span class="candidate-root">月</span>
+              <span class="candidate-page">1/1</span>
+            </div>
+            <div class="candidate-row">
+              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+              <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
+              <span class="candidate"><span class="key">[</span><span class="word">言</span></span>
+              <span class="candidate"><span class="key">-</span><span class="word">頁</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Theme presets</h2>
+        <p>全部保留成主題。使用者只選 `candidateTheme`，需要微調時才用 `candidateColors` 覆蓋。</p>
+      </div>
+      <div class="grid">
+        <div class="sample">
+          <div class="caption">Night Comfort</div>
+          <div class="candidate-window narrow theme-night-comfort">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">魚</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Soft Focus</div>
+          <div class="candidate-window narrow theme-soft-focus">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">木</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Warm Gray</div>
+          <div class="candidate-window narrow theme-warm-gray">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">月</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span><span class="candidate"><span class="key">'</span><span class="word">事</span></span><span class="candidate"><span class="key">[</span><span class="word">言</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Graphite</div>
+          <div class="candidate-window narrow theme-graphite">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">魚</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Slate Teal</div>
+          <div class="candidate-window narrow theme-slate-teal">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">水</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Olive</div>
+          <div class="candidate-window narrow theme-olive">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">竹</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">等</span></span><span class="candidate"><span class="key">'</span><span class="word">節</span></span><span class="candidate"><span class="key">[</span><span class="word">第</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Plum</div>
+          <div class="candidate-window narrow theme-plum">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">言</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">說</span></span><span class="candidate"><span class="key">'</span><span class="word">計</span></span><span class="candidate"><span class="key">[</span><span class="word">話</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Amber</div>
+          <div class="candidate-window narrow theme-amber">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">日</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Light</div>
+          <div class="candidate-window narrow theme-light">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">金</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">銀</span></span><span class="candidate"><span class="key">'</span><span class="word">針</span></span><span class="candidate"><span class="key">[</span><span class="word">銅</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Paper</div>
+          <div class="candidate-window narrow theme-paper">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">木</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Mist Light</div>
+          <div class="candidate-window narrow theme-mist-light">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">水</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
+          </div>
+        </div>
+        <div class="sample">
+          <div class="caption">Sepia Dim</div>
+          <div class="candidate-window narrow theme-sepia-dim">
+            <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">日</span><span class="candidate-page">1/1</span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>實作 token 建議</h2>
+        <p>這些是 mockup 對應到候選窗實作時最需要固定下來的規則。</p>
+      </div>
+      <table class="token-table">
+        <tr>
+          <th>項目</th>
+          <th>建議</th>
+        </tr>
+        <tr>
+          <td>預設寬度</td>
+          <td>同一段組字期間維持約 286px；只允許變寬，不立即變窄。</td>
+        </tr>
+        <tr>
+          <td>高度</td>
+          <td>header 約 27px，候選列約 32px；用字型實際行高避免裁字。</td>
+        </tr>
+        <tr>
+          <td>選中狀態</td>
+          <td>低飽和背景加 1px 邊框；不要使用過亮藍色。</td>
+        </tr>
+        <tr>
+          <td>配色</td>
+          <td>保留多主題；預設 Night Comfort，另提供 Soft Focus / Warm Gray 等。</td>
+        </tr>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

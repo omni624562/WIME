@@ -134,6 +134,10 @@ public:
 		candidatePageInfo_ = info;
 	}
 
+	void setCandidateMessage(const std::wstring& message) {
+		candidateMessage_ = message;
+	}
+
 	void setCandidateTheme(COLORREF panelBackground,
 		COLORREF panelBorder,
 		COLORREF textPrimary,
@@ -144,6 +148,12 @@ public:
 
 	void setCandidateSpacing(int contentMargin, int textMargin, int borderRadius);
 
+	void setCandidateStableWidth(bool enabled, int minWidth) {
+		candidateStableWidth_ = enabled;
+		candidateMinWidth_ = minWidth;
+		applyCandidateWindowStyle();
+	}
+
 	void setCandidateEdgeAvoidance(bool enabled) {
 		candidateEdgeAvoidance_ = enabled;
 	}
@@ -151,6 +161,10 @@ public:
 	void setCandidateModernStyle(bool enabled) {
 		candidateModernStyle_ = enabled;
 		applyCandidateWindowStyle();
+	}
+
+	bool candidateModernStyle() const {
+		return candidateModernStyle_;
 	}
 
 	// candidate window
@@ -197,6 +211,7 @@ private:
 	std::wstring candFontName_;
 	std::wstring candidateHeader_;
 	std::wstring candidatePageInfo_;
+	std::wstring candidateMessage_;
 	int candFontSize_;
 	bool candidateModernStyle_;
 	bool candidateEdgeAvoidance_;
@@ -210,6 +225,8 @@ private:
 	int candidateContentMargin_;
 	int candidateTextMargin_;
 	int candidateBorderRadius_;
+	bool candidateStableWidth_;
+	int candidateMinWidth_;
 
 	HMENU popupMenu_;
 

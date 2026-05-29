@@ -68,6 +68,34 @@ ID_LITTLEDICT = 11
 ID_PROVERBDICT = 12
 ID_OUTPUT_SIMP_CHINESE = 13
 
+LEGACY_LIGHT_CANDIDATE_COLORS = {
+    "panelBackground": "#FFFFFF",
+    "panelBorder": "#DADDE3",
+    "textPrimary": "#20242A",
+    "textSecondary": "#6B7280",
+    "highlightBackground": "#DCEBFF",
+    "highlightBorder": "#9CC7FF",
+    "highlightText": "#0B3A75",
+}
+
+
+def candidateColorsForTheme(cfg):
+    colors = getattr(cfg, 'candidateColors', {})
+    if not isinstance(colors, dict) or not colors:
+        return {}
+
+    theme = ''.join(ch.lower() for ch in str(getattr(cfg, 'candidateTheme', '')) if ch.isalnum())
+    legacyKeys = set(LEGACY_LIGHT_CANDIDATE_COLORS.keys())
+    if set(colors.keys()) == legacyKeys:
+        legacyColors = True
+        for key, value in LEGACY_LIGHT_CANDIDATE_COLORS.items():
+            if str(colors.get(key, '')).strip().lower() != value.lower():
+                legacyColors = False
+                break
+        if legacyColors and theme not in ('', 'light'):
+            return {}
+    return colors
+
 
 class CinBase:
     def __init__(self):
@@ -2025,6 +2053,7 @@ class CinBase:
                     cbTS.setCandidatePage(currentCandPage)
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
             else: # 沒有候選字
+                keepNoCandidateMessageInCandidateWindow = False
                 # 按下空白鍵或 Enter 鍵
                 if (keyCode == VK_SPACE or keyCode == VK_RETURN) and not cbTS.tempEnglishMode:
                     if len(candidates) == 0:
@@ -2062,10 +2091,15 @@ class CinBase:
                                             cbTS.isShowMessage = True
                                             cbTS.showMessage("請輸入 Unicode 編碼...", cbTS.messageDurationTime)
                         else:
-                            if not cbTS.client.isUiLess:
+                            keepNoCandidateMessageInCandidateWindow = self.shouldKeepNoCandidateMessageInCandidateWindow(cbTS)
+                            if keepNoCandidateMessageInCandidateWindow:
+                                cbTS.currentReply["candidateMessage"] = "查無組字..."
+                                cbTS.currentReply["candidatePageInfo"] = ""
+                                cbTS.isShowCandidates = True
+                            elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
-                            if cbTS.autoClearCompositionChar:
+                            if cbTS.autoClearCompositionChar and not keepNoCandidateMessageInCandidateWindow:
                                 if cbTS.compositionBufferMode:
                                     RemoveStringLength = 0
                                     if not cbTS.compositionChar == '':
@@ -2077,10 +2111,15 @@ class CinBase:
                 elif cbTS.useEndKey and charStr in cbTS.endKeyList:
                     if len(candidates) == 0:
                         if not len(cbTS.compositionChar) == 1 and not cbTS.compositionChar == charStrLow:
-                            if not cbTS.client.isUiLess:
+                            keepNoCandidateMessageInCandidateWindow = self.shouldKeepNoCandidateMessageInCandidateWindow(cbTS)
+                            if keepNoCandidateMessageInCandidateWindow:
+                                cbTS.currentReply["candidateMessage"] = "查無組字..."
+                                cbTS.currentReply["candidatePageInfo"] = ""
+                                cbTS.isShowCandidates = True
+                            elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
-                            if cbTS.autoClearCompositionChar:
+                            if cbTS.autoClearCompositionChar and not keepNoCandidateMessageInCandidateWindow:
                                 if cbTS.compositionBufferMode:
                                     RemoveStringLength = 0
                                     if not cbTS.compositionChar == '':
@@ -2090,8 +2129,9 @@ class CinBase:
                             if cbTS.playSoundWhenNonCand:
                                 winsound.PlaySound('alert', winsound.SND_ASYNC)
 
-                cbTS.setShowCandidates(False)
-                cbTS.isShowCandidates = False
+                if not keepNoCandidateMessageInCandidateWindow:
+                    cbTS.setShowCandidates(False)
+                    cbTS.isShowCandidates = False
 
         # 聯想字模式
         if PhraseData.phrase is None:
@@ -2315,18 +2355,31 @@ class CinBase:
         #print('Type = ' + cbTS.compositionBufferType)
         #print(cbTS.compositionBufferChar)
 
-        # 大易的組字字根要固定顯示在候選窗上方，而不是輸入欄位內。
+        # 特定拆碼輸入法的組字內容要固定顯示在候選窗上方，而不是輸入欄位內。
         # 即使使用者設定檔缺少 hideComposition，也要保留這個 UI 契約。
-        if cbTS.hideComposition or cbTS.imeDirName == "chedayi":
+        headerCompositionLabels = {
+            "chedayi": "大易",
+            "checj": "酷倉",
+            "cheliu": "蝦米",
+        }
+        forceHeaderComposition = cbTS.imeDirName in headerCompositionLabels
+        if cbTS.hideComposition or forceHeaderComposition:
             if cbTS.compositionString:
-                cbTS.currentReply["compositionString"] = "​"
+                cbTS.currentReply["compositionString"] = "\u200b"
                 cbTS.currentReply["compositionCursor"] = 0
-                label = cbTS.hideCompositionLabel
+                if forceHeaderComposition:
+                    label = cbTS.imeDisplayName or headerCompositionLabels[cbTS.imeDirName]
+                else:
+                    label = cbTS.hideCompositionLabel
                 cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + cbTS.compositionString
-                if not cbTS.currentReply.get("candidateList"):
-                    # no real candidates this keypress — send empty list so C++ calls
-                    # updateCandidates() → setHeader(), keeping the header in sync
-                    cbTS.setCandidateList([])
+                if "candidateList" not in cbTS.currentReply:
+                    if forceHeaderComposition and not self.isCompositionCharPrefix(cbTS):
+                        cbTS.currentReply["candidateMessage"] = "查無組字..."
+                        cbTS.currentReply["candidatePageInfo"] = ""
+                        cbTS.setCandidateList([])
+                    else:
+                        # 沒有候選清單時，也送出清單更新，讓 C++ 同步刷新 header。
+                        cbTS.setCandidateList(cbTS.candidateList if cbTS.showCandidates and cbTS.candidateList else [])
                     cbTS.setShowCandidates(True)
                 if not cbTS.currentReply.get("candidatePageInfo"):
                     cbTS.currentReply["candidatePageInfo"] = ""
@@ -2873,6 +2926,23 @@ class CinBase:
         for i in range(0, len(l), n):
             yield l[i:i+n]
 
+    def isCompositionCharPrefix(self, cbTS):
+        compositionChar = getattr(cbTS, 'compositionChar', '')
+        if not compositionChar:
+            return False
+
+        cin = getattr(cbTS, 'cin', None)
+        if cin is None:
+            return True
+
+        if hasattr(cin, 'isCharDefPrefix'):
+            return cin.isCharDefPrefix(compositionChar)
+
+        return cin.isInCharDef(compositionChar) or bool(cin.haveNextCharDef(compositionChar))
+
+    def shouldKeepNoCandidateMessageInCandidateWindow(self, cbTS):
+        return cbTS.imeDirName in ("chedayi", "checj", "cheliu") and not self.isCompositionCharPrefix(cbTS)
+
     def getKeyState(self, keyCode):
         return ctypes.WinDLL("User32.dll").GetKeyState(keyCode)
 
@@ -3162,8 +3232,10 @@ class CinBase:
                 "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
                 "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
                 "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
-                "candidateColors": getattr(cfg, 'candidateColors', {}),
+                "candidateColors": candidateColorsForTheme(cfg),
                 "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+                "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
+                "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
             })
         cbTS.customizeUI(**ui_args)
 

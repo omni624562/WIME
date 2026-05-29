@@ -226,6 +226,39 @@
                             <select name="selKeyType" id="selKeyType"></select>
                         </div>
                         <div id="selExample"></div>
+                        <div class="config_section candidate_window_settings">
+                            <h1>候選窗外觀</h1>
+                            <div class="candidate-appearance-shell">
+                                <select name="candidateTheme" id="candidateTheme" class="candidate-theme-select" data-value-type="string"></select>
+                                <div class="candidate-toolbar">
+                                    <div class="candidate-config-field candidate-config-check">
+                                        <input type="checkbox" id="candidateModernStyle" name="candidateModernStyle">
+                                        <label for="candidateModernStyle">使用新版候選窗 UI</label>
+                                    </div>
+                                    <div class="candidate-config-field candidate-config-check">
+                                        <input type="checkbox" id="candidateStableWidth" name="candidateStableWidth">
+                                        <label for="candidateStableWidth">固定候選窗最小寬度</label>
+                                    </div>
+                                    <div class="candidate-config-field candidate-config-check">
+                                        <input type="checkbox" id="candidateEdgeAvoidance" name="candidateEdgeAvoidance">
+                                        <label for="candidateEdgeAvoidance">自動避開螢幕邊緣</label>
+                                    </div>
+                                    <div class="candidate-config-field">
+                                        <label for="candidatePerRow">每列候選字數</label>
+                                        <input type="number" class="form-control" id="candidatePerRow" name="candidatePerRow" min="1" max="10">
+                                    </div>
+                                    <div class="candidate-config-field">
+                                        <label for="candidateMinWidth">候選窗最小寬度</label>
+                                        <input type="number" class="form-control" id="candidateMinWidth" name="candidateMinWidth" min="160" max="720">
+                                    </div>
+                                </div>
+                                <div class="candidate-theme-heading">
+                                    <span>候選窗配色</span>
+                                    <span id="candidateThemeCurrent" class="candidate-theme-current"></span>
+                                </div>
+                                <div id="candidateThemeGrid" class="candidate-theme-grid"></div>
+                            </div>
+                        </div>
                     </div>
                     <div role="tabpanel" class="tab-pane fade" id="keyboard_tab">
                         <!-- keyboard layouts inserted here by javascript -->

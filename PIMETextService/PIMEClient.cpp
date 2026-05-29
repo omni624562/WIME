@@ -38,6 +38,9 @@ using json = nlohmann::json;
 namespace PIME {
 
 static constexpr const char* kDayiProfileGuid = "{e6943374-70f5-4540-aa0f-3205c7dcca84}";
+static constexpr const char* kChewingProfileGuid = "{f80736aa-28db-423a-92c9-5540f501c939}";
+static constexpr const char* kChecjProfileGuid = "{f828d2dc-81be-466e-9cfe-24bb03172693}";
+static constexpr const char* kCheliuProfileGuid = "{72844b94-5908-4674-8626-4353755bc5db}";
 
 static std::string uuidToString(const UUID& uuid) {
 	std::string result;
@@ -76,6 +79,15 @@ static void parseHexColorMember(const json& object, const char* name, COLORREF& 
 		parseHexColor(*it, color);
 }
 
+static std::string normalizedThemeName(const std::string& theme) {
+	std::string normalized;
+	for (unsigned char ch : theme) {
+		if (std::isalnum(ch))
+			normalized.push_back((char)std::tolower(ch));
+	}
+	return normalized;
+}
+
 static void candidateThemeColors(const std::string& theme,
 	COLORREF& panelBackground,
 	COLORREF& panelBorder,
@@ -84,33 +96,122 @@ static void candidateThemeColors(const std::string& theme,
 	COLORREF& highlightBackground,
 	COLORREF& highlightBorder,
 	COLORREF& highlightText) {
-	if (theme == "dark") {
-		panelBackground = RGB(32, 35, 39);
-		panelBorder = RGB(58, 63, 70);
-		textPrimary = RGB(242, 244, 247);
-		textSecondary = RGB(170, 178, 189);
-		highlightBackground = RGB(49, 90, 140);
-		highlightBorder = RGB(86, 132, 194);
-		highlightText = RGB(255, 255, 255);
+	const std::string name = normalizedThemeName(theme);
+	if (name == "nightcomfort" || name == "night" || name == "dark") {
+		panelBackground = RGB(27, 28, 32);
+		panelBorder = RGB(74, 77, 87);
+		textPrimary = RGB(229, 232, 238);
+		textSecondary = RGB(169, 175, 186);
+		highlightBackground = RGB(64, 95, 138);
+		highlightBorder = RGB(94, 126, 167);
+		highlightText = RGB(238, 244, 255);
 	}
-	else if (theme == "soft") {
-		panelBackground = RGB(247, 244, 236);
-		panelBorder = RGB(217, 210, 195);
-		textPrimary = RGB(38, 35, 30);
-		textSecondary = RGB(116, 109, 98);
-		highlightBackground = RGB(220, 234, 216);
-		highlightBorder = RGB(159, 192, 151);
-		highlightText = RGB(31, 77, 43);
+	else if (name == "softfocus" || name == "soft") {
+		panelBackground = RGB(25, 29, 33);
+		panelBorder = RGB(68, 82, 90);
+		textPrimary = RGB(228, 235, 238);
+		textSecondary = RGB(168, 181, 186);
+		highlightBackground = RGB(63, 111, 107);
+		highlightBorder = RGB(106, 153, 147);
+		highlightText = RGB(236, 251, 248);
+	}
+	else if (name == "warmgray" || name == "warmgrey") {
+		panelBackground = RGB(32, 32, 29);
+		panelBorder = RGB(88, 85, 75);
+		textPrimary = RGB(235, 231, 220);
+		textSecondary = RGB(183, 177, 163);
+		highlightBackground = RGB(95, 104, 77);
+		highlightBorder = RGB(135, 147, 111);
+		highlightText = RGB(247, 243, 231);
+	}
+	else if (name == "graphite") {
+		panelBackground = RGB(18, 20, 26);
+		panelBorder = RGB(68, 74, 87);
+		textPrimary = RGB(243, 245, 250);
+		textSecondary = RGB(174, 181, 196);
+		highlightBackground = RGB(65, 105, 215);
+		highlightBorder = RGB(111, 146, 235);
+		highlightText = RGB(237, 243, 255);
+	}
+	else if (name == "slateteal" || name == "teal") {
+		panelBackground = RGB(21, 32, 39);
+		panelBorder = RGB(63, 90, 100);
+		textPrimary = RGB(240, 248, 251);
+		textSecondary = RGB(165, 186, 194);
+		highlightBackground = RGB(47, 127, 159);
+		highlightBorder = RGB(96, 173, 200);
+		highlightText = RGB(233, 251, 255);
+	}
+	else if (name == "olive") {
+		panelBackground = RGB(23, 27, 22);
+		panelBorder = RGB(75, 89, 65);
+		textPrimary = RGB(244, 247, 239);
+		textSecondary = RGB(180, 189, 167);
+		highlightBackground = RGB(93, 127, 54);
+		highlightBorder = RGB(145, 185, 98);
+		highlightText = RGB(244, 255, 232);
+	}
+	else if (name == "plum") {
+		panelBackground = RGB(29, 23, 33);
+		panelBorder = RGB(96, 75, 102);
+		textPrimary = RGB(251, 244, 255);
+		textSecondary = RGB(192, 173, 202);
+		highlightBackground = RGB(122, 85, 184);
+		highlightBorder = RGB(170, 131, 230);
+		highlightText = RGB(251, 243, 255);
+	}
+	else if (name == "amber") {
+		panelBackground = RGB(33, 26, 18);
+		panelBorder = RGB(104, 83, 58);
+		textPrimary = RGB(255, 248, 237);
+		textSecondary = RGB(207, 189, 164);
+		highlightBackground = RGB(154, 103, 48);
+		highlightBorder = RGB(213, 154, 88);
+		highlightText = RGB(255, 243, 222);
+	}
+	else if (name == "paper") {
+		panelBackground = RGB(251, 250, 246);
+		panelBorder = RGB(183, 172, 156);
+		textPrimary = RGB(39, 33, 25);
+		textSecondary = RGB(120, 107, 93);
+		highlightBackground = RGB(49, 95, 135);
+		highlightBorder = RGB(36, 73, 103);
+		highlightText = RGB(247, 251, 255);
+	}
+	else if (name == "mistlight" || name == "mist") {
+		panelBackground = RGB(233, 237, 240);
+		panelBorder = RGB(168, 179, 188);
+		textPrimary = RGB(36, 48, 58);
+		textSecondary = RGB(102, 114, 125);
+		highlightBackground = RGB(95, 127, 148);
+		highlightBorder = RGB(75, 104, 123);
+		highlightText = RGB(247, 251, 253);
+	}
+	else if (name == "sepiadim" || name == "sepia") {
+		panelBackground = RGB(40, 37, 31);
+		panelBorder = RGB(93, 86, 74);
+		textPrimary = RGB(235, 226, 211);
+		textSecondary = RGB(185, 173, 154);
+		highlightBackground = RGB(109, 101, 71);
+		highlightBorder = RGB(149, 138, 99);
+		highlightText = RGB(248, 239, 217);
 	}
 	else {
-		panelBackground = RGB(255, 255, 255);
-		panelBorder = RGB(218, 221, 227);
-		textPrimary = RGB(32, 36, 42);
-		textSecondary = RGB(107, 114, 128);
-		highlightBackground = RGB(220, 235, 255);
-		highlightBorder = RGB(156, 199, 255);
-		highlightText = RGB(11, 58, 117);
+		panelBackground = RGB(247, 249, 252);
+		panelBorder = RGB(174, 184, 203);
+		textPrimary = RGB(24, 34, 53);
+		textSecondary = RGB(101, 113, 135);
+		highlightBackground = RGB(47, 110, 234);
+		highlightBorder = RGB(29, 86, 196);
+		highlightText = RGB(255, 255, 255);
 	}
+}
+
+static bool usesModernCandidateDefault(const std::string& guid) {
+	return guid == kDayiProfileGuid ||
+		guid == kChewingProfileGuid ||
+		guid == kChecjProfileGuid ||
+		guid == kCheliuProfileGuid;
 }
 
 Client::Client(TextService* service, REFIID langProfileGuid):
@@ -121,18 +222,19 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	guid_{ uuidToString(langProfileGuid) },
 	shouldWaitConnection_{ true },
 	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) } {
-	if (guid_ == kDayiProfileGuid) {
+	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(10);
 		textService_->setCandidateEdgeAvoidance(true);
 		textService_->setCandidateTheme(
-			RGB(24, 23, 37),
-			RGB(78, 76, 99),
-			RGB(243, 244, 255),
-			RGB(167, 168, 190),
-			RGB(79, 126, 240),
-			RGB(109, 150, 255),
-			RGB(234, 240, 255));
+			RGB(27, 28, 32),
+			RGB(74, 77, 87),
+			RGB(229, 232, 238),
+			RGB(169, 175, 186),
+			RGB(64, 95, 138),
+			RGB(94, 126, 167),
+			RGB(238, 244, 255));
 		textService_->setCandidateSpacing(6, 4, 6);
+		textService_->setCandidateStableWidth(true, 286);
 		textService_->setCandidateModernStyle(true);
 	}
 }
@@ -227,6 +329,15 @@ void Client::updateUI(json& data) {
 		textService_->setCandidateSpacing(contentMargin, textMargin, borderRadius);
 	}
 
+	auto stableIt = data.find("candidateStableWidth");
+	auto minWidthIt = data.find("candidateMinWidth");
+	if ((stableIt != data.end() && stableIt->is_boolean()) ||
+	    (minWidthIt != data.end() && minWidthIt->is_number_integer())) {
+		bool stableWidth = stableIt != data.end() && stableIt->is_boolean() ? stableIt->get<bool>() : false;
+		int minWidth = minWidthIt != data.end() && minWidthIt->is_number_integer() ? minWidthIt->get<int>() : 0;
+		textService_->setCandidateStableWidth(stableWidth, minWidth);
+	}
+
 	// Apply modernStyle last: triggers the final applyCandidateWindowStyle() with
 	// theme and spacing already in their new state.
 	if (hasModernStyle) {
@@ -250,6 +361,12 @@ void Client::updateMessageWindow(json& msg, Ime::EditSession* session, bool& end
 		auto& message = showMessageVal["message"];
 		auto& duration = showMessageVal["duration"];
 		if (message.is_string() && duration.is_number_integer()) {
+			if (textService_->candidateModernStyle()) {
+				textService_->hideMessage();
+				msg["candidateMessage"] = message.get<string>();
+				msg["showCandidates"] = true;
+				return;
+			}
 			if (!textService_->isComposing()) {
 				textService_->startComposition(session->context());
 				endComposition = true;
@@ -465,8 +582,19 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 	// handle candidate list
 	const auto& showCandidatesVal = msg["showCandidates"];
+	const auto& candidateMessageVal = msg["candidateMessage"];
+	bool hasCandidateMessage = false;
+	if (candidateMessageVal.is_string()) {
+		std::wstring message = utf8ToUtf16(candidateMessageVal.get<std::string>().c_str());
+		hasCandidateMessage = !message.empty();
+		textService_->setCandidateMessage(message);
+	}
+	else if (showCandidatesVal.is_boolean()) {
+		textService_->setCandidateMessage(L"");
+	}
+
 	if (showCandidatesVal.is_boolean()) {
-		if (showCandidatesVal.get<bool>()) {
+		if (showCandidatesVal.get<bool>() || hasCandidateMessage) {
 			// start composition if we are not composing.
 			// this is required to get correctly position the candidate window
 			if (!textService_->isComposing()) {
@@ -475,8 +603,15 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 			textService_->showCandidates(session);
 		}
 		else {
+			textService_->setCandidateMessage(L"");
 			textService_->hideCandidates();
 		}
+	}
+	else if (hasCandidateMessage) {
+		if (!textService_->isComposing()) {
+			textService_->startComposition(session->context());
+		}
+		textService_->showCandidates(session);
 	}
 
 	// parse candidateHeader before candidateList so candidateHeader_ is correct
@@ -501,6 +636,9 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 
 	const auto& candidateListVal = msg["candidateList"];
 	if (candidateListVal.is_array()) {
+		if (!hasCandidateMessage) {
+			textService_->setCandidateMessage(L"");
+		}
 		// handle candidates
 		// FIXME: directly access private member is dirty!!!
 		vector<wstring>& candidates = textService_->candidates_;
@@ -511,9 +649,13 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 			}
 		}
 		textService_->updateCandidates(session);
-		if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>()) {
+		if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>() && !hasCandidateMessage) {
 			textService_->hideCandidates();
 		}
+	}
+	else if (hasCandidateMessage) {
+		textService_->candidates_.clear();
+		textService_->updateCandidates(session);
 	}
 
 	const auto& candidateCursorVal = msg["candidateCursor"];
