@@ -2306,7 +2306,9 @@ class CinBase:
         #print('Type = ' + cbTS.compositionBufferType)
         #print(cbTS.compositionBufferChar)
 
-        if cbTS.hideComposition:
+        # 大易的組字字根要固定顯示在候選窗上方，而不是輸入欄位內。
+        # 即使使用者設定檔缺少 hideComposition，也要保留這個 UI 契約。
+        if cbTS.hideComposition or cbTS.imeDirName == "chedayi":
             if cbTS.compositionString:
                 cbTS.currentReply["compositionString"] = "​"
                 cbTS.currentReply["compositionCursor"] = 0

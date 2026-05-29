@@ -30,27 +30,26 @@
     "showPhrase": false,
     "sortByPhrase": true,
     "intelligentSelect": true,
-    "hideComposition": true,
-    "hideCompositionLabel": "",
-    "imeDisplayName": "",
+    "hideCompositionLabel": "大易字根",
+    "imeDisplayName": "大易",
     "candidateModernStyle": true,
     "candidateLayout": "horizontal",
     "candidatePerRow": 10,
     "candidateEdgeAvoidance": true,
     "candidateTheme": "light",
     "candidateColors": {
-        "panelBackground": "#FFFFFF",
-        "panelBorder": "#DADDE3",
-        "textPrimary": "#20242A",
-        "textSecondary": "#6B7280",
-        "highlightBackground": "#DCEBFF",
-        "highlightBorder": "#9CC7FF",
-        "highlightText": "#0B3A75"
+        "panelBackground": "#181725",
+        "panelBorder": "#4E4C63",
+        "textPrimary": "#F3F4FF",
+        "textSecondary": "#A7A8BE",
+        "highlightBackground": "#4F7EF0",
+        "highlightBorder": "#6D96FF",
+        "highlightText": "#EAF0FF"
     },
     "candidateStyle": {
-        "contentMargin": 8,
+        "contentMargin": 10,
         "textMargin": 6,
-        "borderRadius": 8
+        "borderRadius": 9
     },
     "compositionBufferMode": false,
     "autoMoveCursorInBrackets": false,
