@@ -185,9 +185,14 @@
 
 .candidate-preview-body {
     display: flex;
+    flex-wrap: nowrap;
     gap: 8px;
     min-height: 36px;
     padding: 6px;
+}
+
+.candidate-preview.wrap .candidate-preview-body {
+    flex-wrap: wrap;
 }
 
 .candidate-preview-item {

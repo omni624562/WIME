@@ -78,6 +78,8 @@ class ChewingConfig:
         self.candidateTheme = "Night Comfort"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
+        self.candidateWrapToMaxWidth = True
+        self.candidateMaxWidth = 340
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

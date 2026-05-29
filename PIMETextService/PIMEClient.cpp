@@ -235,6 +235,7 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 			RGB(238, 244, 255));
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
+		textService_->setCandidateMaxWidth(true, 340);
 		textService_->setCandidateModernStyle(true);
 	}
 }
@@ -336,6 +337,15 @@ void Client::updateUI(json& data) {
 		bool stableWidth = stableIt != data.end() && stableIt->is_boolean() ? stableIt->get<bool>() : false;
 		int minWidth = minWidthIt != data.end() && minWidthIt->is_number_integer() ? minWidthIt->get<int>() : 0;
 		textService_->setCandidateStableWidth(stableWidth, minWidth);
+	}
+
+	auto wrapIt = data.find("candidateWrapToMaxWidth");
+	auto maxWidthIt = data.find("candidateMaxWidth");
+	if ((wrapIt != data.end() && wrapIt->is_boolean()) ||
+	    (maxWidthIt != data.end() && maxWidthIt->is_number_integer())) {
+		bool wrapToMaxWidth = wrapIt != data.end() && wrapIt->is_boolean() ? wrapIt->get<bool>() : false;
+		int maxWidth = maxWidthIt != data.end() && maxWidthIt->is_number_integer() ? maxWidthIt->get<int>() : 0;
+		textService_->setCandidateMaxWidth(wrapToMaxWidth, maxWidth);
 	}
 
 	// Apply modernStyle last: triggers the final applyCandidateWindowStyle() with

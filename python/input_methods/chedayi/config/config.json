@@ -39,6 +39,8 @@
     "candidateTheme": "Night Comfort",
     "candidateStableWidth": true,
     "candidateMinWidth": 286,
+    "candidateWrapToMaxWidth": true,
+    "candidateMaxWidth": 340,
     "candidateColors": {},
     "candidateStyle": {
         "contentMargin": 6,

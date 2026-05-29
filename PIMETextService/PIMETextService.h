@@ -154,6 +154,12 @@ public:
 		applyCandidateWindowStyle();
 	}
 
+	void setCandidateMaxWidth(bool wrapToMaxWidth, int maxWidth) {
+		candidateWrapToMaxWidth_ = wrapToMaxWidth;
+		candidateMaxWidth_ = maxWidth;
+		applyCandidateWindowStyle();
+	}
+
 	void setCandidateEdgeAvoidance(bool enabled) {
 		candidateEdgeAvoidance_ = enabled;
 	}
@@ -227,6 +233,8 @@ private:
 	int candidateBorderRadius_;
 	bool candidateStableWidth_;
 	int candidateMinWidth_;
+	bool candidateWrapToMaxWidth_;
+	int candidateMaxWidth_;
 
 	HMENU popupMenu_;
 

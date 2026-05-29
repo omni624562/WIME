@@ -60,7 +60,9 @@ TextService::TextService(ImeModule* module):
 	candidateTextMargin_(6),
 	candidateBorderRadius_(8),
 	candidateStableWidth_(false),
-	candidateMinWidth_(0) {
+	candidateMinWidth_(0),
+	candidateWrapToMaxWidth_(false),
+	candidateMaxWidth_(0) {
 
 	// font for candidate and mesasge windows
 	font_ = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
@@ -354,6 +356,7 @@ void TextService::applyCandidateWindowStyle() {
 		candidateHighlightText_);
 	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
 	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
+	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
 }
 
 void TextService::moveCandidateWindow(Ime::EditSession* session) {

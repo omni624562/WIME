@@ -38,6 +38,12 @@ $(function () {
         if (typeof chewingConfig.candidateMinWidth === "undefined" || chewingConfig.candidateMinWidth < 160) {
             chewingConfig.candidateMinWidth = 286;
         }
+        if (typeof chewingConfig.candidateWrapToMaxWidth === "undefined") {
+            chewingConfig.candidateWrapToMaxWidth = true;
+        }
+        if (typeof chewingConfig.candidateMaxWidth === "undefined" || chewingConfig.candidateMaxWidth < 220) {
+            chewingConfig.candidateMaxWidth = 340;
+        }
         if (typeof chewingConfig.candidateTheme === "undefined") {
             chewingConfig.candidateTheme = "Night Comfort";
         }
@@ -109,7 +115,7 @@ $(function () {
 
     function fillCandidatePreviewItems(preview, sample) {
         let count = Number.parseInt($("#candidatePerRow").val()) || 4;
-        count = Math.max(1, Math.min(count, 6));
+        count = Math.max(1, Math.min(count, 10));
         let body = preview.find(".candidate-preview-body");
         body.empty();
 
@@ -165,8 +171,10 @@ $(function () {
         let selectedTheme = $("#candidateTheme").val() || "Night Comfort";
         let modern = $("#candidateModernStyle").prop("checked");
         let stableWidth = $("#candidateStableWidth").prop("checked");
+        let wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
         let sample = getCandidatePreviewSample();
         $("#candidateMinWidth").prop("disabled", !stableWidth);
+        $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
         $("#candidateThemeCurrent").text(selectedTheme);
 
         grid.find(".candidate-theme-card").each(function () {
@@ -175,6 +183,7 @@ $(function () {
             let selected = themeName === selectedTheme;
             let preview = card.find(".candidate-preview");
             card.toggleClass("selected", selected);
+            preview.toggleClass("wrap", wrapToMaxWidth);
             card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
             preview.find(".candidate-preview-name").text(sample.name);
             preview.find(".candidate-preview-root").text(sample.root);

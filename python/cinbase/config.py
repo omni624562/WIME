@@ -88,6 +88,8 @@ class CinBaseConfig:
         self.candidateTheme = "Night Comfort"
         self.candidateStableWidth = False
         self.candidateMinWidth = 0
+        self.candidateWrapToMaxWidth = True
+        self.candidateMaxWidth = 340
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 8,

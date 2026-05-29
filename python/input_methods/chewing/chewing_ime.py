@@ -168,6 +168,8 @@ class ChewingTextService(TextService):
                 "candidateStyle": getattr(cfg, 'candidateStyle', {}),
                 "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
                 "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
+                "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
+                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 340),
             })
         self.customizeUI(**ui_args)
 

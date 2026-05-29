@@ -158,6 +158,12 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.candidateMinWidth === "undefined" || checjConfig.candidateMinWidth < 160) {
         checjConfig.candidateMinWidth = 286;
     }
+    if (typeof checjConfig.candidateWrapToMaxWidth === "undefined") {
+        checjConfig.candidateWrapToMaxWidth = true;
+    }
+    if (typeof checjConfig.candidateMaxWidth === "undefined" || checjConfig.candidateMaxWidth < 220) {
+        checjConfig.candidateMaxWidth = 340;
+    }
     if (typeof checjConfig.candidateTheme === "undefined") {
         checjConfig.candidateTheme = "Night Comfort";
     }
@@ -244,7 +250,7 @@ function applyCandidatePreviewTheme(preview, theme, modern) {
 
 function fillCandidatePreviewItems(preview, sample) {
     var count = parseInt($("#candidatePerRow").val(), 10) || 4;
-    count = Math.max(1, Math.min(count, 6));
+    count = Math.max(1, Math.min(count, 10));
     var body = preview.find(".candidate-preview-body");
     body.empty();
 
@@ -300,8 +306,10 @@ function updateCandidateThemeGallery() {
     var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
     var modern = $("#candidateModernStyle").prop("checked");
     var stableWidth = $("#candidateStableWidth").prop("checked");
+    var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateMinWidth").prop("disabled", !stableWidth);
+    $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
     $("#candidateThemeCurrent").text(selectedTheme);
 
     grid.find(".candidate-theme-card").each(function() {
@@ -310,6 +318,7 @@ function updateCandidateThemeGallery() {
         var selected = themeName == selectedTheme;
         var preview = card.find(".candidate-preview");
         card.toggleClass("selected", selected);
+        preview.toggleClass("wrap", wrapToMaxWidth);
         card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root);
@@ -640,6 +649,7 @@ function pageReady() {
     $("#fontSize").TouchSpin({min:6, max:200});
     $("#candidatePerRow").TouchSpin({min:1, max:10});
     $("#candidateMinWidth").TouchSpin({min:160, max:720});
+    $("#candidateMaxWidth").TouchSpin({min:220, max:720});
 
     var selWhichShift = [
         "左右兩邊都使用",
