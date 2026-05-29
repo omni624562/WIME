@@ -1378,6 +1378,14 @@ class CinBase:
 
         if cbTS.langMode == CHINESE_MODE and len(cbTS.compositionChar) >= 1 and not cbTS.menumode and not cbTS.multifunctionmode:
             cbTS.showmenu = False
+            # 功能選單會暫時改用數字選字鍵；回到一般大易組字候選時，
+            # 必須在同一包候選回覆內切回大易選字鍵，避免候選窗殘留 1/2/3。
+            if cbTS.imeDirName == "chedayi":
+                cbTS.selKeys = "'[]-\\"
+                if self.candselKeys != "␣'[]-\\":
+                    self.candselKeys = "␣'[]-\\"
+                    cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+                    cbTS.isSelKeysChanged = True
             if not cbTS.directShowCand and not cbTS.selcandmode:
                 if not cbTS.lastCompositionCharLength == len(cbTS.compositionChar):
                     cbTS.lastCompositionCharLength = len(cbTS.compositionChar)
