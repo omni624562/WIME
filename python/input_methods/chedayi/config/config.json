@@ -47,9 +47,9 @@
         "highlightText": "#EAF0FF"
     },
     "candidateStyle": {
-        "contentMargin": 10,
-        "textMargin": 6,
-        "borderRadius": 9
+        "contentMargin": 6,
+        "textMargin": 4,
+        "borderRadius": 6
     },
     "compositionBufferMode": false,
     "autoMoveCursorInBrackets": false,

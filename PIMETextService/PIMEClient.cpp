@@ -37,6 +37,8 @@ using json = nlohmann::json;
 
 namespace PIME {
 
+static constexpr const char* kDayiProfileGuid = "{e6943374-70f5-4540-aa0f-3205c7dcca84}";
+
 static std::string uuidToString(const UUID& uuid) {
 	std::string result;
 	LPOLESTR buf = nullptr;
@@ -119,6 +121,20 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	guid_{ uuidToString(langProfileGuid) },
 	shouldWaitConnection_{ true },
 	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) } {
+	if (guid_ == kDayiProfileGuid) {
+		textService_->setCandPerRow(10);
+		textService_->setCandidateEdgeAvoidance(true);
+		textService_->setCandidateTheme(
+			RGB(24, 23, 37),
+			RGB(78, 76, 99),
+			RGB(243, 244, 255),
+			RGB(167, 168, 190),
+			RGB(79, 126, 240),
+			RGB(109, 150, 255),
+			RGB(234, 240, 255));
+		textService_->setCandidateSpacing(6, 4, 6);
+		textService_->setCandidateModernStyle(true);
+	}
 }
 
 Client::~Client(void) {
@@ -415,6 +431,13 @@ void Client::updateKeyboardStatus(json& msg) {
 void Client::updateStatus(json& msg, Ime::EditSession* session) {
 	// We need to handle ordering of some types of the requests.
 	// For example, setCompositionCursor() should happen after setCompositionCursor().
+	// UI customization must be applied before candidateList creates or refreshes
+	// the candidate window; otherwise the first rendered window keeps the old UI.
+	auto& customizeUIVal = msg["customizeUI"];
+	if (customizeUIVal.is_object()) {
+		updateUI(customizeUIVal);
+	}
+
 	updateSelectionKeys(msg);
 
 	// show message
@@ -437,13 +460,6 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 
 	// keyboard status
 	updateKeyboardStatus(msg);
-
-	// other configurations
-	auto& customizeUIVal = msg["customizeUI"];
-	if (customizeUIVal.is_object()) {
-		// customize the UI
-		updateUI(customizeUIVal);
-	}
 }
 
 void Client::updateCandidateList(json& msg, Ime::EditSession* session) {

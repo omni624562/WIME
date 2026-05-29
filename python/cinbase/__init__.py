@@ -270,6 +270,7 @@ class CinBase:
             tooltip = "設定",
             type = "menu"
         )
+        self.customizeCandidateUI(cbTS)
 
 
     # 使用者離開輸入法
@@ -1868,7 +1869,7 @@ class CinBase:
 
                     if cbTS.imeDisplayName:
                         totalPages = len(pagecandidates)
-                        cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}・{cbTS.imeDisplayName}"
+                        cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}"
 
                 # 多功能前導字元
                 if cbTS.multifunctionmode and cbTS.directCommitSymbol and not cbTS.selcandmode:
@@ -2328,7 +2329,10 @@ class CinBase:
                     cbTS.setCandidateList([])
                     cbTS.setShowCandidates(True)
                 if not cbTS.currentReply.get("candidatePageInfo"):
-                    cbTS.currentReply["candidatePageInfo"] = cbTS.imeDisplayName
+                    cbTS.currentReply["candidatePageInfo"] = ""
+
+        if "candidateList" in cbTS.currentReply or "showCandidates" in cbTS.currentReply:
+            self.customizeCandidateUI(cbTS)
 
         return True
 
@@ -2450,6 +2454,9 @@ class CinBase:
             cbTS.hideMessage()
             cbTS.isShowMessage = False
             cbTS.hideMessageOnKeyUp = False
+
+        if "candidateList" in cbTS.currentReply or "showCandidates" in cbTS.currentReply:
+            self.customizeCandidateUI(cbTS)
 
 
     def onPreservedKey(self, cbTS, guid):
@@ -3140,6 +3147,26 @@ class CinBase:
         cbTS.initCinBaseState = True
 
 
+    def customizeCandidateUI(self, cbTS):
+        cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
+        ui_args = {
+            "candFontSize": cfg.fontSize,
+            "candFontName": 'Microsoft JhengHei',
+            "candPerRow": cbTS.candPerRow,
+            "candUseCursor": cfg.cursorCandList,
+        }
+        if getattr(cfg, 'candidateModernStyle', False):
+            ui_args.update({
+                "candidateModernStyle": True,
+                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
+                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+                "candidateColors": getattr(cfg, 'candidateColors', {}),
+                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+            })
+        cbTS.customizeUI(**ui_args)
+
     def applyConfig(self, cbTS):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
         cbTS.configVersion = cfg.getVersion()
@@ -3160,23 +3187,7 @@ class CinBase:
         cbTS.candPerPage = cfg.candPerPage
 
         # 設定 UI 外觀
-        ui_args = {
-            "candFontSize": cfg.fontSize,
-            "candFontName": 'Microsoft JhengHei',
-            "candPerRow": cbTS.candPerRow,
-            "candUseCursor": cfg.cursorCandList,
-        }
-        if getattr(cfg, 'candidateModernStyle', False):
-            ui_args.update({
-                "candidateModernStyle": True,
-                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 10),
-                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
-                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
-                "candidateColors": getattr(cfg, 'candidateColors', {}),
-                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
-            })
-        cbTS.customizeUI(**ui_args)
+        self.customizeCandidateUI(cbTS)
 
         # 設定選字按鍵 (123456..., asdf.... 等)
         # if cbTS.cin.getSelection():
