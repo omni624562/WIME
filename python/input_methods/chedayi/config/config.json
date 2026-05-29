@@ -31,6 +31,8 @@
     "sortByPhrase": true,
     "intelligentSelect": true,
     "hideComposition": true,
+    "hideCompositionLabel": "",
+    "imeDisplayName": "",
     "candidateModernStyle": true,
     "candidateLayout": "horizontal",
     "candidatePerRow": 10,

@@ -79,6 +79,8 @@ class CinBaseConfig:
         self.selDayiSymbolCharType = 0
         self.intelligentSelect = True
         self.hideComposition = False
+        self.hideCompositionLabel = ""
+        self.imeDisplayName = ""
         self.candidateModernStyle = False
         self.candidateLayout = "horizontal"
         self.candidatePerRow = 10

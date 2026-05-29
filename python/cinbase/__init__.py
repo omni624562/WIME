@@ -112,6 +112,8 @@ class CinBase:
         cbTS.sortByPhrase = False
         cbTS.intelligentSelect = False
         cbTS.hideComposition = False
+        cbTS.hideCompositionLabel = ''
+        cbTS.imeDisplayName = ''
         cbTS.compositionBufferMode = False
         cbTS.autoMoveCursorInBrackets = False
         cbTS.imeReverseLookup = False
@@ -1856,6 +1858,10 @@ class CinBase:
                     if not cbTS.isSelKeysChanged:
                         cbTS.setShowCandidates(True)
 
+                    if cbTS.imeDisplayName:
+                        totalPages = len(pagecandidates)
+                        cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}・{cbTS.imeDisplayName}"
+
                 # 多功能前導字元
                 if cbTS.multifunctionmode and cbTS.directCommitSymbol and not cbTS.selcandmode:
                     if len(candidates) == 1:
@@ -2304,10 +2310,15 @@ class CinBase:
             if cbTS.compositionString:
                 cbTS.currentReply["compositionString"] = "​"
                 cbTS.currentReply["compositionCursor"] = 0
-                if not cbTS.showCandidates and not cbTS.currentReply.get("candidateList"):
+                label = cbTS.hideCompositionLabel
+                cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + cbTS.compositionString
+                if not cbTS.currentReply.get("candidateList"):
+                    # no real candidates this keypress — send empty list so C++ calls
+                    # updateCandidates() → setHeader(), keeping the header in sync
                     cbTS.setCandidateList([])
                     cbTS.setShowCandidates(True)
-                cbTS.currentReply["candidateHeader"] = " ".join(cbTS.compositionString)
+                if not cbTS.currentReply.get("candidatePageInfo"):
+                    cbTS.currentReply["candidatePageInfo"] = cbTS.imeDisplayName
 
         return True
 
@@ -3199,6 +3210,8 @@ class CinBase:
 
         # 隱藏組字串 (打字根時不在欄位顯示字根，選字後才 commit)?
         cbTS.hideComposition = getattr(cfg, 'hideComposition', False)
+        cbTS.hideCompositionLabel = getattr(cfg, 'hideCompositionLabel', '')
+        cbTS.imeDisplayName = getattr(cfg, 'imeDisplayName', '')
 
         # 拆錯字碼時自動清除輸入字串?
         cbTS.autoClearCompositionChar = cfg.autoClearCompositionChar

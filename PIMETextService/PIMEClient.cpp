@@ -474,6 +474,15 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		textService_->setCandidateHeader(L"");
 	}
 
+	const auto& candidatePageInfoVal = msg["candidatePageInfo"];
+	if (candidatePageInfoVal.is_string()) {
+		std::wstring info = utf8ToUtf16(candidatePageInfoVal.get<std::string>().c_str());
+		textService_->setCandidatePageInfo(info);
+	}
+	else {
+		textService_->setCandidatePageInfo(L"");
+	}
+
 	const auto& candidateListVal = msg["candidateList"];
 	if (candidateListVal.is_array()) {
 		// handle candidates

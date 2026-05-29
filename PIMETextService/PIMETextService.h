@@ -130,6 +130,10 @@ public:
 		candidateHeader_ = header;
 	}
 
+	void setCandidatePageInfo(const std::wstring& info) {
+		candidatePageInfo_ = info;
+	}
+
 	void setCandidateTheme(COLORREF panelBackground,
 		COLORREF panelBorder,
 		COLORREF textPrimary,
@@ -192,6 +196,7 @@ private:
 	bool candUseCursor_;
 	std::wstring candFontName_;
 	std::wstring candidateHeader_;
+	std::wstring candidatePageInfo_;
 	int candFontSize_;
 	bool candidateModernStyle_;
 	bool candidateEdgeAvoidance_;

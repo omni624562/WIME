@@ -288,6 +288,7 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
 	candidateWindow_->setHeader(candidateHeader_);
+	candidateWindow_->setPageInfo(candidatePageInfo_);
 	candidateWindow_->recalculateSize();
 	candidateWindow_->refresh();
 
