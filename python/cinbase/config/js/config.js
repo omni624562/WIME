@@ -265,6 +265,11 @@ function fillCandidatePreviewItems(preview, sample) {
     }
 }
 
+function candidatePreviewFontSize() {
+    var fontSize = parseInt($("#fontSize").val(), 10) || 12;
+    return Math.max(6, Math.min(fontSize, 48));
+}
+
 function createCandidatePreview(sample) {
     var preview = $("<div>").addClass("candidate-preview");
     var header = $("<div>").addClass("candidate-preview-header");
@@ -319,6 +324,7 @@ function updateCandidateThemeGallery() {
         var preview = card.find(".candidate-preview");
         card.toggleClass("selected", selected);
         preview.toggleClass("wrap", wrapToMaxWidth);
+        preview.css("font-size", candidatePreviewFontSize() + "pt");
         card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root);

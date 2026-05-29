@@ -130,6 +130,11 @@ $(function () {
         }
     }
 
+    function candidatePreviewFontSize() {
+        let fontSize = Number.parseInt($("#fontSize").val()) || 12;
+        return Math.max(6, Math.min(fontSize, 48));
+    }
+
     function createCandidatePreview(sample) {
         let preview = $("<div>").addClass("candidate-preview");
         let header = $("<div>").addClass("candidate-preview-header");
@@ -184,6 +189,7 @@ $(function () {
             let preview = card.find(".candidate-preview");
             card.toggleClass("selected", selected);
             preview.toggleClass("wrap", wrapToMaxWidth);
+            preview.css("font-size", `${candidatePreviewFontSize()}pt`);
             card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
             preview.find(".candidate-preview-name").text(sample.name);
             preview.find(".candidate-preview-root").text(sample.root);
