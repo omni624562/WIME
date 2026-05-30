@@ -390,6 +390,7 @@ try {
         "input_methods\checj\config\config.json",
         "input_methods\chedayi\config\config.json",
         "input_methods\cheliu\config\config.json",
+        "input_methods\chewing\config_tool.py",
         "input_methods\chewing\config_tool.html",
         "input_methods\chewing\css\config.css",
         "input_methods\chewing\chewing_config.py",

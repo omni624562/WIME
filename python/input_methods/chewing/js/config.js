@@ -63,16 +63,61 @@ $(function () {
             }
 
             event.preventDefault();
-            if ($.fn.tab) {
-                $(this).tab("show");
-                return;
-            }
+            event.stopImmediatePropagation();
 
-            $(this).closest(".nav-tabs").find(".nav-link").removeClass("active");
-            $(this).addClass("active");
+            var nav = $(this).closest(".nav-tabs");
+            nav.find(".nav-link").removeClass("active").attr("aria-selected", "false");
+            $(this).addClass("active").attr("aria-selected", "true");
+
             $(".tab-content .tab-pane").removeClass("active show in");
             $(target).addClass("active show in");
         });
+    }
+
+    function installNativeTabsFallback() {
+        var links = document.querySelectorAll(".nav-tabs a[data-toggle='tab']");
+        for (var i = 0; i < links.length; ++i) {
+            links[i].onclick = function (event) {
+                event = event || window.event;
+                var target = this.getAttribute("href");
+                if (!target || target.charAt(0) !== "#") {
+                    return true;
+                }
+
+                if (event.preventDefault) {
+                    event.preventDefault();
+                }
+                event.returnValue = false;
+                event.cancelBubble = true;
+                if (event.stopPropagation) {
+                    event.stopPropagation();
+                }
+
+                var navLinks = document.querySelectorAll(".nav-tabs .nav-link");
+                for (var navIndex = 0; navIndex < navLinks.length; ++navIndex) {
+                    navLinks[navIndex].className = navLinks[navIndex].className.replace(/\s*active/g, "");
+                    navLinks[navIndex].setAttribute("aria-selected", "false");
+                }
+
+                this.className += this.className.indexOf("active") === -1 ? " active" : "";
+                this.setAttribute("aria-selected", "true");
+
+                var panes = document.querySelectorAll(".tab-content .tab-pane");
+                for (var paneIndex = 0; paneIndex < panes.length; ++paneIndex) {
+                    panes[paneIndex].className = panes[paneIndex].className
+                        .replace(/\s*active/g, "")
+                        .replace(/\s*show/g, "")
+                        .replace(/\s*in/g, "");
+                }
+
+                var pane = document.getElementById(target.substr(1));
+                if (pane) {
+                    pane.className += " active show in";
+                }
+
+                return false;
+            }
+        }
     }
 
     var candidateThemeNames = [
@@ -541,6 +586,7 @@ $(function () {
         $("#test_input_text").val("").select();
     });
 
+    installNativeTabsFallback();
     bindTabsFallback();
 
     return false;
