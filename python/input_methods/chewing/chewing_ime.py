@@ -24,6 +24,7 @@ from libchewing import ChewingContext, CHEWING_DATA_DIR, CHINESE_MODE, \
 
 import opencc  # OpenCC 繁體簡體中文轉換
 import sys
+import copy
 from ctypes import windll  # for ShellExecuteW() and GetAsyncKeyState()
 
 from .chewing_config import chewingConfig, SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
@@ -162,7 +163,7 @@ class ChewingTextService(TextService):
             # 只有偵測到設定檔變更，需要套用新設定
             self.applyConfig()
 
-    def customizeCandidateUI(self):
+    def customizeCandidateUI(self, force=False):
         cfg = chewingConfig
         modernStyle = getattr(cfg, 'candidateModernStyle', False)
         if modernStyle and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
@@ -188,6 +189,9 @@ class ChewingTextService(TextService):
             "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
             "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
         }
+        if not force and getattr(self, '_lastCandidateUIArgs', None) == ui_args:
+            return
+        self._lastCandidateUIArgs = copy.deepcopy(ui_args)
         self.customizeUI(**ui_args)
 
     def updateCandidateHeader(self, rootStr="", forceWindow=False):
@@ -231,7 +235,7 @@ class ChewingTextService(TextService):
         chewingContext.set_spaceAsSelection(cfg.spaceKeyAction)
 
         # 設定 UI 外觀
-        self.customizeCandidateUI()
+        self.customizeCandidateUI(force=True)
 
         # 設定是否啟用自動學習功能
         self.setAutoLearn(cfg.autoLearn)

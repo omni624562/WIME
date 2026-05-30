@@ -301,7 +301,7 @@ class CinBase:
             tooltip = "設定",
             type = "menu"
         )
-        self.customizeCandidateUI(cbTS)
+        self.customizeCandidateUI(cbTS, force=True)
 
 
     def setModernCandidatePageInfo(self, cbTS, currentCandPage, pagecandidates):
@@ -3340,7 +3340,7 @@ class CinBase:
         cbTS.initCinBaseState = True
 
 
-    def customizeCandidateUI(self, cbTS):
+    def customizeCandidateUI(self, cbTS, force=False):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
         modernStyle = getattr(cfg, 'candidateModernStyle', False)
         ui_args = {
@@ -3362,6 +3362,9 @@ class CinBase:
             "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
             "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
         }
+        if not force and getattr(cbTS, '_lastCandidateUIArgs', None) == ui_args:
+            return
+        cbTS._lastCandidateUIArgs = copy.deepcopy(ui_args)
         cbTS.customizeUI(**ui_args)
 
     def applyConfig(self, cbTS):
@@ -3386,7 +3389,7 @@ class CinBase:
             cbTS.candPerPage = cbTS.candPerRow
 
         # 設定 UI 外觀
-        self.customizeCandidateUI(cbTS)
+        self.customizeCandidateUI(cbTS, force=True)
 
         # 設定選字按鍵 (123456..., asdf.... 等)
         # if cbTS.cin.getSelection():
