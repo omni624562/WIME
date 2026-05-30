@@ -243,6 +243,16 @@ static bool usesModernCandidateDefault(const std::string& guid) {
 		guid == kCheliuProfileGuid;
 }
 
+static bool shouldHoldKeyWhenBackendUnavailable(const std::string& guid, Ime::KeyEvent& keyEvent) {
+	if (!usesModernCandidateDefault(guid))
+		return false;
+
+	if (keyEvent.isKeyDown(VK_CONTROL) || keyEvent.isKeyDown(VK_MENU))
+		return false;
+
+	return keyEvent.charCode() >= 0x20;
+}
+
 Client::Client(TextService* service, REFIID langProfileGuid):
 	textService_(service),
 	pipe_(INVALID_HANDLE_VALUE),
@@ -665,7 +675,7 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		std::wstring header = utf8ToUtf16(candidateHeaderVal.get<std::string>().c_str());
 		textService_->setCandidateHeader(header);
 	}
-	else {
+	else if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>() && !hasCandidateMessage) {
 		textService_->setCandidateHeader(L"");
 	}
 
@@ -674,7 +684,7 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		std::wstring info = utf8ToUtf16(candidatePageInfoVal.get<std::string>().c_str());
 		textService_->setCandidatePageInfo(info);
 	}
-	else {
+	else if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>() && !hasCandidateMessage) {
 		textService_->setCandidatePageInfo(L"");
 	}
 
@@ -742,7 +752,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
-	return false;
+	return shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent);
 }
 
 bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
@@ -754,7 +764,7 @@ bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
-	return false;
+	return shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent);
 }
 
 bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {

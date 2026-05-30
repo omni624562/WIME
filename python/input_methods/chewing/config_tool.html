@@ -294,50 +294,54 @@
                             <div class="candidate-appearance-shell">
                                 <select name="candidateTheme" id="candidateTheme" class="candidate-theme-select" data-value-type="string"></select>
                                 <div class="candidate-toolbar">
-                                    <div class="candidate-config-field candidate-config-check">
-                                        <input type="checkbox" id="candidateModernStyle" name="candidateModernStyle">
-                                        <label for="candidateModernStyle">使用新版候選窗 UI</label>
-                                    </div>
-                                    <div class="candidate-config-field candidate-config-check">
-                                        <input type="checkbox" id="candidateStableWidth" name="candidateStableWidth">
-                                        <label for="candidateStableWidth">固定候選窗最小寬度</label>
-                                    </div>
-                                    <div class="candidate-config-field candidate-config-check">
-                                        <input type="checkbox" id="candidateEdgeAvoidance" name="candidateEdgeAvoidance">
-                                        <label for="candidateEdgeAvoidance">自動避開螢幕邊緣</label>
-                                    </div>
-                                    <div class="candidate-config-field candidate-config-check">
-                                        <input type="checkbox" id="candidateWrapToMaxWidth" name="candidateWrapToMaxWidth">
-                                        <label for="candidateWrapToMaxWidth">超過最大寬度自動換行</label>
-                                    </div>
-                                    <div class="candidate-config-field">
-                                        <label for="candidatePerRow">每列候選字數</label>
-                                        <input type="number" class="form-control" id="candidatePerRow" name="candidatePerRow" min="1" max="10">
+                                    <div class="candidate-option-row">
+                                        <div class="candidate-config-field candidate-config-check">
+                                            <input type="checkbox" id="candidateModernStyle" name="candidateModernStyle">
+                                            <label for="candidateModernStyle">使用新版候選窗 UI</label>
+                                        </div>
+                                        <div class="candidate-config-field candidate-config-check">
+                                            <input type="checkbox" id="candidateStableWidth" name="candidateStableWidth">
+                                            <label for="candidateStableWidth">固定候選窗最小寬度</label>
+                                        </div>
+                                        <div class="candidate-config-field candidate-config-check">
+                                            <input type="checkbox" id="candidateEdgeAvoidance" name="candidateEdgeAvoidance">
+                                            <label for="candidateEdgeAvoidance">自動避開螢幕邊緣</label>
+                                        </div>
+                                        <div class="candidate-config-field candidate-config-check">
+                                            <input type="checkbox" id="candidateWrapToMaxWidth" name="candidateWrapToMaxWidth">
+                                            <label for="candidateWrapToMaxWidth">超過最大寬度自動換行</label>
+                                        </div>
                                     </div>
                                     <input type="hidden" id="candidateKeyStyle" name="candidateKeyStyle" data-value-type="string">
-                                    <div class="candidate-config-field">
-                                        <label for="fontSize">候選窗字體大小</label>
-                                        <input type="number" class="form-control" id="fontSize" name="fontSize" min="6" max="200">
-                                    </div>
-                                    <div class="candidate-config-field">
-                                        <label for="candidateMinWidth">候選窗最小寬度</label>
-                                        <input type="number" class="form-control" id="candidateMinWidth" name="candidateMinWidth" min="160" max="720">
-                                    </div>
-                                    <div class="candidate-config-field">
-                                        <label for="candidateMaxWidth">候選窗最大寬度</label>
-                                        <input type="number" class="form-control" id="candidateMaxWidth" name="candidateMaxWidth" min="220" max="720">
+                                    <div class="candidate-number-row">
+                                        <div class="candidate-config-field">
+                                            <label for="candidatePerRow">每列候選字數</label>
+                                            <input type="number" class="form-control" id="candidatePerRow" name="candidatePerRow" min="1" max="10">
+                                        </div>
+                                        <div class="candidate-config-field">
+                                            <label for="fontSize">候選窗字體大小</label>
+                                            <input type="number" class="form-control" id="fontSize" name="fontSize" min="6" max="200">
+                                        </div>
+                                        <div class="candidate-config-field">
+                                            <label for="candidateMinWidth">候選窗最小寬度</label>
+                                            <input type="number" class="form-control" id="candidateMinWidth" name="candidateMinWidth" min="160" max="720">
+                                        </div>
+                                        <div class="candidate-config-field">
+                                            <label for="candidateMaxWidth">候選窗最大寬度</label>
+                                            <input type="number" class="form-control" id="candidateMaxWidth" name="candidateMaxWidth" min="220" max="720">
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="candidate-theme-heading">
-                                    <span>選字符樣式</span>
-                                    <span id="candidateKeyStyleCurrent" class="candidate-theme-current"></span>
-                                </div>
-                                <div id="candidateKeyStyleGrid" class="candidate-style-grid"></div>
-                                <div class="candidate-theme-heading candidate-theme-heading-spaced">
                                     <span>候選窗配色</span>
                                     <span id="candidateThemeCurrent" class="candidate-theme-current"></span>
                                 </div>
                                 <div id="candidateThemeGrid" class="candidate-theme-grid"></div>
+                                <div class="candidate-theme-heading candidate-theme-heading-spaced">
+                                    <span>選字符樣式</span>
+                                    <span id="candidateKeyStyleCurrent" class="candidate-theme-current"></span>
+                                </div>
+                                <div id="candidateKeyStyleGrid" class="candidate-style-grid"></div>
                             </div>
                         </div>
                     </div>

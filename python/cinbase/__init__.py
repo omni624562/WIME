@@ -311,6 +311,36 @@ class CinBase:
         else:
             cbTS.currentReply["candidatePageInfo"] = ""
 
+    def ensureModernCandidateHeader(self, cbTS):
+        if not getattr(cbTS.cfg, 'candidateModernStyle', False):
+            return
+
+        if cbTS.currentReply.get("showCandidates") is False:
+            return
+
+        wantsCandidateWindow = (
+            cbTS.currentReply.get("showCandidates") is True or
+            "candidateList" in cbTS.currentReply or
+            "candidateMessage" in cbTS.currentReply
+        )
+        if not wantsCandidateWindow or cbTS.currentReply.get("candidateHeader"):
+            return
+
+        headerCompositionLabels = {
+            "chedayi": "大易",
+            "checj": "酷倉",
+            "cheliu": "蝦米",
+        }
+        label = cbTS.imeDisplayName or headerCompositionLabels.get(cbTS.imeDirName, "")
+        headerText = cbTS.compositionString or self.compositionHeaderText(cbTS)
+        if label and headerText:
+            cbTS.currentReply["candidateHeader"] = label + " " + headerText
+        else:
+            cbTS.currentReply["candidateHeader"] = label or headerText
+
+        if "candidatePageInfo" not in cbTS.currentReply:
+            cbTS.currentReply["candidatePageInfo"] = ""
+
 
     # 使用者離開輸入法
     def onDeactivate(self, cbTS):
@@ -2403,6 +2433,8 @@ class CinBase:
                 if not cbTS.currentReply.get("candidatePageInfo"):
                     cbTS.currentReply["candidatePageInfo"] = ""
 
+        self.ensureModernCandidateHeader(cbTS)
+
         if "candidateList" in cbTS.currentReply or "showCandidates" in cbTS.currentReply:
             self.customizeCandidateUI(cbTS)
 
@@ -2526,6 +2558,8 @@ class CinBase:
             cbTS.hideMessage()
             cbTS.isShowMessage = False
             cbTS.hideMessageOnKeyUp = False
+
+        self.ensureModernCandidateHeader(cbTS)
 
         if "candidateList" in cbTS.currentReply or "showCandidates" in cbTS.currentReply:
             self.customizeCandidateUI(cbTS)

@@ -118,15 +118,29 @@ textarea {
 }
 
 .candidate-toolbar {
-    align-items: flex-end;
     background: #ffffff;
     border: 1px solid #d9dee8;
     border-radius: 6px;
-    display: grid;
-    gap: 14px 18px;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     margin-bottom: 18px;
     padding: 14px 16px;
+}
+
+.candidate-option-row,
+.candidate-number-row {
+    display: grid;
+    gap: 14px 18px;
+}
+
+.candidate-option-row {
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+
+.candidate-number-row {
+    align-items: end;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
 }
 
 .candidate-config-field {
@@ -516,6 +530,11 @@ textarea {
     }
 
     .candidate-toolbar {
+        gap: 12px;
+    }
+
+    .candidate-option-row,
+    .candidate-number-row {
         grid-template-columns: 1fr;
     }
 
