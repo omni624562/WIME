@@ -79,10 +79,10 @@ private:
 	HANDLE connectPipe(const wchar_t* pipeName, int timeoutMs);
 
 	nlohmann::json createRpcRequest(const char* methodName);
-	bool callRpcMethod(nlohmann::json& request, nlohmann::json& response, int timeoutMs = 2000);
+	bool callRpcMethod(nlohmann::json& request, nlohmann::json& response, int timeoutMs = 2000, int connectTimeoutMs = 3000, int connectAttempts = 3);
 
 	bool isPipeCreatedByPIMEServer(HANDLE pipe);
-	bool waitForRpcConnection();
+	bool waitForRpcConnection(int connectTimeoutMs = 3000, int connectAttempts = 3);
 	bool callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std::string& serializedReply, int timeoutMs = 2000);
 	bool callPipeIO(bool isRead, void *buffer, DWORD size, DWORD *rlen, int timeoutMs);
 	void closeRpcConnection();

@@ -4,6 +4,7 @@ import os
 import re
 import json
 import copy
+import time
 
 
 class Cin(object):
@@ -284,19 +285,70 @@ class Cin(object):
         except Exception:
             pass
 
-    def addCount(self, key, char):
+    def _normalizeCountEntry(self, value):
+        if isinstance(value, dict):
+            count = value.get("count", 0)
+            try:
+                count = int(count)
+            except (TypeError, ValueError):
+                count = 0
+            last = value.get("last", 0)
+            try:
+                last = float(last)
+            except (TypeError, ValueError):
+                last = 0
+            prev = value.get("prev", {})
+            if not isinstance(prev, dict):
+                prev = {}
+            normalized_prev = {}
+            for k, v in prev.items():
+                if not isinstance(k, str):
+                    continue
+                try:
+                    normalized_prev[k] = int(v)
+                except (TypeError, ValueError):
+                    pass
+            prev = normalized_prev
+            return {"count": count, "last": last, "prev": prev}
+        try:
+            count = int(value)
+        except (TypeError, ValueError):
+            count = 0
+        return {"count": count, "last": 0, "prev": {}}
+
+    def addCount(self, key, char, previousChar=""):
         if not isinstance(key, str) or not isinstance(char, str):
             return
         if key not in self.cincount or not isinstance(self.cincount[key], dict):
             self.cincount[key] = {}
-        self.cincount[key][char] = self.cincount[key].get(char, 0) + 1
+        entry = self._normalizeCountEntry(self.cincount[key].get(char, 0))
+        entry["count"] += 1
+        entry["last"] = time.time()
+        if isinstance(previousChar, str) and previousChar:
+            entry["prev"][previousChar] = entry["prev"].get(previousChar, 0) + 1
+        self.cincount[key][char] = entry
         self._count_dirty = True
 
-    def sortByCount(self, key, candidates):
+    def sortByCount(self, key, candidates, previousChar="", useRecent=True, useContext=True):
         if key not in self.cincount or not isinstance(self.cincount[key], dict):
             return candidates
         counts = self.cincount[key]
-        return sorted(candidates, key=lambda c: counts.get(c, 0), reverse=True)
+        now = time.time()
+
+        def score(candidate):
+            entry = self._normalizeCountEntry(counts.get(candidate, 0))
+            value = float(entry["count"])
+            if useContext and isinstance(previousChar, str) and previousChar:
+                value += entry["prev"].get(previousChar, 0) * 2.0
+            if useRecent and entry["last"] > 0:
+                age_days = max(0.0, (now - entry["last"]) / 86400.0)
+                value += 3.0 / (1.0 + age_days / 7.0)
+            return value
+
+        return [candidate for _, candidate in sorted(
+            enumerate(candidates),
+            key=lambda item: (-score(item[1]), item[0])
+        )]
 
 
     def getCountDir(self):

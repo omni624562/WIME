@@ -148,6 +148,15 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.autoCommitSingleCandidate === "undefined") {
         checjConfig.autoCommitSingleCandidate = false;
     }
+    if (typeof checjConfig.intelligentSelect === "undefined") {
+        checjConfig.intelligentSelect = true;
+    }
+    if (typeof checjConfig.intelligentSelectRecent === "undefined") {
+        checjConfig.intelligentSelectRecent = true;
+    }
+    if (typeof checjConfig.intelligentSelectContext === "undefined") {
+        checjConfig.intelligentSelectContext = true;
+    }
     if (typeof checjConfig.candidateKeyStyle === "undefined") {
         checjConfig.candidateKeyStyle = "keycap";
     }

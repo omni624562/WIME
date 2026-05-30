@@ -79,6 +79,8 @@ class CinBaseConfig:
         self.keyboardType = 0
         self.selDayiSymbolCharType = 0
         self.intelligentSelect = True
+        self.intelligentSelectRecent = True
+        self.intelligentSelectContext = True
         self.hideComposition = False
         self.hideCompositionLabel = ""
         self.imeDisplayName = ""

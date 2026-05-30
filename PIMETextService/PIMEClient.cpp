@@ -41,6 +41,9 @@ static constexpr const char* kDayiProfileGuid = "{e6943374-70f5-4540-aa0f-3205c7
 static constexpr const char* kChewingProfileGuid = "{f80736aa-28db-423a-92c9-5540f501c939}";
 static constexpr const char* kChecjProfileGuid = "{f828d2dc-81be-466e-9cfe-24bb03172693}";
 static constexpr const char* kCheliuProfileGuid = "{72844b94-5908-4674-8626-4353755bc5db}";
+static constexpr int kKeyEventRpcTimeoutMs = 250;
+static constexpr int kKeyEventConnectTimeoutMs = 25;
+static constexpr int kKeyEventConnectAttempts = 1;
 
 static std::string uuidToString(const UUID& uuid) {
 	std::string result;
@@ -748,7 +751,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, 250);
+	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -756,11 +759,15 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 }
 
 bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
+	if (pipe_ == INVALID_HANDLE_VALUE && shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent)) {
+		return true;
+	}
+
 	json req = createRpcRequest("onKeyDown");
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, 250);
+	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -772,7 +779,7 @@ bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, 250);
+	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -784,7 +791,7 @@ bool Client::onKeyUp(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, 250);
+	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -1034,8 +1041,8 @@ bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std:
 
 // send the request to the server
 // a sequence number will be added to the req object automatically.
-bool Client::callRpcMethod(json& request, json & response, int timeoutMs) {
-	if (shouldWaitConnection_ && !waitForRpcConnection()) {
+bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int connectTimeoutMs, int connectAttempts) {
+	if (shouldWaitConnection_ && !waitForRpcConnection(connectTimeoutMs, connectAttempts)) {
 		return false;
 	}
 
@@ -1102,15 +1109,17 @@ HANDLE Client::connectPipe(const wchar_t* pipeName, int timeoutMs) {
 // Ensure that we're connected to the PIME input method server
 // If we are already connected, the method simply returns true;
 // otherwise, it tries to establish the connection.
-bool Client::waitForRpcConnection() {
+bool Client::waitForRpcConnection(int connectTimeoutMs, int connectAttempts) {
 	if (pipe_ != INVALID_HANDLE_VALUE) {
 		return true;
 	}
 
 	wstring serverPipeName = getPipeName(L"Launcher");
-	for (int attempt = 0; pipe_ == INVALID_HANDLE_VALUE && attempt < 3; ++attempt) {
+	int attempts = connectAttempts > 0 ? connectAttempts : 1;
+	int timeoutMs = connectTimeoutMs > 0 ? connectTimeoutMs : 0;
+	for (int attempt = 0; pipe_ == INVALID_HANDLE_VALUE && attempt < attempts; ++attempt) {
 		// try to connect to the server
-		pipe_ = connectPipe(serverPipeName.c_str(), 3000);
+		pipe_ = connectPipe(serverPipeName.c_str(), timeoutMs);
 	}
 
 	if (pipe_ != INVALID_HANDLE_VALUE) {

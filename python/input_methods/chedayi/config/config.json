@@ -31,6 +31,8 @@
     "showPhrase": false,
     "sortByPhrase": true,
     "intelligentSelect": true,
+    "intelligentSelectRecent": true,
+    "intelligentSelectContext": true,
     "hideCompositionLabel": "大易",
     "imeDisplayName": "大易",
     "candidateModernStyle": true,
