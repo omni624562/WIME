@@ -225,6 +225,72 @@
     flex-wrap: wrap;
 }
 
+.candidate-preview-message-body {
+    display: block;
+}
+
+.candidate-preview-message-row {
+    align-items: center;
+    color: var(--candidate-message-text, #ffe1a8);
+    display: flex;
+    gap: 8px;
+    min-height: 24px;
+    padding: 2px 7px;
+    white-space: nowrap;
+}
+
+.candidate-preview.message-style-badge .candidate-preview-message-row {
+    background: var(--candidate-message-bg, rgba(191, 134, 67, 0.16));
+    border-radius: 5px;
+}
+
+.candidate-preview-message-badge {
+    align-items: center;
+    background: var(--candidate-message-accent, #bf8643);
+    border-radius: 5px;
+    color: var(--candidate-message-badge-text, #fff);
+    display: inline-flex;
+    font-size: 0.82em;
+    font-weight: 700;
+    height: 18px;
+    justify-content: center;
+    min-width: 22px;
+}
+
+.candidate-preview.message-style-bar .candidate-preview-message-row {
+    border-left: 3px solid var(--candidate-message-accent, #d8aa62);
+    border-radius: 2px;
+    padding-left: 10px;
+}
+
+.candidate-preview-message-dot {
+    background: var(--candidate-message-accent, #d7a65f);
+    border-radius: 999px;
+    display: inline-block;
+    height: 7px;
+    width: 7px;
+}
+
+.candidate-preview-message-text {
+    color: var(--candidate-message-text, #ffe1a8);
+    font-weight: 650;
+}
+
+.candidate-behavior-preview {
+    display: grid;
+    gap: 6px;
+}
+
+.candidate-behavior-preview .candidate-preview {
+    box-shadow: none;
+}
+
+.candidate-behavior-label {
+    color: #6b7483;
+    font-size: 11px;
+    font-weight: 700;
+}
+
 .candidate-preview-item {
     align-items: center;
     display: inline-flex;

@@ -41,6 +41,8 @@
     "candidateEdgeAvoidance": true,
     "candidateTheme": "Night Comfort",
     "candidateKeyStyle": "keycap",
+    "candidateMessageStyle": "badge",
+    "candidateMessageBehavior": "progressive",
     "candidateStableWidth": true,
     "candidateMinWidth": 286,
     "candidateWrapToMaxWidth": true,

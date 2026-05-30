@@ -45,7 +45,9 @@ class CinCountTests(unittest.TestCase):
 
             cin.loadCountFile()
 
-            self.assertEqual(cin.cincount, {"abc": {"A": 3}})
+            self.assertEqual(cin.cincount, {
+                "abc": {"A": {"count": 3, "last": 0, "prev": {}}}
+            })
 
     def test_add_and_sort_count_tolerate_bad_state(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -55,9 +57,38 @@ class CinCountTests(unittest.TestCase):
             cin.addCount("abc", "A")
             cin.addCount(None, "B")
 
-            self.assertEqual(cin.cincount["abc"], {"A": 1})
+            self.assertEqual(cin.cincount["abc"]["A"]["count"], 1)
+            self.assertEqual(cin.cincount["abc"]["A"]["prev"], {})
             self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["A", "B"])
             self.assertEqual(cin.sortByCount("missing", ["B", "A"]), ["B", "A"])
+
+    def test_context_counts_are_capped(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+
+            for i in range(40):
+                cin.addCount("abc", "A", "prev{0:02d}".format(i))
+
+            prev = cin.cincount["abc"]["A"]["prev"]
+            self.assertEqual(len(prev), cin.MAX_CONTEXT_ENTRIES)
+            self.assertIn("prev39", prev)
+
+    def test_save_count_file_is_throttled(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            cin.cincount = {"abc": {"A": {"count": 1, "last": 0, "prev": {}}}}
+            cin._count_dirty = True
+            cin._last_count_save_time = 100.0
+
+            with mock.patch("time.time", return_value=110.0):
+                cin.saveCountFile()
+            with open(cin.getCountFile(), "r", encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {})
+
+            with mock.patch("time.time", return_value=111.0):
+                cin.saveCountFile(force=True)
+            with open(cin.getCountFile(), "r", encoding="utf-8") as f:
+                self.assertEqual(json.load(f), cin.cincount)
 
 
 class ServerResilienceTests(unittest.TestCase):

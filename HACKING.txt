@@ -1,4 +1,10 @@
-For those who want to hack PIME, here is a simple hacking guide.
+For those who want to hack WIME, here is a simple hacking guide.
+
+WIME is a fork of PIME. The public project name and repository references are
+WIME, but many low-level identifiers intentionally still use PIME for
+compatibility: PIMETextService.dll, PIMELauncher.exe, PIME_MSG, registry keys,
+and the default install/config directories. Treat those names as compatibility
+interfaces unless you are explicitly working on a full migration plan.
 
 PIME has a server/client architecture.
 The client part is a text service dll file written in C++ and Windows TSF.
@@ -38,6 +44,12 @@ If you encounter issues, you can run PIMELauncher.exe with the /console argument
 
 This opens a console window which displays debug logs, making it easier to
 troubleshoot backend communication and other internal events.
+
+Post-rename change summary
+Please see docs/WIME_CHANGES.md for the maintained summary of major changes
+made after the project references were renamed from PIME to WIME, including the
+modern candidate window, Dayi smart selection, Chewing settings fixes, limited
+installer mode, and long-term performance safeguards.
 
 Directory structure
 * PIME:

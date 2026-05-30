@@ -120,6 +120,15 @@ static int candidateKeyStyleValue(const std::string& style) {
 	return Ime::CandidateWindow::KeyStyleKeycap;
 }
 
+static int candidateMessageStyleValue(const std::string& style) {
+	const std::string name = normalizedThemeName(style);
+	if (name == "bar")
+		return Ime::CandidateWindow::MessageStyleBar;
+	if (name == "dot")
+		return Ime::CandidateWindow::MessageStyleDot;
+	return Ime::CandidateWindow::MessageStyleBadge;
+}
+
 static void candidateThemeColors(const std::string& theme,
 	COLORREF& panelBackground,
 	COLORREF& panelBorder,
@@ -343,6 +352,9 @@ void Client::updateUI(json& data) {
 		}
 		else if (value.is_string() && name == "candidateKeyStyle") {
 			textService_->setCandidateKeyStyle(candidateKeyStyleValue(value.get<string>()));
+		}
+		else if (value.is_string() && name == "candidateMessageStyle") {
+			textService_->setCandidateMessageStyle(candidateMessageStyleValue(value.get<string>()));
 		}
 	}
 
@@ -640,13 +652,21 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 	// handle candidate list
 	const auto& showCandidatesVal = msg["showCandidates"];
 	const auto& candidateMessageVal = msg["candidateMessage"];
+	const auto& candidateMessageStyleVal = msg["candidateMessageStyle"];
 	bool hasCandidateMessage = false;
 	if (candidateMessageVal.is_string()) {
 		std::wstring message = utf8ToUtf16(candidateMessageVal.get<std::string>().c_str());
 		hasCandidateMessage = !message.empty();
+		if (candidateMessageStyleVal.is_string()) {
+			textService_->setCandidateMessageDisplayStyle(candidateMessageStyleValue(candidateMessageStyleVal.get<std::string>()));
+		}
+		else {
+			textService_->resetCandidateMessageDisplayStyle();
+		}
 		textService_->setCandidateMessage(message);
 	}
 	else if (showCandidatesVal.is_boolean()) {
+		textService_->resetCandidateMessageDisplayStyle();
 		textService_->setCandidateMessage(L"");
 	}
 

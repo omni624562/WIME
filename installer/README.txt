@@ -4,3 +4,16 @@ To build an installer:
 
 2. Compile installer.nsi with NSIS.
 
+Limited WIME test installer:
+
+To build an installer that only includes Dayi, New Chewing, and New Cangjie,
+compile installer.nsi with the ONLY_DAYI_CHEWING_CHECJ define:
+
+    makensis /DONLY_DAYI_CHEWING_CHECJ installer\installer.nsi
+
+The output file is:
+
+    installer\PIME-<version>-dayi-chewing-checj-setup.exe
+
+The output filename and install paths still use PIME for low-level compatibility.
+See ..\docs\WIME_CHANGES.md for the post-rename change summary.

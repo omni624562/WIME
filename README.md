@@ -13,6 +13,27 @@ All parts are licensed under GNU LGPL v2.1 license.
 
 WIME is based on the original PIME project and includes the following fixes and performance improvements:
 
+> Naming note: WIME is the public project name of this fork. Many low-level names intentionally remain PIME for compatibility, including `PIMETextService.dll`, `PIMELauncher.exe`, IPC prefixes, registry entries, and the default install/config paths.
+
+For a detailed Traditional Chinese summary of the changes made after the project references were renamed from PIME to WIME, see [docs/WIME_CHANGES.md](docs/WIME_CHANGES.md).
+
+**Modern candidate window**
+*   Added a modern candidate window UI with a stable header/body layout.
+*   Moved Dayi/CIN composition roots into the candidate window header instead of the active input field.
+*   Added configurable themes, selection-key styles, font size, minimum width, maximum-width wrapping, edge avoidance, and no-candidate message styles.
+*   Reworked Dayi, New Chewing, and New Cangjie settings pages toward live preview / WYSIWYG configuration.
+*   Fixed Chewing candidate-window behavior, config tab switching, and candidate commit flow regressions.
+
+**Dayi smart selection**
+*   Added conservative smart candidate ranking for Dayi based on recent selections and previous-character context.
+*   Added persistence for learned ranking data with compatibility handling for older formats.
+*   Added long-term-use safeguards for learned data size, write frequency, and candidate sorting cost.
+
+**Installer**
+*   Added a limited installer build mode for Dayi, New Chewing, and New Cangjie:
+
+        makensis /DONLY_DAYI_CHEWING_CHECJ installer\installer.nsi
+
 **Bug fixes**
 *   Fixed extra space inserted after character selection in cinbase-based input methods.
 *   Fixed `[json.exception.type_error.302]` crash when backend response arrives before C++ timeout — all `ret["return"].get<bool>()` calls now use `ret.value("return", false)` to handle absent fields safely.

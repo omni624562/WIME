@@ -77,6 +77,8 @@ class ChewingConfig:
         self.candidateEdgeAvoidance = True
         self.candidateTheme = "Night Comfort"
         self.candidateKeyStyle = "keycap"
+        self.candidateMessageStyle = "badge"
+        self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True

@@ -60,6 +60,8 @@ TextService::TextService(ImeModule* module):
 	candidateTextMargin_(6),
 	candidateBorderRadius_(8),
 	candidateKeyStyle_(Ime::CandidateWindow::KeyStyleKeycap),
+	candidateMessageStyle_(Ime::CandidateWindow::MessageStyleBadge),
+	candidateMessageDisplayStyle_(Ime::CandidateWindow::MessageStyleBadge),
 	candidateStableWidth_(false),
 	candidateMinWidth_(0),
 	candidateWrapToMaxWidth_(false),
@@ -265,7 +267,7 @@ void TextService::createCandidateWindow(Ime::EditSession* session) {
 void TextService::updateCandidates(Ime::EditSession* session) {
 	createCandidateWindow(session);
 	candidateWindow_->clear();
-	candidateWindow_->setMessage(candidateMessage_);
+	candidateWindow_->setTextRows(candidateMessage_, candidateHeader_, candidatePageInfo_);
 
 	// FIXME: is this the right place to do it?
 	if (updateFont_) {
@@ -294,8 +296,6 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	for (int i = 0; i < candidates_.size(); ++i) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
-	candidateWindow_->setHeader(candidateHeader_);
-	candidateWindow_->setPageInfo(candidatePageInfo_);
 	candidateWindow_->recalculateSize();
 	candidateWindow_->refresh();
 
@@ -327,6 +327,16 @@ void TextService::setCandidateTheme(COLORREF panelBackground,
 	COLORREF highlightBackground,
 	COLORREF highlightBorder,
 	COLORREF highlightText) {
+	if (
+		candidatePanelBackground_ == panelBackground &&
+		candidatePanelBorder_ == panelBorder &&
+		candidateTextPrimary_ == textPrimary &&
+		candidateTextSecondary_ == textSecondary &&
+		candidateHighlightBackground_ == highlightBackground &&
+		candidateHighlightBorder_ == highlightBorder &&
+		candidateHighlightText_ == highlightText
+	)
+		return;
 	candidatePanelBackground_ = panelBackground;
 	candidatePanelBorder_ = panelBorder;
 	candidateTextPrimary_ = textPrimary;
@@ -338,6 +348,12 @@ void TextService::setCandidateTheme(COLORREF panelBackground,
 }
 
 void TextService::setCandidateSpacing(int contentMargin, int textMargin, int borderRadius) {
+	if (
+		candidateContentMargin_ == contentMargin &&
+		candidateTextMargin_ == textMargin &&
+		candidateBorderRadius_ == borderRadius
+	)
+		return;
 	candidateContentMargin_ = contentMargin;
 	candidateTextMargin_ = textMargin;
 	candidateBorderRadius_ = borderRadius;
@@ -357,6 +373,7 @@ void TextService::applyCandidateWindowStyle() {
 		candidateHighlightText_);
 	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
 	candidateWindow_->setKeyStyle(candidateKeyStyle_);
+	candidateWindow_->setMessageStyle(candidateMessageDisplayStyle_);
 	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
 	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
 }

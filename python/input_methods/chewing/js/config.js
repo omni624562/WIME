@@ -59,6 +59,12 @@ $(function () {
         else if (chewingConfig.candidateKeyStyle === "underline" || chewingConfig.candidateKeyStyle === "rule" || chewingConfig.candidateKeyStyle === "rule-key") {
             chewingConfig.candidateKeyStyle = "word-anchor";
         }
+        if (typeof chewingConfig.candidateMessageStyle === "undefined") {
+            chewingConfig.candidateMessageStyle = "badge";
+        }
+        if (typeof chewingConfig.candidateMessageBehavior === "undefined") {
+            chewingConfig.candidateMessageBehavior = "progressive";
+        }
         var validCandidateKeyStyles = {
             keycap: true,
             quiet: true,
@@ -76,6 +82,21 @@ $(function () {
         };
         if (!validCandidateKeyStyles[chewingConfig.candidateKeyStyle]) {
             chewingConfig.candidateKeyStyle = "keycap";
+        }
+        var validCandidateMessageStyles = {
+            badge: true,
+            bar: true,
+            dot: true
+        };
+        if (!validCandidateMessageStyles[chewingConfig.candidateMessageStyle]) {
+            chewingConfig.candidateMessageStyle = "badge";
+        }
+        var validCandidateMessageBehaviors = {
+            fixed: true,
+            progressive: true
+        };
+        if (!validCandidateMessageBehaviors[chewingConfig.candidateMessageBehavior]) {
+            chewingConfig.candidateMessageBehavior = "progressive";
         }
         if (typeof chewingConfig.candidatePerRow === "undefined") {
             chewingConfig.candidatePerRow = 6;
@@ -196,6 +217,17 @@ $(function () {
         "word-anchor": "Word Anchor"
     };
 
+    var candidateMessageStyleOptions = {
+        badge: "A Badge Alert",
+        bar: "B Bar Notice",
+        dot: "D Dot Signal"
+    };
+
+    var candidateMessageBehaviorOptions = {
+        fixed: "固定樣式",
+        progressive: "打字中低調，確認後明顯"
+    };
+
     var candidateKeyStyleClassNames = [
         "key-style-keycap",
         "key-style-quiet",
@@ -249,6 +281,14 @@ $(function () {
             toHex((rgbA.r * percentA + rgbB.r * percentB) / 100) +
             toHex((rgbA.g * percentA + rgbB.g * percentB) / 100) +
             toHex((rgbA.b * percentA + rgbB.b * percentB) / 100);
+    }
+
+    function colorLuma(color) {
+        var rgb = hexToRgb(color);
+        if (!rgb) {
+            return 0;
+        }
+        return Math.round((rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000);
     }
 
     function applyCandidatePreviewTheme(preview, theme, modern) {
@@ -316,6 +356,56 @@ $(function () {
         return preview;
     }
 
+    function applyCandidatePreviewMessageTheme(preview, theme, modern) {
+        var accent = modern ? theme[7] : "#bf8643";
+        var messageBg = modern
+            ? (colorLuma(theme[0]) > 165 ? blendHex(theme[0], accent, 8) : blendHex(theme[0], accent, 13))
+            : "#fff3dd";
+        var messageText = modern
+            ? (colorLuma(theme[0]) > 165 ? "#7a430d" : blendHex(theme[3], accent, 38))
+            : "#7a430d";
+        var badgeText = colorLuma(accent) > 150 ? "#1b1c20" : "#ffffff";
+        preview.css({
+            "--candidate-message-accent": accent,
+            "--candidate-message-bg": messageBg,
+            "--candidate-message-text": messageText,
+            "--candidate-message-badge-text": badgeText
+        });
+    }
+
+    function createCandidateMessagePreview(sample, messageStyle) {
+        var preview = $("<div>").addClass("candidate-preview candidate-message-preview message-style-" + messageStyle);
+        var header = $("<div>").addClass("candidate-preview-header");
+        header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
+        header.append($("<span>").addClass("candidate-preview-root").text(sample.root + sample.root + sample.root));
+        preview.append(header);
+
+        var body = $("<div>").addClass("candidate-preview-body candidate-preview-message-body");
+        var row = $("<div>").addClass("candidate-preview-message-row");
+        if (messageStyle === "badge") {
+            row.append($("<span>").addClass("candidate-preview-message-badge").text("!"));
+        }
+        else if (messageStyle === "dot") {
+            row.append($("<span>").addClass("candidate-preview-message-dot"));
+        }
+        row.append($("<span>").addClass("candidate-preview-message-text").text("查無組字"));
+        body.append(row);
+        preview.append(body);
+        return preview;
+    }
+
+    function createCandidateMessageBehaviorPreview(sample, behavior, selectedStyle) {
+        var wrap = $("<div>").addClass("candidate-behavior-preview");
+        var typingStyle = behavior === "progressive" ? "dot" : selectedStyle;
+        var confirmedStyle = selectedStyle;
+
+        wrap.append($("<div>").addClass("candidate-behavior-label").text(behavior === "progressive" ? "打字中：低調" : "打字中：固定樣式"));
+        wrap.append(createCandidateMessagePreview(sample, typingStyle));
+        wrap.append($("<div>").addClass("candidate-behavior-label").text(behavior === "progressive" ? "確認後：選用樣式" : "確認後：固定樣式"));
+        wrap.append(createCandidateMessagePreview(sample, confirmedStyle));
+        return wrap;
+    }
+
     function renderCandidateThemeGallery() {
         var grid = $("#candidateThemeGrid");
         if (!grid.length) {
@@ -351,6 +441,45 @@ $(function () {
             header.append($("<span>").addClass("candidate-style-card-state"));
             card.append(header);
             card.append(createCandidatePreview(sample, styleValue));
+            grid.append(card);
+        });
+    }
+
+    function renderCandidateMessageStyleGallery() {
+        var grid = $("#candidateMessageStyleGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var sample = getCandidatePreviewSample();
+        grid.empty();
+        $.each(candidateMessageStyleOptions, function (styleValue, styleName) {
+            var card = $("<button>").attr("type", "button").addClass("candidate-style-card candidate-message-style-card").data("style", styleValue);
+            var header = $("<div>").addClass("candidate-style-card-header");
+            header.append($("<span>").addClass("candidate-style-card-name").text(styleName));
+            header.append($("<span>").addClass("candidate-style-card-state"));
+            card.append(header);
+            card.append(createCandidateMessagePreview(sample, styleValue));
+            grid.append(card);
+        });
+    }
+
+    function renderCandidateMessageBehaviorGallery() {
+        var grid = $("#candidateMessageBehaviorGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var sample = getCandidatePreviewSample();
+        var selectedStyle = $("#candidateMessageStyle").val() || "badge";
+        grid.empty();
+        $.each(candidateMessageBehaviorOptions, function (behaviorValue, behaviorName) {
+            var card = $("<button>").attr("type", "button").addClass("candidate-style-card candidate-message-behavior-card").data("behavior", behaviorValue);
+            var header = $("<div>").addClass("candidate-style-card-header");
+            header.append($("<span>").addClass("candidate-style-card-name").text(behaviorName));
+            header.append($("<span>").addClass("candidate-style-card-state"));
+            card.append(header);
+            card.append(createCandidateMessageBehaviorPreview(sample, behaviorValue, selectedStyle));
             grid.append(card);
         });
     }
@@ -418,9 +547,68 @@ $(function () {
         });
     }
 
+    function updateCandidateMessageStyleGallery() {
+        var grid = $("#candidateMessageStyleGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var selectedStyle = $("#candidateMessageStyle").val() || "badge";
+        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var modern = $("#candidateModernStyle").prop("checked");
+        var sample = getCandidatePreviewSample();
+        $("#candidateMessageStyleCurrent").text(candidateMessageStyleOptions[selectedStyle] || "");
+
+        grid.find(".candidate-message-style-card").each(function () {
+            var card = $(this);
+            var styleValue = card.data("style");
+            var selected = styleValue === selectedStyle;
+            var preview = card.find(".candidate-preview");
+            card.toggleClass("selected", selected);
+            preview.css("font-size", candidatePreviewFontSize() + "pt");
+            card.find(".candidate-style-card-state").text(selected ? "已選" : "");
+            preview.find(".candidate-preview-name").text(sample.name);
+            preview.find(".candidate-preview-root").text(sample.root + sample.root + sample.root);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+        });
+    }
+
+    function updateCandidateMessageBehaviorGallery() {
+        var grid = $("#candidateMessageBehaviorGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var selectedBehavior = $("#candidateMessageBehavior").val() || "progressive";
+        var selectedStyle = $("#candidateMessageStyle").val() || "badge";
+        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var modern = $("#candidateModernStyle").prop("checked");
+        var sample = getCandidatePreviewSample();
+        $("#candidateMessageBehaviorCurrent").text(candidateMessageBehaviorOptions[selectedBehavior] || "");
+
+        grid.find(".candidate-message-behavior-card").each(function () {
+            var card = $(this);
+            var behaviorValue = card.data("behavior");
+            var selected = behaviorValue === selectedBehavior;
+            card.toggleClass("selected", selected);
+            card.find(".candidate-style-card-state").text(selected ? "已選" : "");
+            card.find(".candidate-behavior-preview").remove();
+            card.append(createCandidateMessageBehaviorPreview(sample, behaviorValue, selectedStyle));
+            card.find(".candidate-preview").each(function () {
+                var preview = $(this);
+                preview.css("font-size", candidatePreviewFontSize() + "pt");
+                applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+                applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+            });
+        });
+    }
+
     function updateCandidateAppearanceGalleries() {
         updateCandidateThemeGallery();
         updateCandidateKeyStyleGallery();
+        updateCandidateMessageStyleGallery();
+        updateCandidateMessageBehaviorGallery();
     }
 
     function saveConfig(callbackFunc) {
@@ -615,6 +803,8 @@ $(function () {
         $("#ui_tab input, #ui_tab select").on("change keyup", updateSelExample);
         renderCandidateThemeGallery();
         renderCandidateKeyStyleGallery();
+        renderCandidateMessageStyleGallery();
+        renderCandidateMessageBehaviorGallery();
         updateCandidateAppearanceGalleries();
         $(".candidate-window-settings input, .candidate-window-settings select").on("change keyup", updateCandidateAppearanceGalleries);
         $("#selKeyType").on("change", updateCandidateAppearanceGalleries);
@@ -624,6 +814,14 @@ $(function () {
         });
         $("#candidateKeyStyleGrid").on("click", ".candidate-style-card", function () {
             $("#candidateKeyStyle").val($(this).data("style"));
+            updateCandidateAppearanceGalleries();
+        });
+        $("#candidateMessageStyleGrid").on("click", ".candidate-message-style-card", function () {
+            $("#candidateMessageStyle").val($(this).data("style"));
+            updateCandidateAppearanceGalleries();
+        });
+        $("#candidateMessageBehaviorGrid").on("click", ".candidate-message-behavior-card", function () {
+            $("#candidateMessageBehavior").val($(this).data("behavior"));
             updateCandidateAppearanceGalleries();
         });
 
@@ -713,6 +911,8 @@ $(function () {
     function initializeCandidateWindowSettings() {
         appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "Night Comfort");
         $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "keycap");
+        $("#candidateMessageStyle").val(chewingConfig.candidateMessageStyle || "badge");
+        $("#candidateMessageBehavior").val(chewingConfig.candidateMessageBehavior || "progressive");
 
         $("#candidateModernStyle").prop("checked", !!chewingConfig.candidateModernStyle);
         $("#candidateStableWidth").prop("checked", !!chewingConfig.candidateStableWidth);

@@ -11,6 +11,8 @@ class Cin(object):
 
     # TODO check the possiblility if the encoding is not utf-8
     encoding = 'utf-8'
+    MAX_CONTEXT_ENTRIES = 32
+    COUNT_SAVE_INTERVAL_SECONDS = 60.0
 
     def __init__(self, fs, imeDirName, ignorePrivateUseArea):
         self.imeDirName = imeDirName
@@ -23,6 +25,7 @@ class Cin(object):
         self.keynames = {}
         self.cincount = {}
         self._count_dirty = False
+        self._last_count_save_time = 0.0
         self.chardefs = {}
         self.privateuse = {}
         self.dupchardefs = {}
@@ -75,16 +78,20 @@ class Cin(object):
 
         self._chardef_prefix_cache_count = None
         self._chardef_prefixes = set()
+        self._count_dirty = False
+        self._last_count_save_time = 0.0
 
         self.loadCountFile()
 
 
     def __del__(self):
-        del self.keynames
-        del self.cincount
-        del self.chardefs
-        del self.privateuse
-        del self.dupchardefs
+        try:
+            self.saveCountFile(force=True)
+        except Exception:
+            pass
+        for name in ("keynames", "cincount", "chardefs", "privateuse", "dupchardefs"):
+            if hasattr(self, name):
+                delattr(self, name)
 
         self.keynames = {}
         self.cincount = {}
@@ -267,23 +274,59 @@ class Cin(object):
                 with open(filename, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
-                        self.cincount.update({
-                            key: value for key, value in data.items()
-                            if isinstance(key, str) and isinstance(value, dict)
-                        })
+                        normalized = {}
+                        changed = False
+                        for key, value in data.items():
+                            if not isinstance(key, str) or not isinstance(value, dict):
+                                changed = True
+                                continue
+                            normalized[key] = {}
+                            for char, entry in value.items():
+                                if not isinstance(char, str):
+                                    changed = True
+                                    continue
+                                normalizedEntry = self._normalizeCountEntry(entry)
+                                normalized[key][char] = normalizedEntry
+                                if normalizedEntry != entry:
+                                    changed = True
+                        self.cincount.update(normalized)
+                        if changed:
+                            self._count_dirty = True
             except Exception:
                 pass
 
-    def saveCountFile(self):
+    def saveCountFile(self, force=False):
         if not self._count_dirty:
+            return
+        now = time.time()
+        if (
+            not force and
+            self._last_count_save_time > 0 and
+            now - self._last_count_save_time < self.COUNT_SAVE_INTERVAL_SECONDS
+        ):
             return
         filename = self.getCountFile()
         try:
             with open(filename, "w", encoding="utf-8") as f:
-                json.dump(self.cincount, f, ensure_ascii=False, sort_keys=True, indent=2)
+                json.dump(self.cincount, f, ensure_ascii=False, separators=(",", ":"))
             self._count_dirty = False
+            self._last_count_save_time = now
         except Exception:
             pass
+
+    def _trimContextCounts(self, prev, keepKey=""):
+        if len(prev) <= self.MAX_CONTEXT_ENTRIES:
+            return prev
+
+        items = sorted(prev.items(), key=lambda item: (-item[1], item[0]))
+        trimmed = dict(items[:self.MAX_CONTEXT_ENTRIES])
+        if keepKey and keepKey in prev and keepKey not in trimmed:
+            removable = [key for key in trimmed if key != keepKey]
+            if removable:
+                dropKey = min(removable, key=lambda key: (trimmed[key], key))
+                del trimmed[dropKey]
+            trimmed[keepKey] = prev[keepKey]
+        return trimmed
 
     def _normalizeCountEntry(self, value):
         if isinstance(value, dict):
@@ -308,13 +351,38 @@ class Cin(object):
                     normalized_prev[k] = int(v)
                 except (TypeError, ValueError):
                     pass
-            prev = normalized_prev
+            prev = self._trimContextCounts(normalized_prev)
             return {"count": count, "last": last, "prev": prev}
         try:
             count = int(value)
         except (TypeError, ValueError):
             count = 0
         return {"count": count, "last": 0, "prev": {}}
+
+    def _countEntryScoreParts(self, value, previousChar=""):
+        if isinstance(value, dict):
+            try:
+                count = int(value.get("count", 0))
+            except (TypeError, ValueError):
+                count = 0
+            try:
+                last = float(value.get("last", 0))
+            except (TypeError, ValueError):
+                last = 0
+            prevCount = 0
+            prev = value.get("prev", {})
+            if isinstance(previousChar, str) and previousChar and isinstance(prev, dict):
+                try:
+                    prevCount = int(prev.get(previousChar, 0))
+                except (TypeError, ValueError):
+                    prevCount = 0
+            return count, last, prevCount
+
+        try:
+            count = int(value)
+        except (TypeError, ValueError):
+            count = 0
+        return count, 0, 0
 
     def addCount(self, key, char, previousChar=""):
         if not isinstance(key, str) or not isinstance(char, str):
@@ -326,6 +394,7 @@ class Cin(object):
         entry["last"] = time.time()
         if isinstance(previousChar, str) and previousChar:
             entry["prev"][previousChar] = entry["prev"].get(previousChar, 0) + 1
+            entry["prev"] = self._trimContextCounts(entry["prev"], previousChar)
         self.cincount[key][char] = entry
         self._count_dirty = True
 
@@ -336,12 +405,12 @@ class Cin(object):
         now = time.time()
 
         def score(candidate):
-            entry = self._normalizeCountEntry(counts.get(candidate, 0))
-            value = float(entry["count"])
+            count, last, prevCount = self._countEntryScoreParts(counts.get(candidate, 0), previousChar)
+            value = float(count)
             if useContext and isinstance(previousChar, str) and previousChar:
-                value += entry["prev"].get(previousChar, 0) * 2.0
-            if useRecent and entry["last"] > 0:
-                age_days = max(0.0, (now - entry["last"]) / 86400.0)
+                value += prevCount * 2.0
+            if useRecent and last > 0:
+                age_days = max(0.0, (now - last) / 86400.0)
                 value += 3.0 / (1.0 + age_days / 7.0)
             return value
 

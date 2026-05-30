@@ -180,6 +180,7 @@ class ChewingTextService(TextService):
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
             "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
             "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),
             "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),

@@ -149,17 +149,43 @@ public:
 	void setCandidateSpacing(int contentMargin, int textMargin, int borderRadius);
 
 	void setCandidateKeyStyle(int keyStyle) {
+		if (candidateKeyStyle_ == keyStyle)
+			return;
 		candidateKeyStyle_ = keyStyle;
 		applyCandidateWindowStyle();
 	}
 
+	void setCandidateMessageStyle(int messageStyle) {
+		if (candidateMessageStyle_ == messageStyle && candidateMessageDisplayStyle_ == messageStyle)
+			return;
+		candidateMessageStyle_ = messageStyle;
+		candidateMessageDisplayStyle_ = messageStyle;
+		applyCandidateWindowStyle();
+	}
+
+	void setCandidateMessageDisplayStyle(int messageStyle) {
+		if (candidateMessageDisplayStyle_ == messageStyle)
+			return;
+		candidateMessageDisplayStyle_ = messageStyle;
+		if (candidateWindow_)
+			candidateWindow_->setMessageStyle(candidateMessageDisplayStyle_);
+	}
+
+	void resetCandidateMessageDisplayStyle() {
+		setCandidateMessageDisplayStyle(candidateMessageStyle_);
+	}
+
 	void setCandidateStableWidth(bool enabled, int minWidth) {
+		if (candidateStableWidth_ == enabled && candidateMinWidth_ == minWidth)
+			return;
 		candidateStableWidth_ = enabled;
 		candidateMinWidth_ = minWidth;
 		applyCandidateWindowStyle();
 	}
 
 	void setCandidateMaxWidth(bool wrapToMaxWidth, int maxWidth) {
+		if (candidateWrapToMaxWidth_ == wrapToMaxWidth && candidateMaxWidth_ == maxWidth)
+			return;
 		candidateWrapToMaxWidth_ = wrapToMaxWidth;
 		candidateMaxWidth_ = maxWidth;
 		applyCandidateWindowStyle();
@@ -237,6 +263,8 @@ private:
 	int candidateTextMargin_;
 	int candidateBorderRadius_;
 	int candidateKeyStyle_;
+	int candidateMessageStyle_;
+	int candidateMessageDisplayStyle_;
 	bool candidateStableWidth_;
 	int candidateMinWidth_;
 	bool candidateWrapToMaxWidth_;

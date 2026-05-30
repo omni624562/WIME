@@ -374,7 +374,7 @@ class CinBase:
             del cbTS.dsymbols
 
         if hasattr(cbTS, 'cin'):
-            cbTS.cin.saveCountFile()
+            cbTS.cin.saveCountFile(force=True)
 
 
     # 使用者按下按鍵，在 app 收到前先過濾那些鍵是輸入法需要的。
@@ -2134,9 +2134,7 @@ class CinBase:
                         else:
                             keepNoCandidateMessageInCandidateWindow = self.shouldKeepNoCandidateMessageInCandidateWindow(cbTS)
                             if keepNoCandidateMessageInCandidateWindow:
-                                cbTS.currentReply["candidateMessage"] = "查無組字..."
-                                cbTS.currentReply["candidatePageInfo"] = ""
-                                cbTS.isShowCandidates = True
+                                self.setNoCandidateMessageInCandidateWindow(cbTS, confirmed=True)
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
@@ -2154,9 +2152,7 @@ class CinBase:
                         if not len(cbTS.compositionChar) == 1 and not cbTS.compositionChar == charStrLow:
                             keepNoCandidateMessageInCandidateWindow = self.shouldKeepNoCandidateMessageInCandidateWindow(cbTS)
                             if keepNoCandidateMessageInCandidateWindow:
-                                cbTS.currentReply["candidateMessage"] = "查無組字..."
-                                cbTS.currentReply["candidatePageInfo"] = ""
-                                cbTS.isShowCandidates = True
+                                self.setNoCandidateMessageInCandidateWindow(cbTS, confirmed=True)
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
@@ -2416,8 +2412,8 @@ class CinBase:
                 cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + headerText
                 if "candidateList" not in cbTS.currentReply:
                     if forceHeaderComposition and not self.isCompositionCharPrefix(cbTS):
-                        cbTS.currentReply["candidateMessage"] = "查無組字..."
-                        cbTS.currentReply["candidatePageInfo"] = ""
+                        if "candidateMessage" not in cbTS.currentReply:
+                            self.setNoCandidateMessageInCandidateWindow(cbTS, confirmed=False)
                         cbTS.setCandidateList([])
                     else:
                         # 沒有候選清單時，也送出清單更新，讓 C++ 同步刷新 header。
@@ -3058,6 +3054,18 @@ class CinBase:
     def shouldKeepNoCandidateMessageInCandidateWindow(self, cbTS):
         return cbTS.imeDirName in ("chedayi", "checj", "cheliu") and not self.isCompositionCharPrefix(cbTS)
 
+    def setNoCandidateMessageInCandidateWindow(self, cbTS, confirmed=False):
+        cbTS.currentReply["candidateMessage"] = "查無組字"
+        cbTS.currentReply["candidatePageInfo"] = ""
+        if (
+            not confirmed and
+            getattr(cbTS.cfg, 'candidateMessageBehavior', 'progressive') == 'progressive'
+        ):
+            cbTS.currentReply["candidateMessageStyle"] = "dot"
+        else:
+            cbTS.currentReply.pop("candidateMessageStyle", None)
+        cbTS.isShowCandidates = True
+
     def getKeyState(self, keyCode):
         return ctypes.WinDLL("User32.dll").GetKeyState(keyCode)
 
@@ -3346,6 +3354,7 @@ class CinBase:
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
             "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
             "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),
             "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
@@ -3494,8 +3503,7 @@ class CinBase:
 
         if hasattr(cbTS, 'cin'):
             if hasattr(cbTS.cin, 'cincount'):
-                if not os.path.exists(cbTS.cin.getCountFile()):
-                    cbTS.cin.saveCountFile()
+                cbTS.cin.saveCountFile()
 
         # 如果有更換輸入法碼表，就重新載入碼表資料
         if not CinTable.loading:
