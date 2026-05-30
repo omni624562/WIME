@@ -283,6 +283,7 @@
                                         <label for="candidatePerRow">每列候選字數</label>
                                         <input type="text" id="candidatePerRow" name="candidatePerRow" />
                                     </div>
+                                    <input type="hidden" id="candidateKeyStyle" name="candidateKeyStyle" data-value-type="string" />
                                     <div class="candidate-config-field">
                                         <label for="fontSize">候選窗字體大小</label>
                                         <input type="text" id="fontSize" name="fontSize" />
@@ -297,6 +298,11 @@
                                     </div>
                                 </div>
                                 <div class="candidate-theme-heading">
+                                    <span>選字符樣式</span>
+                                    <span id="candidateKeyStyleCurrent" class="candidate-theme-current"></span>
+                                </div>
+                                <div id="candidateKeyStyleGrid" class="candidate-style-grid"></div>
+                                <div class="candidate-theme-heading candidate-theme-heading-spaced">
                                     <span>候選窗配色</span>
                                     <span id="candidateThemeCurrent" class="candidate-theme-current"></span>
                                 </div>

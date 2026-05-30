@@ -59,6 +59,7 @@ TextService::TextService(ImeModule* module):
 	candidateContentMargin_(8),
 	candidateTextMargin_(6),
 	candidateBorderRadius_(8),
+	candidateKeyStyle_(Ime::CandidateWindow::KeyStyleKeycap),
 	candidateStableWidth_(false),
 	candidateMinWidth_(0),
 	candidateWrapToMaxWidth_(false),
@@ -355,6 +356,7 @@ void TextService::applyCandidateWindowStyle() {
 		candidateHighlightBorder_,
 		candidateHighlightText_);
 	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
+	candidateWindow_->setKeyStyle(candidateKeyStyle_);
 	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
 	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
 }

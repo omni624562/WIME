@@ -148,6 +148,11 @@ public:
 
 	void setCandidateSpacing(int contentMargin, int textMargin, int borderRadius);
 
+	void setCandidateKeyStyle(int keyStyle) {
+		candidateKeyStyle_ = keyStyle;
+		applyCandidateWindowStyle();
+	}
+
 	void setCandidateStableWidth(bool enabled, int minWidth) {
 		candidateStableWidth_ = enabled;
 		candidateMinWidth_ = minWidth;
@@ -231,6 +236,7 @@ private:
 	int candidateContentMargin_;
 	int candidateTextMargin_;
 	int candidateBorderRadius_;
+	int candidateKeyStyle_;
 	bool candidateStableWidth_;
 	int candidateMinWidth_;
 	bool candidateWrapToMaxWidth_;

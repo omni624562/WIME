@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dayi Candidate Window Mockup</title>
+  <title>Candidate Window Style Mockup</title>
   <style>
     :root {
       color-scheme: dark;
@@ -93,6 +93,36 @@
       font-size: 13px;
     }
 
+    .setting-row {
+      width: min(720px, 100%);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(180px, 240px) max-content;
+      gap: 16px;
+      align-items: center;
+      background: #2a2a2a;
+      border: 1px solid #3b3b3b;
+      border-radius: 8px;
+    }
+
+    .setting-row label {
+      display: grid;
+      gap: 6px;
+      color: #d5d8e3;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .setting-row select {
+      height: 32px;
+      color: #eef0f7;
+      background: #1b1c20;
+      border: 1px solid #4a4d57;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-family: inherit;
+    }
+
     .field-row {
       display: flex;
       align-items: flex-start;
@@ -118,6 +148,7 @@
 
     .candidate-window {
       --panel: #1b1c20;
+      --surface: var(--panel);
       --border: #4a4d57;
       --divider: #30323a;
       --text: #e5e8ee;
@@ -201,8 +232,8 @@
     .candidate.selected {
       padding: 0 8px;
       color: var(--accent-text);
-      background: var(--accent);
-      border: 1px solid var(--accent-border);
+      background: color-mix(in srgb, var(--surface) 72%, var(--accent) 28%);
+      border: 1px solid color-mix(in srgb, var(--surface) 72%, var(--accent) 28%);
     }
 
     .key {
@@ -212,6 +243,490 @@
 
     .selected .key {
       color: var(--accent-text);
+    }
+
+    .candidate-row.key-study {
+      gap: 8px;
+    }
+
+    .candidate.keycap .key {
+      min-width: 17px;
+      height: 18px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--root);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .candidate.keycap.selected .key {
+      color: var(--accent-text);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .candidate.divider .key {
+      min-width: 15px;
+      padding-right: 6px;
+      border-right: 1px solid rgba(169, 175, 186, 0.35);
+      text-align: center;
+    }
+
+    .candidate.divider.selected .key {
+      border-right-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .candidate.quiet-key .key {
+      opacity: 0.58;
+      font-size: 12px;
+      transform: translateY(-1px);
+    }
+
+    .candidate.quiet-key .word {
+      font-weight: 650;
+    }
+
+    .candidate.rule-key .key {
+      padding-bottom: 2px;
+      border-bottom: 1px solid rgba(184, 199, 232, 0.7);
+      line-height: 1.05;
+    }
+
+    .candidate.rule-key.selected .key {
+      border-bottom-color: rgba(255, 255, 255, 0.65);
+    }
+
+    .style-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .style-card {
+      display: grid;
+      gap: 11px;
+      min-width: 0;
+      padding: 13px;
+      background: #29292d;
+      border: 1px solid #3b3d46;
+      border-radius: 8px;
+    }
+
+    .style-picker {
+      display: grid;
+      gap: 14px;
+      padding: 13px;
+      background: #29292d;
+      border: 1px solid #3b3d46;
+      border-radius: 8px;
+    }
+
+    .style-picker-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #f3f4fa;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .style-choice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+
+    .style-choice-card {
+      min-height: 34px;
+      color: #d5d8e3;
+      background: #202126;
+      border: 1px solid #3b3d46;
+      border-radius: 6px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 650;
+      text-align: left;
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .style-choice-card:hover {
+      border-color: #697083;
+      background: #252730;
+    }
+
+    .style-choice-card.selected {
+      color: #f3f7ff;
+      border-color: #6f8ff0;
+      background: #2f477f;
+      box-shadow: 0 0 0 2px rgba(111, 143, 240, 0.22);
+    }
+
+    .style-card-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      color: #f3f4fa;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .style-rank {
+      color: #a8adbb;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .style-note {
+      margin: -3px 0 0;
+      color: #b8bdca;
+      font-size: 12px;
+    }
+
+    .design-pair {
+      display: grid;
+      gap: 9px;
+      justify-items: start;
+    }
+
+    .candidate-window.demo {
+      min-width: 286px;
+      max-width: 100%;
+    }
+
+    .candidate-window.demo .candidate-row {
+      min-height: 34px;
+      padding: 5px 8px;
+    }
+
+    .style-selected-only .candidate {
+      padding: 0 3px;
+      gap: 4px;
+    }
+
+    .style-selected-only .candidate:not(.selected) .key {
+      min-width: 0.85em;
+      color: var(--key);
+      font-size: 12px;
+      opacity: 0.58;
+      text-align: center;
+    }
+
+    .style-selected-only .candidate.selected {
+      padding: 0 7px;
+    }
+
+    .style-selected-only .candidate.selected .key {
+      min-width: 17px;
+      height: 18px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .style-quiet .candidate {
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .style-quiet .key {
+      min-width: 0.9em;
+      font-size: 12px;
+      opacity: 0.52;
+      text-align: center;
+    }
+
+    .style-quiet .word {
+      font-weight: 650;
+    }
+
+    .style-quiet .candidate.selected .key {
+      opacity: 0.82;
+    }
+
+    .style-divider-slim .candidate {
+      gap: 4px;
+      padding: 0 3px;
+    }
+
+    .style-divider-slim .key {
+      min-width: 15px;
+      padding-right: 4px;
+      border-right: 1px solid color-mix(in srgb, var(--key) 38%, transparent);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .style-divider-slim .candidate.selected .key {
+      border-right-color: color-mix(in srgb, var(--accent-text) 42%, transparent);
+    }
+
+    .style-accent-dot .candidate {
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .style-accent-dot .key {
+      position: relative;
+      min-width: 18px;
+      padding-left: 8px;
+      color: var(--key);
+      font-size: 12px;
+      opacity: 0.76;
+      text-align: center;
+    }
+
+    .style-accent-dot .key::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      top: 50%;
+      width: 3px;
+      height: 3px;
+      background: var(--accent-border);
+      border-radius: 999px;
+      transform: translateY(-50%);
+      opacity: 0.8;
+    }
+
+    .style-accent-dot .candidate.selected .key::before {
+      width: 4px;
+      height: 11px;
+      background: var(--accent-text);
+      border-radius: 3px;
+      opacity: 0.95;
+    }
+
+    .style-rail .candidate {
+      gap: 4px;
+      padding: 0 5px 0 6px;
+      border-left: 2px solid color-mix(in srgb, var(--key) 26%, transparent);
+      border-radius: 3px 6px 6px 3px;
+    }
+
+    .style-rail .key {
+      min-width: 0.9em;
+      font-size: 12px;
+      opacity: 0.72;
+      text-align: center;
+    }
+
+    .style-rail .candidate.selected {
+      border-left: 2px solid color-mix(in srgb, var(--accent-text) 72%, transparent);
+    }
+
+    .style-badge-minimal .candidate {
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .style-badge-minimal .key {
+      min-width: 17px;
+      height: 18px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--key);
+      background: transparent;
+      border: 1px solid color-mix(in srgb, var(--key) 40%, transparent);
+      border-radius: 5px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .style-badge-minimal .candidate.selected .key {
+      color: var(--accent-text);
+      background: color-mix(in srgb, var(--accent) 28%, transparent);
+      border-color: color-mix(in srgb, var(--accent-text) 32%, transparent);
+    }
+
+    .style-word-first .candidate {
+      gap: 4px;
+      padding: 0 5px;
+    }
+
+    .style-word-first .word {
+      order: 1;
+      font-weight: 600;
+    }
+
+    .style-word-first .key {
+      order: 2;
+      min-width: 0;
+      align-self: flex-start;
+      color: var(--key);
+      font-size: 10px;
+      line-height: 1;
+      opacity: 0.7;
+      transform: translateY(2px);
+    }
+
+    .style-word-first .candidate.selected .key {
+      opacity: 0.9;
+    }
+
+    .style-monospace-slot .candidate {
+      min-width: 42px;
+      justify-content: flex-start;
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .style-monospace-slot .key {
+      width: 16px;
+      color: var(--key);
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      opacity: 0.72;
+      text-align: center;
+    }
+
+    .style-monospace-slot .candidate.selected .key {
+      opacity: 0.95;
+    }
+
+    .style-soft-capsule .candidate {
+      gap: 5px;
+      padding: 0 4px;
+    }
+
+    .style-soft-capsule .key {
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--key);
+      background: color-mix(in srgb, var(--key) 10%, transparent);
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .style-soft-capsule .candidate.selected .key {
+      color: var(--accent-text);
+      background: color-mix(in srgb, var(--accent-text) 18%, transparent);
+    }
+
+    .style-left-tag .candidate {
+      gap: 0;
+      overflow: hidden;
+      padding: 0 6px 0 0;
+      border: 1px solid color-mix(in srgb, var(--key) 18%, transparent);
+      border-radius: 6px;
+    }
+
+    .style-left-tag .key {
+      min-width: 19px;
+      height: 22px;
+      margin-right: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--key);
+      background: color-mix(in srgb, var(--key) 10%, transparent);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .style-left-tag .candidate.selected .key {
+      color: var(--accent-text);
+      background: color-mix(in srgb, var(--accent-text) 17%, transparent);
+    }
+
+    .style-glow-key .candidate {
+      gap: 5px;
+      padding: 0 4px;
+    }
+
+    .style-glow-key .key {
+      min-width: 0.9em;
+      color: var(--key);
+      font-size: 12px;
+      opacity: 0.72;
+      text-align: center;
+    }
+
+    .style-glow-key .candidate.selected .key {
+      color: var(--accent-text);
+      opacity: 1;
+      text-shadow: 0 0 8px color-mix(in srgb, var(--accent-text) 70%, transparent);
+    }
+
+    .style-micro-tab .candidate {
+      position: relative;
+      gap: 4px;
+      padding: 3px 5px 0;
+      align-items: flex-end;
+    }
+
+    .style-micro-tab .key {
+      align-self: flex-start;
+      min-width: 14px;
+      height: 11px;
+      padding: 0 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--key);
+      background: color-mix(in srgb, var(--key) 11%, transparent);
+      border-radius: 3px 3px 2px 2px;
+      font-size: 9px;
+      line-height: 1;
+      transform: translateY(-2px);
+    }
+
+    .style-micro-tab .candidate.selected .key {
+      color: var(--accent-text);
+      background: color-mix(in srgb, var(--accent-text) 18%, transparent);
+    }
+
+    .style-word-anchor .candidate {
+      position: relative;
+      gap: 4px;
+      padding: 0 5px;
+    }
+
+    .style-word-anchor .key {
+      min-width: 0.85em;
+      color: var(--key);
+      font-size: 11px;
+      opacity: 0.62;
+      text-align: center;
+    }
+
+    .style-word-anchor .word {
+      position: relative;
+      font-weight: 620;
+    }
+
+    .style-word-anchor .word::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -3px;
+      height: 1px;
+      background: color-mix(in srgb, var(--key) 32%, transparent);
+    }
+
+    .style-word-anchor .candidate.selected .word::after {
+      background: color-mix(in srgb, var(--accent-text) 58%, transparent);
     }
 
     .word {
@@ -418,8 +933,8 @@
 <body>
   <main>
     <header class="section-title">
-      <h1>大易候選窗重構 mockup</h1>
-      <p>整理後的方向：候選窗維持緊湊雙列、同一段組字期間寬度穩定、配色做成 theme presets。先看結論版，再看寬度與配色比較。</p>
+      <h1>候選窗樣式重構 mockup</h1>
+      <p>整理後的方向：候選窗維持緊湊雙列、同一段組字期間寬度穩定、配色做成 theme presets。樣式提案同時檢查大易與新酷音。</p>
     </header>
 
     <section class="section">
@@ -436,7 +951,7 @@
             <span class="candidate-page">1/1</span>
           </div>
           <div class="candidate-row">
-            <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+            <span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span>
             <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
             <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
             <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
@@ -462,7 +977,7 @@
                 <span class="candidate-root">月</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">司</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
               </div>
             </div>
@@ -473,7 +988,7 @@
                 <span class="candidate-page">1/1</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
                 <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
                 <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
@@ -485,7 +1000,7 @@
                 <span class="candidate-root">水</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">水</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">又</span></span>
               </div>
             </div>
@@ -502,7 +1017,7 @@
                 <span class="candidate-page">1/1</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">司</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
               </div>
             </div>
@@ -513,7 +1028,7 @@
                 <span class="candidate-page">1/1</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
                 <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
                 <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
@@ -526,9 +1041,257 @@
                 <span class="candidate-page">1/1</span>
               </div>
               <div class="candidate-row">
-                <span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span>
+                <span class="candidate selected"><span class="key">␣</span><span class="word">水</span></span>
                 <span class="candidate"><span class="key">'</span><span class="word">又</span></span>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="style-proposals" class="section">
+      <div class="section-title">
+        <h2>選字符樣式 2.0</h2>
+        <p>每一案都同時看大易與新酷音。我的排序放在右上角：越前面越適合做預設，越後面越像可選的個性化樣式。</p>
+      </div>
+      <div class="style-picker">
+        <div class="style-picker-head">
+          <span>設定入口示意</span>
+          <span id="keyStyleDemoCurrent">Selected Only Keycap</span>
+        </div>
+        <div id="keyStyleDemoGrid" class="style-choice-grid">
+          <button type="button" class="style-choice-card selected" data-style="style-selected-only">Selected Only Keycap</button>
+          <button type="button" class="style-choice-card" data-style="style-quiet">Quiet Key</button>
+          <button type="button" class="style-choice-card" data-style="style-divider-slim">Divider Slim</button>
+          <button type="button" class="style-choice-card" data-style="style-badge-minimal">Badge Minimal</button>
+          <button type="button" class="style-choice-card" data-style="style-accent-dot">Accent Dot</button>
+          <button type="button" class="style-choice-card" data-style="style-rail">Rail Marker</button>
+          <button type="button" class="style-choice-card" data-style="style-monospace-slot">Monospace Slot</button>
+          <button type="button" class="style-choice-card" data-style="style-word-first">Word First</button>
+          <button type="button" class="style-choice-card" data-style="style-soft-capsule">Soft Capsule</button>
+          <button type="button" class="style-choice-card" data-style="style-left-tag">Left Tag</button>
+          <button type="button" class="style-choice-card" data-style="style-glow-key">Glow Key</button>
+          <button type="button" class="style-choice-card" data-style="style-micro-tab">Micro Tab</button>
+          <button type="button" class="style-choice-card" data-style="style-word-anchor">Word Anchor</button>
+        </div>
+        <div id="keyStyleLivePair" class="design-pair">
+          <div class="candidate-window demo stable theme-night-comfort style-selected-only">
+            <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+            <div class="candidate-row">
+              <span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span>
+              <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
+              <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
+              <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
+              <span class="candidate"><span class="key">-</span><span class="word">魚</span></span>
+              <span class="candidate"><span class="key">\</span><span class="word">互</span></span>
+            </div>
+          </div>
+          <div class="candidate-window demo stable theme-night-comfort style-selected-only">
+            <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+            <div class="candidate-row">
+              <span class="candidate selected"><span class="key">1</span><span class="word">機</span></span>
+              <span class="candidate"><span class="key">2</span><span class="word">基</span></span>
+              <span class="candidate"><span class="key">3</span><span class="word">積</span></span>
+              <span class="candidate"><span class="key">4</span><span class="word">績</span></span>
+              <span class="candidate"><span class="key">5</span><span class="word">激</span></span>
+              <span class="candidate"><span class="key">6</span><span class="word">雞</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="style-gallery">
+        <div class="style-card">
+          <div class="style-card-title">Selected Only Keycap <span class="style-rank">推薦 1</span></div>
+          <p class="style-note">只有選中的候選有小按鍵，其餘選字符安靜退後。多候選時最不吵。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-selected-only">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-selected-only">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Quiet Key <span class="style-rank">推薦 2</span></div>
+          <p class="style-note">選字符變小變淡，候選字加重。最像成熟輸入工具，長時間看比較舒服。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-quiet">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-quiet">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Divider Slim <span class="style-rank">推薦 3</span></div>
+          <p class="style-note">保留分隔線，但線更短、更淡。辨識度好，大易符號也不會黏字。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-divider-slim">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-divider-slim">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Badge Minimal <span class="style-rank">推薦 4</span></div>
+          <p class="style-note">所有選字符都有薄框，但不填色。比現在 keycap 輕，仍然很直覺。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-badge-minimal">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-badge-minimal">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Accent Dot <span class="style-rank">個性案</span></div>
+          <p class="style-note">用小色點提示選字符位置，選中時變成短豎線。安靜，但需要適應。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-accent-dot">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-accent-dot">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Rail Marker <span class="style-rank">結構案</span></div>
+          <p class="style-note">每個候選項左側有細軌道，選中軌道加亮。穩，但風格比較工具感。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-rail">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-rail">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Monospace Slot <span class="style-rank">穩定案</span></div>
+          <p class="style-note">選字符固定窄欄，字固定位置。最穩不跳，但會比其他方案稍寬。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-monospace-slot">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-monospace-slot">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Word First <span class="style-rank">實驗案</span></div>
+          <p class="style-note">字在前，選字符像右上角小標。字很突出，但和既有輸入法習慣距離較大。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-word-first">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-word-first">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Soft Capsule <span class="style-rank">新案 1</span></div>
+          <p class="style-note">選字符是沒有邊線的柔和膠囊。比薄框更暖，淡色系也比較不刺眼。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-soft-capsule">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-soft-capsule">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Left Tag <span class="style-rank">新案 2</span></div>
+          <p class="style-note">選字符像貼在候選字左側的小標籤。辨識很清楚，但比 keycap 更整齊。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-left-tag">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-left-tag">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Glow Key <span class="style-rank">新案 3</span></div>
+          <p class="style-note">只讓目前選中的選字符發光，其他保持文字。小幅增加焦點，不增加框線。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-glow-key">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-glow-key">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Micro Tab <span class="style-rank">新案 4</span></div>
+          <p class="style-note">選字符縮成候選字上緣的小頁籤。空間感特別，但需要實測是否會太細。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-micro-tab">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-micro-tab">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-card">
+          <div class="style-card-title">Word Anchor <span class="style-rank">新案 5</span></div>
+          <p class="style-note">候選字底部有短基線，選字符退成索引。字是主角，整體最文靜。</p>
+          <div class="design-pair">
+            <div class="candidate-window demo stable theme-night-comfort style-word-anchor">
+              <div class="candidate-header"><span class="candidate-label">大易</span><span class="candidate-root">魚</span><span class="candidate-page">1/2</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span><span class="candidate"><span class="key">]</span><span class="word">角</span></span><span class="candidate"><span class="key">-</span><span class="word">魚</span></span><span class="candidate"><span class="key">\</span><span class="word">互</span></span></div>
+            </div>
+            <div class="candidate-window demo stable theme-night-comfort style-word-anchor">
+              <div class="candidate-header"><span class="candidate-label">新酷音</span><span class="candidate-page">1/12</span></div>
+              <div class="candidate-row"><span class="candidate selected"><span class="key">1</span><span class="word">機</span></span><span class="candidate"><span class="key">2</span><span class="word">基</span></span><span class="candidate"><span class="key">3</span><span class="word">積</span></span><span class="candidate"><span class="key">4</span><span class="word">績</span></span><span class="candidate"><span class="key">5</span><span class="word">激</span></span><span class="candidate"><span class="key">6</span><span class="word">雞</span></span></div>
             </div>
           </div>
         </div>
@@ -550,7 +1313,7 @@
               <span class="candidate-page">1/1</span>
             </div>
             <div class="candidate-row">
-              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span>
+              <span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span>
               <span class="candidate"><span class="key">'</span><span class="word">川</span></span>
               <span class="candidate"><span class="key">[</span><span class="word">夕</span></span>
               <span class="candidate"><span class="key">]</span><span class="word">角</span></span>
@@ -567,7 +1330,7 @@
               <span class="candidate-page">1/1</span>
             </div>
             <div class="candidate-row">
-              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span>
+              <span class="candidate selected"><span class="key">␣</span><span class="word">林</span></span>
               <span class="candidate"><span class="key">'</span><span class="word">森</span></span>
               <span class="candidate"><span class="key">[</span><span class="word">枝</span></span>
               <span class="candidate"><span class="key">]</span><span class="word">本</span></span>
@@ -584,7 +1347,7 @@
               <span class="candidate-page">1/1</span>
             </div>
             <div class="candidate-row">
-              <span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span>
+              <span class="candidate selected"><span class="key">␣</span><span class="word">司</span></span>
               <span class="candidate"><span class="key">'</span><span class="word">事</span></span>
               <span class="candidate"><span class="key">[</span><span class="word">言</span></span>
               <span class="candidate"><span class="key">-</span><span class="word">頁</span></span>
@@ -604,84 +1367,84 @@
           <div class="caption">Night Comfort</div>
           <div class="candidate-window narrow theme-night-comfort">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">魚</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Soft Focus</div>
           <div class="candidate-window narrow theme-soft-focus">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">木</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Warm Gray</div>
           <div class="candidate-window narrow theme-warm-gray">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">月</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">司</span></span><span class="candidate"><span class="key">'</span><span class="word">事</span></span><span class="candidate"><span class="key">[</span><span class="word">言</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">司</span></span><span class="candidate"><span class="key">'</span><span class="word">事</span></span><span class="candidate"><span class="key">[</span><span class="word">言</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Graphite</div>
           <div class="candidate-window narrow theme-graphite">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">魚</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">刀</span></span><span class="candidate"><span class="key">'</span><span class="word">川</span></span><span class="candidate"><span class="key">[</span><span class="word">夕</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Slate Teal</div>
           <div class="candidate-window narrow theme-slate-teal">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">水</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Olive</div>
           <div class="candidate-window narrow theme-olive">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">竹</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">等</span></span><span class="candidate"><span class="key">'</span><span class="word">節</span></span><span class="candidate"><span class="key">[</span><span class="word">第</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">等</span></span><span class="candidate"><span class="key">'</span><span class="word">節</span></span><span class="candidate"><span class="key">[</span><span class="word">第</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Plum</div>
           <div class="candidate-window narrow theme-plum">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">言</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">說</span></span><span class="candidate"><span class="key">'</span><span class="word">計</span></span><span class="candidate"><span class="key">[</span><span class="word">話</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">說</span></span><span class="candidate"><span class="key">'</span><span class="word">計</span></span><span class="candidate"><span class="key">[</span><span class="word">話</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Amber</div>
           <div class="candidate-window narrow theme-amber">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">日</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Light</div>
           <div class="candidate-window narrow theme-light">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">金</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">銀</span></span><span class="candidate"><span class="key">'</span><span class="word">針</span></span><span class="candidate"><span class="key">[</span><span class="word">銅</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">銀</span></span><span class="candidate"><span class="key">'</span><span class="word">針</span></span><span class="candidate"><span class="key">[</span><span class="word">銅</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Paper</div>
           <div class="candidate-window narrow theme-paper">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">木</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">林</span></span><span class="candidate"><span class="key">'</span><span class="word">森</span></span><span class="candidate"><span class="key">[</span><span class="word">枝</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Mist Light</div>
           <div class="candidate-window narrow theme-mist-light">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">水</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">水</span></span><span class="candidate"><span class="key">'</span><span class="word">又</span></span><span class="candidate"><span class="key">[</span><span class="word">火</span></span></div>
           </div>
         </div>
         <div class="sample">
           <div class="caption">Sepia Dim</div>
           <div class="candidate-window narrow theme-sepia-dim">
             <div class="candidate-header"><span class="candidate-label">大易字根</span><span class="candidate-root">日</span><span class="candidate-page">1/1</span></div>
-            <div class="candidate-row"><span class="candidate selected"><span class="key">ㄅ</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
+            <div class="candidate-row"><span class="candidate selected"><span class="key">␣</span><span class="word">明</span></span><span class="candidate"><span class="key">'</span><span class="word">早</span></span><span class="candidate"><span class="key">[</span><span class="word">星</span></span></div>
           </div>
         </div>
       </div>
@@ -716,5 +1479,51 @@
       </table>
     </section>
   </main>
+  <script>
+    (function () {
+      var styleClasses = [
+        "style-selected-only",
+        "style-quiet",
+        "style-divider-slim",
+        "style-badge-minimal",
+        "style-accent-dot",
+        "style-rail",
+        "style-monospace-slot",
+        "style-word-first",
+        "style-soft-capsule",
+        "style-left-tag",
+        "style-glow-key",
+        "style-micro-tab",
+        "style-word-anchor"
+      ];
+      var grid = document.getElementById("keyStyleDemoGrid");
+      var current = document.getElementById("keyStyleDemoCurrent");
+      var preview = document.getElementById("keyStyleLivePair");
+      function applyKeyStyle() {
+        var selectedButton = grid.querySelector(".style-choice-card.selected") || grid.querySelector(".style-choice-card");
+        var selectedStyle = selectedButton ? selectedButton.dataset.style : "style-selected-only";
+        if (current && selectedButton) {
+          current.textContent = selectedButton.textContent;
+        }
+        preview.querySelectorAll(".candidate-window").forEach(function (item) {
+          styleClasses.forEach(function (style) {
+            item.classList.remove(style);
+          });
+          item.classList.add(selectedStyle);
+        });
+      }
+      grid.addEventListener("click", function (event) {
+        var button = event.target.closest(".style-choice-card");
+        if (!button) {
+          return;
+        }
+        grid.querySelectorAll(".style-choice-card").forEach(function (item) {
+          item.classList.toggle("selected", item === button);
+        });
+        applyKeyStyle();
+      });
+      applyKeyStyle();
+    }());
+  </script>
 </body>
 </html>

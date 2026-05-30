@@ -164,30 +164,29 @@ class ChewingTextService(TextService):
 
     def customizeCandidateUI(self):
         cfg = chewingConfig
-        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
+        modernStyle = getattr(cfg, 'candidateModernStyle', False)
+        if modernStyle and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
             uiCandPerRow = getattr(cfg, 'candidatePerRow', 6)
         else:
             uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
         ui_args = {
-            "candFontName": 'Microsoft JhengHei' if getattr(cfg, 'candidateModernStyle', False) else 'MingLiu',
+            "candFontName": 'Microsoft JhengHei' if modernStyle else 'MingLiu',
             "candFontSize": cfg.fontSize,
             "candPerRow": uiCandPerRow,
             "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
+            "candidateModernStyle": modernStyle,
+            "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+            "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
+            "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+            "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateColors": candidateColorsForTheme(cfg),
+            "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+            "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
+            "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
+            "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
+            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
         }
-        if getattr(cfg, 'candidateModernStyle', False):
-            ui_args.update({
-                "candidateModernStyle": True,
-                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
-                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
-                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
-                "candidateColors": candidateColorsForTheme(cfg),
-                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
-                "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
-                "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
-                "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
-            })
         self.customizeUI(**ui_args)
 
     def updateCandidateHeader(self, rootStr="", forceWindow=False):

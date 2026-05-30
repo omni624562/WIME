@@ -38,6 +38,7 @@
     "candidatePerRow": 6,
     "candidateEdgeAvoidance": true,
     "candidateTheme": "Night Comfort",
+    "candidateKeyStyle": "keycap",
     "candidateStableWidth": true,
     "candidateMinWidth": 286,
     "candidateWrapToMaxWidth": true,

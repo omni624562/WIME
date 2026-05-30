@@ -11,6 +11,67 @@
     <link rel="stylesheet" href="css/bootstrap-select.min.css">
     <link rel="stylesheet" href="css/sweetalert2.min.css">
     <link rel="stylesheet" href="css/config.css">
+    <script type="text/javascript">
+        function chewingRemoveClassNames(className, names) {
+            var value = " " + className + " ";
+            for (var i = 0; i < names.length; ++i) {
+                value = value.replace(new RegExp("\\s+" + names[i] + "\\s+", "g"), " ");
+            }
+            return value.replace(/^\s+|\s+$/g, "");
+        }
+
+        function chewingAddClassNames(className, names) {
+            var value = " " + className + " ";
+            for (var i = 0; i < names.length; ++i) {
+                if (value.indexOf(" " + names[i] + " ") === -1) {
+                    value += names[i] + " ";
+                }
+            }
+            return value.replace(/^\s+|\s+$/g, "");
+        }
+
+        function switchChewingConfigTab(link, event) {
+            event = event || window.event;
+            if (event) {
+                if (event.preventDefault) {
+                    event.preventDefault();
+                }
+                if (event.stopPropagation) {
+                    event.stopPropagation();
+                }
+                event.returnValue = false;
+                event.cancelBubble = true;
+            }
+
+            var targetId = (link.getAttribute("href") || "").replace("#", "");
+            var target = document.getElementById(targetId);
+            if (!target) {
+                return false;
+            }
+
+            var links = document.getElementsByTagName("a");
+            for (var i = 0; i < links.length; ++i) {
+                if (links[i].getAttribute("data-toggle") === "tab") {
+                    links[i].className = chewingRemoveClassNames(links[i].className, ["active"]);
+                    links[i].setAttribute("aria-selected", "false");
+                }
+            }
+
+            var panes = document.getElementsByTagName("div");
+            for (var paneIndex = 0; paneIndex < panes.length; ++paneIndex) {
+                if ((" " + panes[paneIndex].className + " ").indexOf(" tab-pane ") !== -1) {
+                    panes[paneIndex].className = chewingRemoveClassNames(panes[paneIndex].className, ["active", "show", "in"]);
+                    panes[paneIndex].style.display = "none";
+                }
+            }
+
+            link.className = chewingAddClassNames(link.className, ["active"]);
+            link.setAttribute("aria-selected", "true");
+            target.className = chewingAddClassNames(target.className, ["active", "show", "in"]);
+            target.style.display = "block";
+            return false;
+        }
+    </script>
 </head>
 
 <body>
@@ -19,19 +80,24 @@
             <div class="col-12">
                 <ul class="nav nav-tabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#typing_tab" aria-controls="typing_tab" role="tab" data-toggle="tab">✍️打字行為</a>
+                        <a class="nav-link active" href="#typing_tab" aria-controls="typing_tab" role="tab" data-toggle="tab"
+                            onclick="return switchChewingConfigTab(this, event)">✍️打字行為</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#ui_tab" aria-controls="ui_tab" role="tab" data-toggle="tab">🏘️選字視窗外觀</a>
+                        <a class="nav-link" href="#ui_tab" aria-controls="ui_tab" role="tab" data-toggle="tab"
+                            onclick="return switchChewingConfigTab(this, event)">🏘️選字視窗外觀</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#keyboard_tab" aria-controls="keyboard_tab" role="tab" data-toggle="tab">⌨️鍵盤配置</a>
+                        <a class="nav-link" href="#keyboard_tab" aria-controls="keyboard_tab" role="tab" data-toggle="tab"
+                            onclick="return switchChewingConfigTab(this, event)">⌨️鍵盤配置</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#symbols_tab" aria-controls="symbols_tab" role="tab" data-toggle="tab">💡特殊符號</a>
+                        <a class="nav-link" href="#symbols_tab" aria-controls="symbols_tab" role="tab" data-toggle="tab"
+                            onclick="return switchChewingConfigTab(this, event)">💡特殊符號</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#ez_symbols_tab" aria-controls="ez_symbols_tab" role="tab" data-toggle="tab">📜簡易符號輸入</a>
+                        <a class="nav-link" href="#ez_symbols_tab" aria-controls="ez_symbols_tab" role="tab" data-toggle="tab"
+                            onclick="return switchChewingConfigTab(this, event)">📜簡易符號輸入</a>
                     </li>
                     <li class="nav-item ml-auto">
                         <a class="nav-link" href="#test_input" aria-controls="test_input" role="tab" data-toggle="modal" data-target="#test_input">🛠️測試輸入法</a>
@@ -223,7 +289,7 @@
                             <select name="selKeyType" id="selKeyType"></select>
                         </div>
                         <div id="selExample"></div>
-                        <div class="config_section candidate_window_settings">
+                        <div class="config_section candidate_window_settings candidate-window-settings">
                             <h1>候選窗外觀</h1>
                             <div class="candidate-appearance-shell">
                                 <select name="candidateTheme" id="candidateTheme" class="candidate-theme-select" data-value-type="string"></select>
@@ -248,6 +314,7 @@
                                         <label for="candidatePerRow">每列候選字數</label>
                                         <input type="number" class="form-control" id="candidatePerRow" name="candidatePerRow" min="1" max="10">
                                     </div>
+                                    <input type="hidden" id="candidateKeyStyle" name="candidateKeyStyle" data-value-type="string">
                                     <div class="candidate-config-field">
                                         <label for="fontSize">候選窗字體大小</label>
                                         <input type="number" class="form-control" id="fontSize" name="fontSize" min="6" max="200">
@@ -262,6 +329,11 @@
                                     </div>
                                 </div>
                                 <div class="candidate-theme-heading">
+                                    <span>選字符樣式</span>
+                                    <span id="candidateKeyStyleCurrent" class="candidate-theme-current"></span>
+                                </div>
+                                <div id="candidateKeyStyleGrid" class="candidate-style-grid"></div>
+                                <div class="candidate-theme-heading candidate-theme-heading-spaced">
                                     <span>候選窗配色</span>
                                     <span id="candidateThemeCurrent" class="candidate-theme-current"></span>
                                 </div>

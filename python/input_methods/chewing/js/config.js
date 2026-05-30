@@ -47,6 +47,36 @@ $(function () {
         if (typeof chewingConfig.candidateTheme === "undefined") {
             chewingConfig.candidateTheme = "Night Comfort";
         }
+        else if (chewingConfig.candidateTheme === "dark") {
+            chewingConfig.candidateTheme = "Night Comfort";
+        }
+        else if (chewingConfig.candidateTheme === "light") {
+            chewingConfig.candidateTheme = "Light";
+        }
+        if (typeof chewingConfig.candidateKeyStyle === "undefined") {
+            chewingConfig.candidateKeyStyle = "keycap";
+        }
+        else if (chewingConfig.candidateKeyStyle === "underline" || chewingConfig.candidateKeyStyle === "rule" || chewingConfig.candidateKeyStyle === "rule-key") {
+            chewingConfig.candidateKeyStyle = "word-anchor";
+        }
+        var validCandidateKeyStyles = {
+            keycap: true,
+            quiet: true,
+            divider: true,
+            badge: true,
+            "accent-dot": true,
+            rail: true,
+            "monospace-slot": true,
+            "word-first": true,
+            "soft-capsule": true,
+            "left-tag": true,
+            "glow-key": true,
+            "micro-tab": true,
+            "word-anchor": true
+        };
+        if (!validCandidateKeyStyles[chewingConfig.candidateKeyStyle]) {
+            chewingConfig.candidateKeyStyle = "keycap";
+        }
         if (typeof chewingConfig.candidatePerRow === "undefined") {
             chewingConfig.candidatePerRow = 6;
         }
@@ -150,15 +180,79 @@ $(function () {
         "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"]
     };
 
+    var candidateKeyStyleOptions = {
+        keycap: "Selected Only Keycap",
+        quiet: "Quiet Key",
+        divider: "Divider Slim",
+        badge: "Badge Minimal",
+        "accent-dot": "Accent Dot",
+        rail: "Rail Marker",
+        "monospace-slot": "Monospace Slot",
+        "word-first": "Word First",
+        "soft-capsule": "Soft Capsule",
+        "left-tag": "Left Tag",
+        "glow-key": "Glow Key",
+        "micro-tab": "Micro Tab",
+        "word-anchor": "Word Anchor"
+    };
+
+    var candidateKeyStyleClassNames = [
+        "key-style-keycap",
+        "key-style-quiet",
+        "key-style-divider",
+        "key-style-badge",
+        "key-style-accent-dot",
+        "key-style-rail",
+        "key-style-monospace-slot",
+        "key-style-word-first",
+        "key-style-soft-capsule",
+        "key-style-left-tag",
+        "key-style-glow-key",
+        "key-style-micro-tab",
+        "key-style-word-anchor"
+    ];
+
     function getCandidatePreviewSample() {
+        var selKeys = $("#selKeyType option:selected").text() || "1234567890";
         return {
             name: "新酷音",
             root: "ㄅ",
-            candidates: ["班", "般", "搬", "斑", "伴", "辦", "半", "板", "版", "頒"]
+            candidates: ["班", "般", "搬", "斑", "伴", "辦", "半", "板", "版", "頒"],
+            selKeys: selKeys
         };
     }
 
+    function hexToRgb(color) {
+        var value = (color || "").replace("#", "");
+        if (value.length !== 6) {
+            return null;
+        }
+        return {
+            r: parseInt(value.substr(0, 2), 16),
+            g: parseInt(value.substr(2, 2), 16),
+            b: parseInt(value.substr(4, 2), 16)
+        };
+    }
+
+    function blendHex(a, b, percentB) {
+        var rgbA = hexToRgb(a);
+        var rgbB = hexToRgb(b);
+        if (!rgbA || !rgbB) {
+            return b;
+        }
+        var percentA = 100 - percentB;
+        var toHex = function (value) {
+            var hex = Math.round(value).toString(16);
+            return hex.length === 1 ? "0" + hex : hex;
+        };
+        return "#" +
+            toHex((rgbA.r * percentA + rgbB.r * percentB) / 100) +
+            toHex((rgbA.g * percentA + rgbB.g * percentB) / 100) +
+            toHex((rgbA.b * percentA + rgbB.b * percentB) / 100);
+    }
+
     function applyCandidatePreviewTheme(preview, theme, modern) {
+        var selectedBg = modern ? blendHex(theme[0], theme[6], 28) : "#000000";
         preview.css({
             "background-color": modern ? theme[0] : "#ffffff",
             "border-color": modern ? theme[1] : "#000000",
@@ -168,19 +262,28 @@ $(function () {
         preview.find(".candidate-preview-header").css("border-bottom-color", modern ? theme[2] : "#d0d0d0");
         preview.find(".candidate-preview-name, .candidate-preview-page").css("color", modern ? theme[4] : "#0000b4");
         preview.find(".candidate-preview-root").css("color", modern ? theme[5] : "#0000b4");
-        preview.find(".candidate-preview-item span").css("color", modern ? theme[9] : "#0000ff");
+        preview.find(".candidate-preview-key").css("color", modern ? theme[9] : "#0000ff");
+        preview.find(".candidate-preview-word").css("color", modern ? theme[3] : "#000000");
         preview.find(".candidate-preview-item.active").css({
-            "background-color": modern ? theme[6] : "#000000",
-            "border-color": modern ? theme[7] : "#000000",
+            "background-color": selectedBg,
+            "border-color": modern ? selectedBg : "#000000",
             "border-radius": modern ? "6px" : "0",
             color: modern ? theme[8] : "#ffffff"
         });
-        preview.find(".candidate-preview-item.active span").css("color", modern ? theme[8] : "#ffffff");
+        preview.find(".candidate-preview-item.active .candidate-preview-key, .candidate-preview-item.active .candidate-preview-word").css("color", modern ? theme[8] : "#ffffff");
+    }
+
+    function applyCandidatePreviewKeyStyle(preview, keyStyle) {
+        keyStyle = keyStyle || $("#candidateKeyStyle").val() || chewingConfig.candidateKeyStyle || "keycap";
+        preview
+            .removeClass(candidateKeyStyleClassNames.join(" "))
+            .addClass("key-style-" + keyStyle);
     }
 
     function fillCandidatePreviewItems(preview, sample) {
         var count = parseInt($("#candidatePerRow").val(), 10) || 4;
         count = Math.max(1, Math.min(count, 10));
+        var selKeys = sample.selKeys || "1234567890";
         var body = preview.find(".candidate-preview-body");
         body.empty();
 
@@ -189,8 +292,8 @@ $(function () {
             if (i === 0) {
                 item.addClass("active");
             }
-            item.append($("<span>").text(String(i + 1).slice(-1)));
-            item.append(document.createTextNode(sample.candidates[i % sample.candidates.length]));
+            item.append($("<span>").addClass("candidate-preview-key").text(selKeys.charAt(i % selKeys.length)));
+            item.append($("<span>").addClass("candidate-preview-word").text(sample.candidates[i % sample.candidates.length]));
             body.append(item);
         }
     }
@@ -200,7 +303,7 @@ $(function () {
         return Math.max(6, Math.min(fontSize, 48));
     }
 
-    function createCandidatePreview(sample) {
+    function createCandidatePreview(sample, keyStyle) {
         var preview = $("<div>").addClass("candidate-preview");
         var header = $("<div>").addClass("candidate-preview-header");
         header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
@@ -209,6 +312,7 @@ $(function () {
         preview.append(header);
         preview.append($("<div>").addClass("candidate-preview-body"));
         fillCandidatePreviewItems(preview, sample);
+        applyCandidatePreviewKeyStyle(preview, keyStyle);
         return preview;
     }
 
@@ -232,6 +336,25 @@ $(function () {
         }
     }
 
+    function renderCandidateKeyStyleGallery() {
+        var grid = $("#candidateKeyStyleGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var sample = getCandidatePreviewSample();
+        grid.empty();
+        $.each(candidateKeyStyleOptions, function (styleValue, styleName) {
+            var card = $("<button>").attr("type", "button").addClass("candidate-style-card").data("style", styleValue);
+            var header = $("<div>").addClass("candidate-style-card-header");
+            header.append($("<span>").addClass("candidate-style-card-name").text(styleName));
+            header.append($("<span>").addClass("candidate-style-card-state"));
+            card.append(header);
+            card.append(createCandidatePreview(sample, styleValue));
+            grid.append(card);
+        });
+    }
+
     function updateCandidateThemeGallery() {
         var grid = $("#candidateThemeGrid");
         if (!grid.length) {
@@ -242,6 +365,7 @@ $(function () {
         var modern = $("#candidateModernStyle").prop("checked");
         var stableWidth = $("#candidateStableWidth").prop("checked");
         var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
+        var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
         var sample = getCandidatePreviewSample();
         $("#candidateMinWidth").prop("disabled", !stableWidth);
         $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
@@ -259,8 +383,44 @@ $(function () {
             preview.find(".candidate-preview-name").text(sample.name);
             preview.find(".candidate-preview-root").text(sample.root);
             fillCandidatePreviewItems(preview, sample);
+            applyCandidatePreviewKeyStyle(preview, selectedStyle);
             applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Night Comfort"], modern);
         });
+    }
+
+    function updateCandidateKeyStyleGallery() {
+        var grid = $("#candidateKeyStyleGrid");
+        if (!grid.length) {
+            return;
+        }
+
+        var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
+        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var modern = $("#candidateModernStyle").prop("checked");
+        var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
+        var sample = getCandidatePreviewSample();
+        $("#candidateKeyStyleCurrent").text(candidateKeyStyleOptions[selectedStyle] || "");
+
+        grid.find(".candidate-style-card").each(function () {
+            var card = $(this);
+            var styleValue = card.data("style");
+            var selected = styleValue === selectedStyle;
+            var preview = card.find(".candidate-preview");
+            card.toggleClass("selected", selected);
+            preview.toggleClass("wrap", wrapToMaxWidth);
+            preview.css("font-size", candidatePreviewFontSize() + "pt");
+            card.find(".candidate-style-card-state").text(selected ? "已選" : "");
+            preview.find(".candidate-preview-name").text(sample.name);
+            preview.find(".candidate-preview-root").text(sample.root);
+            fillCandidatePreviewItems(preview, sample);
+            applyCandidatePreviewKeyStyle(preview, styleValue);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+        });
+    }
+
+    function updateCandidateAppearanceGalleries() {
+        updateCandidateThemeGallery();
+        updateCandidateKeyStyleGallery();
     }
 
     function saveConfig(callbackFunc) {
@@ -346,7 +506,12 @@ $(function () {
                 case "text":
                 case "hidden":
                 case "number":
-                    chewingConfig[inputItem.name] = parseInt(inputItem.value, 10);
+                    if ($(inputItem).data("value-type") === "string") {
+                        chewingConfig[inputItem.name] = inputItem.value;
+                    }
+                    else {
+                        chewingConfig[inputItem.name] = parseInt(inputItem.value, 10);
+                    }
                     break;
                 case "radio":
                     if (inputItem.checked === true) {
@@ -402,21 +567,7 @@ $(function () {
                 0: "翻頁"
             },
             selKeyType: ["1234567890", "asdfghjkl;", "asdfzxcv89", "asdfjkl789", "aoeuhtn789", "1234qweras"],
-            addPhraseForward: ["後方的詞", "前方的詞"],
-            candidateTheme: {
-                "Night Comfort": "Night Comfort",
-                "Soft Focus": "Soft Focus",
-                "Warm Gray": "Warm Gray",
-                "Graphite": "Graphite",
-                "Slate Teal": "Slate Teal",
-                "Olive": "Olive",
-                "Plum": "Plum",
-                "Amber": "Amber",
-                "Light": "Light",
-                "Paper": "Paper",
-                "Mist Light": "Mist Light",
-                "Sepia Dim": "Sepia Dim"
-            }
+            addPhraseForward: ["後方的詞", "前方的詞"]
         };
 
         $.each(selectOptions, function (id, options) {
@@ -428,11 +579,17 @@ $(function () {
             });
         });
 
+        initializeCandidateWindowSettings();
+
         // Setup switchLangWithWhichShift's default disabled property
         $("#switchLangWithWhichShift").prop("disabled", !chewingConfig["switchLangWithShift"]);
 
-        // Bind Bootstrap
-        $(".container select").not(".candidate-theme-select").selectpicker();
+        // Bind Bootstrap. Keep candidate-window controls native so they match the Dayi settings UI.
+        if ($.fn.selectpicker) {
+            $(".container select")
+                .not(".candidate-theme-select, .candidate_window_settings select, .candidate-window-settings select")
+                .selectpicker();
+        }
         $('[data-toggle="popover"]').popover();
 
         // When switchLangWithShift's value changed, update switchLangWithWhichShift's disabled property
@@ -457,11 +614,17 @@ $(function () {
         updateSelExample();
         $("#ui_tab input, #ui_tab select").on("change keyup", updateSelExample);
         renderCandidateThemeGallery();
-        updateCandidateThemeGallery();
-        $(".candidate_window_settings input, .candidate_window_settings select").on("change keyup", updateCandidateThemeGallery);
+        renderCandidateKeyStyleGallery();
+        updateCandidateAppearanceGalleries();
+        $(".candidate-window-settings input, .candidate-window-settings select").on("change keyup", updateCandidateAppearanceGalleries);
+        $("#selKeyType").on("change", updateCandidateAppearanceGalleries);
         $("#candidateThemeGrid").on("click", ".candidate-theme-card", function () {
             $("#candidateTheme").val($(this).data("theme"));
-            updateCandidateThemeGallery();
+            updateCandidateAppearanceGalleries();
+        });
+        $("#candidateKeyStyleGrid").on("click", ".candidate-style-card", function () {
+            $("#candidateKeyStyle").val($(this).data("style"));
+            updateCandidateAppearanceGalleries();
         });
 
         // Setup keybord page
@@ -523,18 +686,60 @@ $(function () {
         });
     }
 
+    function appendOptions(select, options, selectedValue) {
+        var hasSelection = false;
+        select.empty();
+
+        $.each(options, function (value, optionName) {
+            var itemValue = Array.isArray(options) ? optionName : value;
+            var option = $("<option>").attr("value", itemValue).text(optionName);
+            if (itemValue == selectedValue) {
+                option.prop("selected", true);
+                hasSelection = true;
+            }
+            select.append(option);
+        });
+
+        if (!hasSelection) {
+            select.children().first().prop("selected", true);
+        }
+    }
+
+    function setCandidateNumber(id, fallback) {
+        var value = parseInt(chewingConfig[id], 10);
+        $("#" + id).val(isNaN(value) ? fallback : value);
+    }
+
+    function initializeCandidateWindowSettings() {
+        appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "Night Comfort");
+        $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "keycap");
+
+        $("#candidateModernStyle").prop("checked", !!chewingConfig.candidateModernStyle);
+        $("#candidateStableWidth").prop("checked", !!chewingConfig.candidateStableWidth);
+        $("#candidateEdgeAvoidance").prop("checked", !!chewingConfig.candidateEdgeAvoidance);
+        $("#candidateWrapToMaxWidth").prop("checked", !!chewingConfig.candidateWrapToMaxWidth);
+        setCandidateNumber("candidatePerRow", 6);
+        setCandidateNumber("fontSize", 16);
+        setCandidateNumber("candidateMinWidth", 286);
+        setCandidateNumber("candidateMaxWidth", 300);
+    }
+
     // Use for select phrase example
     function updateSelExample() {
         var example = ["選", "字", "視", "窗", "大", "小", "範", "例"];
-        var selectItems = $("#selKeyType option").eq($("#selKeyType").val()).html();
+        var selectedIndex = parseInt($("#selKeyType").val(), 10);
+        var selectedOption = $("#selKeyType option").eq(isNaN(selectedIndex) ? 0 : selectedIndex);
+        var selectItems = selectedOption.length ? selectedOption.html() : "1234567890";
+        var candPerPage = parseInt($("#candPerPage").val(), 10) || example.length;
+        var candPerRow = parseInt($("#candPerRow").val(), 10) || example.length;
         var html = "";
 
-        for (var number = 0, i = 0, row = 0; number < $("#candPerPage").val(); number++, i++, row++) {
+        for (var number = 0, i = 0, row = 0; number < candPerPage; number++, i++, row++) {
             if (example[i] == null) {
                 i = 0;
             }
 
-            if (row == $("#candPerRow").val()) {
+            if (row == candPerRow) {
                 row = 0;
                 html += "<br>";
             }

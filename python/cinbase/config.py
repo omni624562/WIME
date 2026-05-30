@@ -87,6 +87,7 @@ class CinBaseConfig:
         self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
         self.candidateTheme = "Night Comfort"
+        self.candidateKeyStyle = "keycap"
         self.candidateStableWidth = False
         self.candidateMinWidth = 0
         self.candidateWrapToMaxWidth = True

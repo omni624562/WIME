@@ -21,6 +21,7 @@
 !include "x64.nsh" ; NSIS plugin used to detect 64 bit Windows
 !include "Winver.nsh" ; Windows version detection
 !include "LogicLib.nsh" ; for ${If}, ${Switch} commands
+!include "Sections.nsh" ; for selecting sections in silent installs
 
 ; We need the StdUtils plugin
 !addincludedir "StdUtils.2015-11-16\Include"
@@ -51,7 +52,11 @@ AllowSkipFiles off ; cannot skip a file
 Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"
 
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+OutFile "PIME-${PRODUCT_VERSION}-dayi-chewing-checj-setup.exe" ; Limited installer for Dayi, Chewing, and New Cangjie
+!else
 OutFile "PIME-${PRODUCT_VERSION}-setup.exe" ; The generated installer file name
+!endif
 
 ; We install everything to C:\Program Files (x86)
 InstallDir "$PROGRAMFILES32\PIME"
@@ -109,7 +114,9 @@ var INST_CINBASE
 var INST_NODE
 
 ; The table file of Liu input method
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 var LIU_UNI_TAB_FILE
+!endif
 
 ; Uninstall old versions
 Function uninstallOldVersion
@@ -319,6 +326,15 @@ Function .onInit
 	StrCpy $INST_CINBASE "False"
 	StrCpy $INST_NODE "False"
 
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+	; The component page is skipped during /S installs, so explicitly select the
+	; three modules included in this limited installer. Without this, uninstall
+	; cleanup can remove python and the backend sections never run.
+	${If} ${Silent}
+		Call selectLimitedSilentSections
+	${EndIf}
+!endif
+
 	; check if old version is installed and uninstall it first
 	Call uninstallOldVersion
 	Call hideSection
@@ -450,12 +466,44 @@ Section $(SECTION_MAIN) SecMain
     File "..\version.txt"
 
     ; Install backend informations
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+    File "/oname=backends.json" "backends-dayi-chewing-checj.json"
+!else
     File "..\backends.json"
+!endif
 
 	; Install the launcher responsible to launch the backends
 	File "..\build\PIMELauncher\PIMELauncher.exe"
 SectionEnd
 
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
+	SectionGroup /e $(PYTHON_CHT_SECTION_GROUP) python_cht_section_group
+		Section $(CHEWING) chewing
+			SectionIn 1 2
+			SetOutPath "$INSTDIR\python\input_methods\chewing"
+			File /r /x "__pycache__" "..\python\input_methods\chewing\*.*"
+			StrCpy $INST_PYTHON "True"
+		SectionEnd
+
+		Section $(CHECJ) checj
+			SectionIn 1 2
+			SetOutPath "$INSTDIR\python\input_methods\checj"
+			File /r /x "__pycache__" "..\python\input_methods\checj\*.*"
+			StrCpy $INST_PYTHON "True"
+			StrCpy $INST_CINBASE "True"
+		SectionEnd
+
+		Section $(CHEDAYI) chedayi
+			SectionIn 1 2
+			SetOutPath "$INSTDIR\python\input_methods\chedayi"
+			File /r /x "__pycache__" "..\python\input_methods\chedayi\*.*"
+			StrCpy $INST_PYTHON "True"
+			StrCpy $INST_CINBASE "True"
+		SectionEnd
+	SectionGroupEnd
+SectionGroupEnd
+!else
 SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 	SectionGroup /e $(PYTHON_CHT_SECTION_GROUP) python_cht_section_group
 		Section $(CHEWING) chewing
@@ -593,11 +641,22 @@ SectionGroup /e $(NODE_SECTION_GROUP) node_section_group
 		SectionEnd
 	SectionGroupEnd
 SectionGroupEnd
+!endif
+
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+Function selectLimitedSilentSections
+	!insertmacro SelectSection ${chewing}
+	!insertmacro SelectSection ${checj}
+	!insertmacro SelectSection ${chedayi}
+FunctionEnd
+!endif
 
 Function hideSection
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	${IfNot} ${AtLeastWin8}
 		SectionSetText ${cheeng} ""
 	${EndIf}
+!endif
 FunctionEnd
 
 Section "" Register
@@ -613,6 +672,24 @@ Section "" Register
 	; Install the CinBase Class for all cin-based input method modules.
 	${If} $INST_CINBASE == "True"
 		SetOutPath "$INSTDIR\python"
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+		File /r /x "__pycache__" /x "cin" /x "json" "..\python\cinbase"
+		SetOutPath "$INSTDIR\python\cinbase\json"
+		File "..\python\cinbase\json\checj.json"
+		File "..\python\cinbase\json\mscj3.json"
+		File "..\python\cinbase\json\mscj3-ext.json"
+		File "..\python\cinbase\json\cj-ext.json"
+		File "..\python\cinbase\json\cnscj.json"
+		File "..\python\cinbase\json\thcj.json"
+		File "..\python\cinbase\json\newcj3.json"
+		File "..\python\cinbase\json\cj5.json"
+		File "..\python\cinbase\json\newcj.json"
+		File "..\python\cinbase\json\scj6.json"
+		File "..\python\cinbase\json\cj-fast.json"
+		File "..\python\cinbase\json\thdayi.json"
+		File "..\python\cinbase\json\dayi4.json"
+		File "..\python\cinbase\json\dayi3.json"
+!else
 		File /r /x "__pycache__" /x "cin" "..\python\cinbase"
         ${If} ${SectionIsSelected} ${cheliu}
             ; Convert the tab file to *.cin format first.
@@ -620,13 +697,16 @@ Section "" Register
             ; Convert the liu.cin file to json format used by cinbase.
             nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\cintojson.py" "liu.cin"'
         ${EndIf}
+!endif
 	${EndIf}
 
 	; Install the node.js backend and input method modules along with an embedable version of node v6.
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} $INST_NODE == "True"
 		SetOutPath "$INSTDIR\node"
 		File /r /x "input_methods" "..\node\*.*"
 	${EndIf}
+!endif
 
 	; Install the text service dlls
 	${If} ${RunningX64} ; This is a 64-bit Windows system
@@ -689,6 +769,7 @@ Section "" Register
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
 	${EndIf}
 
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${cheliu}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
 	${EndIf}
@@ -696,11 +777,13 @@ Section "" Register
 	${If} ${SectionIsSelected} ${chearray}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
 	${EndIf}
+!endif
 
 	${If} ${SectionIsSelected} ${chedayi}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
 	${EndIf}
 
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${chepinyin}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
 	${EndIf}
@@ -716,6 +799,7 @@ Section "" Register
 	${If} ${SectionIsSelected} ${cheez}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
 	${EndIf}
+!endif
 
 	CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
@@ -725,6 +809,11 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(SecMain_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_section_group} $(PYTHON_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_cht_section_group} $(PYTHON_CHT_SECTION_GROUP_DESC)
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
+!else
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_chs_section_group} $(PYTHON_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${node_section_group} $(NODE_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${node_cht_section_group} $(NODE_CHT_SECTION_GROUP_DESC)
@@ -743,6 +832,7 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${emojime} $(emojime_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${cheeng} $(cheeng_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${braille_chewing} $(braille_chewing_DESC)
+!endif
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;Uninstaller Section

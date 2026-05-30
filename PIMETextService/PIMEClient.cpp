@@ -88,6 +88,35 @@ static std::string normalizedThemeName(const std::string& theme) {
 	return normalized;
 }
 
+static int candidateKeyStyleValue(const std::string& style) {
+	const std::string name = normalizedThemeName(style);
+	if (name == "divider" || name == "dividerslim")
+		return Ime::CandidateWindow::KeyStyleDivider;
+	if (name == "quiet" || name == "quietkey")
+		return Ime::CandidateWindow::KeyStyleQuiet;
+	if (name == "badge" || name == "badgeminimal")
+		return Ime::CandidateWindow::KeyStyleBadgeMinimal;
+	if (name == "accentdot")
+		return Ime::CandidateWindow::KeyStyleAccentDot;
+	if (name == "rail" || name == "railmarker")
+		return Ime::CandidateWindow::KeyStyleRail;
+	if (name == "monospace" || name == "monospaceslot")
+		return Ime::CandidateWindow::KeyStyleMonospaceSlot;
+	if (name == "wordfirst")
+		return Ime::CandidateWindow::KeyStyleWordFirst;
+	if (name == "softcapsule")
+		return Ime::CandidateWindow::KeyStyleSoftCapsule;
+	if (name == "lefttag")
+		return Ime::CandidateWindow::KeyStyleLeftTag;
+	if (name == "glow" || name == "glowkey")
+		return Ime::CandidateWindow::KeyStyleGlowKey;
+	if (name == "microtab")
+		return Ime::CandidateWindow::KeyStyleMicroTab;
+	if (name == "wordanchor" || name == "underline" || name == "rule" || name == "rulekey")
+		return Ime::CandidateWindow::KeyStyleWordAnchor;
+	return Ime::CandidateWindow::KeyStyleKeycap;
+}
+
 static void candidateThemeColors(const std::string& theme,
 	COLORREF& panelBackground,
 	COLORREF& panelBorder,
@@ -298,6 +327,9 @@ void Client::updateUI(json& data) {
 		}
 		else if (value.is_boolean() && name == "candidateEdgeAvoidance") {
 			textService_->setCandidateEdgeAvoidance(value.get<bool>());
+		}
+		else if (value.is_string() && name == "candidateKeyStyle") {
+			textService_->setCandidateKeyStyle(candidateKeyStyleValue(value.get<string>()));
 		}
 	}
 

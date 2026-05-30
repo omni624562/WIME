@@ -3283,26 +3283,25 @@ class CinBase:
 
     def customizeCandidateUI(self, cbTS):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
+        modernStyle = getattr(cfg, 'candidateModernStyle', False)
         ui_args = {
             "candFontSize": cfg.fontSize,
             "candFontName": 'Microsoft JhengHei',
             "candPerRow": cbTS.candPerRow,
             "candUseCursor": cfg.cursorCandList,
+            "candidateModernStyle": modernStyle,
+            "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
+            "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
+            "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+            "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateColors": candidateColorsForTheme(cfg),
+            "candidateStyle": getattr(cfg, 'candidateStyle', {}),
+            "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
+            "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
+            "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
+            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
         }
-        if getattr(cfg, 'candidateModernStyle', False):
-            ui_args.update({
-                "candidateModernStyle": True,
-                "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
-                "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
-                "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
-                "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
-                "candidateColors": candidateColorsForTheme(cfg),
-                "candidateStyle": getattr(cfg, 'candidateStyle', {}),
-                "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
-                "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
-                "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-                "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
-            })
         cbTS.customizeUI(**ui_args)
 
     def applyConfig(self, cbTS):

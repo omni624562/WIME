@@ -395,6 +395,7 @@ try {
         "input_methods\chewing\css\config.css",
         "input_methods\chewing\chewing_config.py",
         "input_methods\chewing\chewing_ime.py",
+        "input_methods\chewing\js\jquery-3.7.1.min.js",
         "input_methods\chewing\js\config.js"
     )
 
