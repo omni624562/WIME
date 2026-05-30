@@ -20,6 +20,7 @@
     "autoClearCompositionChar": false,
     "playSoundWhenNonCand": false,
     "directShowCand": true,
+    "autoCommitSingleCandidate": false,
     "directCommitString": false,
     "directCommitSymbol": true,
     "directOutMSymbols": true,

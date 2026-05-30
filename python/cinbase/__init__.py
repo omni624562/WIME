@@ -128,6 +128,7 @@ class CinBase:
         cbTS.autoClearCompositionChar = False
         cbTS.playSoundWhenNonCand = False
         cbTS.directShowCand = False
+        cbTS.autoCommitSingleCandidate = False
         cbTS.directCommitSymbol = False
         cbTS.directCommitSymbolList = ["，", "。", "、", "；", "？", "！"]
         cbTS.bracketSymbolList = ["「」", "『』", "［］", "【】", "〖〗", "〔〕", "﹝﹞", "（）", "﹙﹚", "〈〉", "《》", "＜＞", "﹤﹥", "｛｝", "﹛﹜"]
@@ -299,6 +300,16 @@ class CinBase:
             type = "menu"
         )
         self.customizeCandidateUI(cbTS)
+
+
+    def setModernCandidatePageInfo(self, cbTS, currentCandPage, pagecandidates):
+        if not getattr(cbTS.cfg, 'candidateModernStyle', False):
+            return
+        totalPages = len(pagecandidates) if pagecandidates else 0
+        if totalPages > 0:
+            cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}"
+        else:
+            cbTS.currentReply["candidatePageInfo"] = ""
 
 
     # 使用者離開輸入法
@@ -1726,12 +1737,19 @@ class CinBase:
                                 if cbTS.intelligentSelect and candidates:
                                     candidates = cbTS.cin.sortByCount(cbTS.compositionChar, candidates)
 
-            if cbTS.langMode == CHINESE_MODE and cbTS.dayisymbolsmode and len(cbTS.compositionChar) == 1 and (keyCode == VK_SPACE or keyCode == VK_RETURN):
+            if cbTS.langMode == CHINESE_MODE and cbTS.dayisymbolsmode and len(cbTS.compositionChar) == 1 and (keyCode == VK_SPACE or keyCode == VK_RETURN) and cbTS.cin.isInCharDef(cbTS.compositionChar):
                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                 if cbTS.compositionBufferMode and cbTS.directShowCand:
                     self.removeCompositionBufferString(cbTS, 1, True)
 
-            if candidates and not cbTS.phrasemode:
+            autoCommittedSingleCandidate = False
+            if candidates and not cbTS.phrasemode and self.shouldAutoCommitSingleCandidate(cbTS, candidates):
+                self.commitSingleCandidate(cbTS, RCinTable, candidates[0])
+                candCursor = 0
+                currentCandPage = 0
+                autoCommittedSingleCandidate = True
+
+            if candidates and not cbTS.phrasemode and not autoCommittedSingleCandidate:
                 if not cbTS.selcandmode:
                     if not cbTS.directShowCand:
                         # EndKey 處理 (拼音、注音)
@@ -1860,7 +1878,7 @@ class CinBase:
                                 if keyCode == VK_SPACE:
                                     cbTS.canUseSpaceAsPageKey = False
                     else:
-                        if len(candidates) == 1 and not cbTS.selcandmode and not cbTS.multifunctionmode and len(cbTS.compositionChar) >= cbTS.maxCharLength:
+                        if len(candidates) == 1 and not cbTS.selcandmode and not cbTS.multifunctionmode and len(cbTS.compositionChar) >= cbTS.maxCharLength and getattr(cbTS, 'autoCommitSingleCandidate', False):
                             commitStr = candidates[0]
                             if cbTS.intelligentSelect and cbTS.compositionChar:
                                 cbTS.cin.addCount(cbTS.compositionChar, commitStr)
@@ -1895,9 +1913,7 @@ class CinBase:
                     if not cbTS.isSelKeysChanged:
                         cbTS.setShowCandidates(True)
 
-                    if cbTS.imeDisplayName:
-                        totalPages = len(pagecandidates)
-                        cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}"
+                    self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
 
                 # 多功能前導字元
                 if cbTS.multifunctionmode and cbTS.directCommitSymbol and not cbTS.selcandmode:
@@ -2052,7 +2068,8 @@ class CinBase:
                     cbTS.setCandidateCursor(candCursor)
                     cbTS.setCandidatePage(currentCandPage)
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
-            else: # 沒有候選字
+                    self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
+            elif not autoCommittedSingleCandidate: # 沒有候選字
                 keepNoCandidateMessageInCandidateWindow = False
                 # 按下空白鍵或 Enter 鍵
                 if (keyCode == VK_SPACE or keyCode == VK_RETURN) and not cbTS.tempEnglishMode:
@@ -2296,6 +2313,7 @@ class CinBase:
                                 if candidates:
                                     pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
+                                    self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
                                     cbTS.setShowCandidates(True)
                         elif len(cbTS.compositionChar) == 0 and charStr == '`':
                             cbTS.compositionChar += charStr
@@ -2364,14 +2382,15 @@ class CinBase:
         }
         forceHeaderComposition = cbTS.imeDirName in headerCompositionLabels
         if cbTS.hideComposition or forceHeaderComposition:
-            if cbTS.compositionString:
-                cbTS.currentReply["compositionString"] = "\u200b"
+            headerText = cbTS.compositionString or self.compositionHeaderText(cbTS)
+            if headerText:
+                cbTS.currentReply["compositionString"] = ""
                 cbTS.currentReply["compositionCursor"] = 0
                 if forceHeaderComposition:
                     label = cbTS.imeDisplayName or headerCompositionLabels[cbTS.imeDirName]
                 else:
                     label = cbTS.hideCompositionLabel
-                cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + cbTS.compositionString
+                cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + headerText
                 if "candidateList" not in cbTS.currentReply:
                     if forceHeaderComposition and not self.isCompositionCharPrefix(cbTS):
                         cbTS.currentReply["candidateMessage"] = "查無組字..."
@@ -2380,7 +2399,7 @@ class CinBase:
                     else:
                         # 沒有候選清單時，也送出清單更新，讓 C++ 同步刷新 header。
                         cbTS.setCandidateList(cbTS.candidateList if cbTS.showCandidates and cbTS.candidateList else [])
-                    cbTS.setShowCandidates(True)
+                cbTS.setShowCandidates(True)
                 if not cbTS.currentReply.get("candidatePageInfo"):
                     cbTS.currentReply["candidatePageInfo"] = ""
 
@@ -2921,10 +2940,55 @@ class CinBase:
                     i += 1
         return candidates
 
+    def shouldAutoCommitSingleCandidate(self, cbTS, candidates):
+        if not getattr(cbTS, 'autoCommitSingleCandidate', False):
+            return False
+        if len(candidates) != 1:
+            return False
+        if not cbTS.compositionChar or not cbTS.cin.isInCharDef(cbTS.compositionChar):
+            return False
+        if cbTS.cin.hasLongerCharDefPrefix(cbTS.compositionChar):
+            return False
+        return not (
+            cbTS.selcandmode or cbTS.multifunctionmode or cbTS.tempEnglishMode or cbTS.phrasemode or
+            cbTS.ctrlsymbolsmode or cbTS.dayisymbolsmode or cbTS.fullsymbolsmode or
+            cbTS.homophonemode or cbTS.isWildcardChardefs
+        )
+
+    def commitSingleCandidate(self, cbTS, RCinTable, commitStr):
+        if cbTS.intelligentSelect and cbTS.compositionChar:
+            cbTS.cin.addCount(cbTS.compositionChar, commitStr)
+        cbTS.lastCommitString = commitStr
+        self.setOutputString(cbTS, RCinTable, commitStr)
+        if cbTS.showPhrase and not cbTS.selcandmode:
+            cbTS.phrasemode = True
+        self.resetComposition(cbTS)
+
     # List 分段
     def chunks(self, l, n):
         for i in range(0, len(l), n):
             yield l[i:i+n]
+
+    def compositionHeaderText(self, cbTS):
+        compositionChar = getattr(cbTS, 'compositionChar', '')
+        if not compositionChar:
+            return ''
+
+        if getattr(cbTS, 'imeDirName', '') == "chedayi":
+            dayiSymbolChar = getattr(cbTS, 'DayiSymbolChar', '')
+            if getattr(cbTS, 'dayisymbolsmode', False) and compositionChar == dayiSymbolChar:
+                return getattr(cbTS, 'DayiSymbolString', compositionChar)
+
+        text = ''
+        cin = getattr(cbTS, 'cin', None)
+        for cStr in compositionChar:
+            if cin is not None and cin.isInKeyName(cStr):
+                text += cin.getKeyName(cStr)
+            elif getattr(cbTS, 'supportWildcard', False) and getattr(cbTS, 'selWildcardChar', '') == "*" and cStr == "*":
+                text += "＊"
+            else:
+                text += cStr
+        return text
 
     def isCompositionCharPrefix(self, cbTS):
         compositionChar = getattr(cbTS, 'compositionChar', '')
@@ -3259,6 +3323,8 @@ class CinBase:
 
         # 每頁顯示幾個候選字
         cbTS.candPerPage = cfg.candPerPage
+        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
+            cbTS.candPerPage = cbTS.candPerRow
 
         # 設定 UI 外觀
         self.customizeCandidateUI(cbTS)
@@ -3316,6 +3382,9 @@ class CinBase:
 
         # 直接顯示候選字清單 (不須按空白鍵)?
         cbTS.directShowCand = cfg.directShowCand
+
+        # 只有一個候選字時自動送出?
+        cbTS.autoCommitSingleCandidate = getattr(cfg, 'autoCommitSingleCandidate', False)
 
         # 標點符號自動確認輸入?
         cbTS.directCommitSymbol = cfg.directCommitSymbol

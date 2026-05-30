@@ -98,6 +98,23 @@ def candidateColorsForTheme(cfg):
             return {}
     return colors
 
+
+def isBopomofoChar(ch):
+    code = ord(ch)
+    return (
+        0x3100 <= code <= 0x312F or
+        0x31A0 <= code <= 0x31BF or
+        ch in "˙ˊˇˋ"
+    )
+
+
+def splitTrailingBopomofo(text):
+    rootStart = len(text)
+    while rootStart > 0 and isBopomofoChar(text[rootStart - 1]):
+        rootStart -= 1
+    return text[:rootStart], text[rootStart:]
+
+
 # from libchewing/include/global.h
 AUTOLEARN_ENABLED = 0
 AUTOLEARN_DISABLED = 1
@@ -185,8 +202,9 @@ class ChewingTextService(TextService):
             pass
         self.currentReply["candidatePageInfo"] = f"{currentPage + 1}/{totalPage}" if totalPage > 0 else ""
 
-        if forceWindow and "candidateList" not in self.currentReply:
-            self.setCandidateList(self.candidateList if self.showCandidates and self.candidateList else [])
+        if forceWindow:
+            if "candidateList" not in self.currentReply:
+                self.setCandidateList(self.candidateList if self.showCandidates and self.candidateList else [])
             self.setShowCandidates(True)
 
     def applyConfig(self):
@@ -475,6 +493,13 @@ class ChewingTextService(TextService):
         oldLangMode = chewingContext.get_ChiEngMode()
         ignoreKey = False  # 新酷音是否須忽略這個按鍵
         keyHandled = False  # 輸入法是否有處理這個按鍵
+        candidateSelectionKey = False
+        if getattr(cfg, 'candidateModernStyle', False) and self.showCandidates and self.candidateList:
+            if keyCode == VK_RETURN:
+                candidateSelectionKey = True
+            elif keyEvent.isChar():
+                selKeys = cfg.getSelKeys()
+                candidateSelectionKey = chr(charCode) in selKeys[:len(self.candidateList)]
 
         # 使用 Ctrl 或 Shift 鍵做快速符號輸入 (easy symbol input)
         # 這裡的 easy symbol input，是定義在 swkb.dat 設定檔中的符號
@@ -687,9 +712,9 @@ class ChewingTextService(TextService):
             ignoreKey = True
 
         if not ignoreKey:  # 如果這個按鍵是有意義的，新酷音有做處理 (不可忽略)
+            candidates = []
             # 處理選字清單
             if chewingContext.cand_TotalChoice() > 0:  # 若有候選字/詞
-                candidates = []
                 # 要求新酷音引擎列出每個候選字
                 chewingContext.cand_Enumerate()
                 for i in range(chewingContext.cand_ChoicePerPage()):
@@ -737,15 +762,61 @@ class ChewingTextService(TextService):
             if chewingContext.bopomofo_Check():
                 bopomofoStr = chewingContext.bopomofo_String(
                     None).decode("UTF-8")
-            self.setCompositionCursor(chewingContext.cursor_Current())
+            compositionCursor = chewingContext.cursor_Current()
 
-            # 已經組成的中文字保留在編輯區；尚未成字的注音提示放在候選窗 header。
-            self.setCompositionString(compStr)
-            if bopomofoStr:
-                if not compStr:
+            # libchewing 有時會把注音從 bopomofo buffer 移到 composition buffer。
+            # 對新版候選窗來說，這仍是字根提示，應顯示在 header 而不是輸入欄位。
+            visibleCompStr, compRootStr = splitTrailingBopomofo(compStr)
+            rootStr = bopomofoStr or compRootStr
+
+            if getattr(cfg, 'candidateModernStyle', False) and visibleCompStr and not rootStr and not candidates and not candidateSelectionKey:
+                chewingContext.handle_Space()
+                if chewingContext.cand_TotalChoice() > 0:
+                    candidates = []
+                    chewingContext.cand_Enumerate()
+                    for i in range(chewingContext.cand_ChoicePerPage()):
+                        if not chewingContext.cand_hasNext():
+                            break
+                        candidates.append(chewingContext.cand_String().decode("UTF-8"))
+                    self.setCandidateList(candidates)
+                    self.setShowCandidates(True)
+                    self.setCandidateCursor(0)
+
+            committedCandidateSelection = False
+            if getattr(cfg, 'candidateModernStyle', False) and candidateSelectionKey and visibleCompStr and not rootStr and chewingContext.cand_TotalChoice() == 0:
+                commitStr = visibleCompStr
+                if self.outputSimpChinese:
+                    commitStr = self.opencc.convert(commitStr)
+                if chewingContext.buffer_Check():
+                    chewingContext.clean_preedit_buf()
+                self.setCandidateList([])
+                self.setCandidateCursor(0)
+                self.setShowCandidates(False)
+                self.currentReply["candidateHeader"] = ""
+                self.currentReply["candidatePageInfo"] = ""
+                self.setCompositionString("")
+                self.setCompositionCursor(0)
+                self.setCommitString(commitStr)
+                committedCandidateSelection = True
+
+            if committedCandidateSelection:
+                pass
+            elif getattr(cfg, 'candidateModernStyle', False) and (visibleCompStr or rootStr):
+                self.currentReply["compositionString"] = "\u200b"
+                self.compositionString = "\u200b"
+                self.setCompositionCursor(0)
+                self.updateCandidateHeader(rootStr, forceWindow=True)
+            elif rootStr:
+                self.setCompositionString(visibleCompStr)
+                if not visibleCompStr:
                     self.currentReply["compositionString"] = "\u200b"
-                    self.currentReply["compositionCursor"] = 0
-                self.updateCandidateHeader(bopomofoStr, forceWindow=True)
+                    self.setCompositionCursor(0)
+                else:
+                    self.setCompositionCursor(min(compositionCursor, len(visibleCompStr)))
+                self.updateCandidateHeader(rootStr, forceWindow=True)
+            else:
+                self.setCompositionString(visibleCompStr)
+                self.setCompositionCursor(compositionCursor)
 
             # 顯示額外提示訊息 (例如：Ctrl+ 數字加入自訂詞之後，會顯示提示)
             if chewingContext.aux_Check():

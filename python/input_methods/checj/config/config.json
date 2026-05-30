@@ -30,6 +30,7 @@
   "reLoadTable": false,
   "directCommitString": false,
   "directShowCand": true,
+  "autoCommitSingleCandidate": false,
   "showPhrase": false,
   "outputSmallLetterWithShift": false,
   "hideCompositionLabel": "酷倉",

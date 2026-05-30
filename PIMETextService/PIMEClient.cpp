@@ -425,9 +425,11 @@ void Client::updateComposition(json& msg, Ime::EditSession* session, bool& endCo
 		hasCompositionString = true;
 		if (compositionString.empty()) {
 			emptyComposition = true;
+			if (textService_->isComposing()) {
+				textService_->setCompositionString(session, L"", 0);
+			}
 			if (textService_->isComposing() && !textService_->showingCandidates()) {
 				// when the composition buffer is empty and we are not showing the candidate list, end composition.
-				textService_->setCompositionString(session, L"", 0);
 				endComposition = true;
 			}
 		}

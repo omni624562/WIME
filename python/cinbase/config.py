@@ -49,6 +49,7 @@ class CinBaseConfig:
         self.autoClearCompositionChar = False
         self.playSoundWhenNonCand = False
         self.directShowCand = False
+        self.autoCommitSingleCandidate = False
         self.directCommitSymbol = False
         self.fontSize = DEF_FONT_SIZE
         self.selCinType = 0

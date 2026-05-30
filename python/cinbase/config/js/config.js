@@ -145,6 +145,9 @@ loadConfig();
 
 function applyCandidateDefaults() {
     var currentIme = typeof imeFolderName !== "undefined" ? imeFolderName : "";
+    if (typeof checjConfig.autoCommitSingleCandidate === "undefined") {
+        checjConfig.autoCommitSingleCandidate = false;
+    }
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;

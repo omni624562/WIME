@@ -55,7 +55,27 @@ $(function () {
         }
     }
 
-    let candidateThemeNames = [
+    function bindTabsFallback() {
+        $('.nav-tabs a[data-toggle="tab"]').on("click", function (event) {
+            var target = $(this).attr("href");
+            if (!target || target.charAt(0) !== "#") {
+                return;
+            }
+
+            event.preventDefault();
+            if ($.fn.tab) {
+                $(this).tab("show");
+                return;
+            }
+
+            $(this).closest(".nav-tabs").find(".nav-link").removeClass("active");
+            $(this).addClass("active");
+            $(".tab-content .tab-pane").removeClass("active show in");
+            $(target).addClass("active show in");
+        });
+    }
+
+    var candidateThemeNames = [
         "Night Comfort",
         "Soft Focus",
         "Warm Gray",
@@ -67,10 +87,10 @@ $(function () {
         "Light",
         "Paper",
         "Mist Light",
-        "Sepia Dim",
+        "Sepia Dim"
     ];
 
-    let candidateThemePalette = {
+    var candidateThemePalette = {
         "Night Comfort": ["#1b1c20", "#4a4d57", "#30323a", "#e5e8ee", "#a9afba", "#b8c7e8", "#405f8a", "#5e7ea7", "#eef4ff", "#aeb9cf"],
         "Soft Focus": ["#191d21", "#44525a", "#2b343a", "#e4ebee", "#a8b5ba", "#9cc8bd", "#3f6f6b", "#6a9993", "#ecfbf8", "#a4bcb6"],
         "Warm Gray": ["#20201d", "#58554b", "#39372f", "#ebe7dc", "#b7b1a3", "#d7c48e", "#5f684d", "#87936f", "#f7f3e7", "#c1b8a2"],
@@ -82,14 +102,14 @@ $(function () {
         "Light": ["#f7f9fc", "#aeb8cb", "#dbe2ed", "#182235", "#657187", "#2f66dc", "#2f6eea", "#1d56c4", "#ffffff", "#44639a"],
         "Paper": ["#fbfaf6", "#b7ac9c", "#e4ded4", "#272119", "#786b5d", "#8a4f17", "#315f87", "#244967", "#f7fbff", "#6f665c"],
         "Mist Light": ["#e9edf0", "#a8b3bc", "#d4dce1", "#24303a", "#66727d", "#426b85", "#5f7f94", "#4b687b", "#f7fbfd", "#577385"],
-        "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"],
+        "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"]
     };
 
     function getCandidatePreviewSample() {
         return {
             name: "新酷音",
             root: "ㄅ",
-            candidates: ["班", "般", "搬", "斑", "伴", "辦", "半", "板", "版", "頒"],
+            candidates: ["班", "般", "搬", "斑", "伴", "辦", "半", "板", "版", "頒"]
         };
     }
 
@@ -98,7 +118,7 @@ $(function () {
             "background-color": modern ? theme[0] : "#ffffff",
             "border-color": modern ? theme[1] : "#000000",
             "border-radius": modern ? "6px" : "0",
-            color: modern ? theme[3] : "#000000",
+            color: modern ? theme[3] : "#000000"
         });
         preview.find(".candidate-preview-header").css("border-bottom-color", modern ? theme[2] : "#d0d0d0");
         preview.find(".candidate-preview-name, .candidate-preview-page").css("color", modern ? theme[4] : "#0000b4");
@@ -108,19 +128,19 @@ $(function () {
             "background-color": modern ? theme[6] : "#000000",
             "border-color": modern ? theme[7] : "#000000",
             "border-radius": modern ? "6px" : "0",
-            color: modern ? theme[8] : "#ffffff",
+            color: modern ? theme[8] : "#ffffff"
         });
         preview.find(".candidate-preview-item.active span").css("color", modern ? theme[8] : "#ffffff");
     }
 
     function fillCandidatePreviewItems(preview, sample) {
-        let count = Number.parseInt($("#candidatePerRow").val()) || 4;
+        var count = parseInt($("#candidatePerRow").val(), 10) || 4;
         count = Math.max(1, Math.min(count, 10));
-        let body = preview.find(".candidate-preview-body");
+        var body = preview.find(".candidate-preview-body");
         body.empty();
 
-        for (let i = 0; i < count; ++i) {
-            let item = $("<span>").addClass("candidate-preview-item");
+        for (var i = 0; i < count; ++i) {
+            var item = $("<span>").addClass("candidate-preview-item");
             if (i === 0) {
                 item.addClass("active");
             }
@@ -131,13 +151,13 @@ $(function () {
     }
 
     function candidatePreviewFontSize() {
-        let fontSize = Number.parseInt($("#fontSize").val()) || 12;
+        var fontSize = parseInt($("#fontSize").val(), 10) || 12;
         return Math.max(6, Math.min(fontSize, 48));
     }
 
     function createCandidatePreview(sample) {
-        let preview = $("<div>").addClass("candidate-preview");
-        let header = $("<div>").addClass("candidate-preview-header");
+        var preview = $("<div>").addClass("candidate-preview");
+        var header = $("<div>").addClass("candidate-preview-header");
         header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
         header.append($("<span>").addClass("candidate-preview-root").text(sample.root));
         header.append($("<span>").addClass("candidate-preview-page").text("1/1"));
@@ -148,17 +168,17 @@ $(function () {
     }
 
     function renderCandidateThemeGallery() {
-        let grid = $("#candidateThemeGrid");
+        var grid = $("#candidateThemeGrid");
         if (!grid.length) {
             return;
         }
 
-        let sample = getCandidatePreviewSample();
+        var sample = getCandidatePreviewSample();
         grid.empty();
-        for (let i = 0; i < candidateThemeNames.length; ++i) {
-            let themeName = candidateThemeNames[i];
-            let card = $("<button>").attr("type", "button").addClass("candidate-theme-card").data("theme", themeName);
-            let header = $("<div>").addClass("candidate-theme-card-header");
+        for (var i = 0; i < candidateThemeNames.length; ++i) {
+            var themeName = candidateThemeNames[i];
+            var card = $("<button>").attr("type", "button").addClass("candidate-theme-card").data("theme", themeName);
+            var header = $("<div>").addClass("candidate-theme-card-header");
             header.append($("<span>").addClass("candidate-theme-card-name").text(themeName));
             header.append($("<span>").addClass("candidate-theme-card-state"));
             card.append(header);
@@ -168,28 +188,28 @@ $(function () {
     }
 
     function updateCandidateThemeGallery() {
-        let grid = $("#candidateThemeGrid");
+        var grid = $("#candidateThemeGrid");
         if (!grid.length) {
             return;
         }
 
-        let selectedTheme = $("#candidateTheme").val() || "Night Comfort";
-        let modern = $("#candidateModernStyle").prop("checked");
-        let stableWidth = $("#candidateStableWidth").prop("checked");
-        let wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
-        let sample = getCandidatePreviewSample();
+        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var modern = $("#candidateModernStyle").prop("checked");
+        var stableWidth = $("#candidateStableWidth").prop("checked");
+        var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
+        var sample = getCandidatePreviewSample();
         $("#candidateMinWidth").prop("disabled", !stableWidth);
         $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
         $("#candidateThemeCurrent").text(selectedTheme);
 
         grid.find(".candidate-theme-card").each(function () {
-            let card = $(this);
-            let themeName = card.data("theme");
-            let selected = themeName === selectedTheme;
-            let preview = card.find(".candidate-preview");
+            var card = $(this);
+            var themeName = card.data("theme");
+            var selected = themeName === selectedTheme;
+            var preview = card.find(".candidate-preview");
             card.toggleClass("selected", selected);
             preview.toggleClass("wrap", wrapToMaxWidth);
-            preview.css("font-size", `${candidatePreviewFontSize()}pt`);
+            preview.css("font-size", candidatePreviewFontSize() + "pt");
             card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
             preview.find(".candidate-preview-name").text(sample.name);
             preview.find(".candidate-preview-root").text(sample.root);
@@ -200,20 +220,20 @@ $(function () {
 
     function saveConfig(callbackFunc) {
         // Check easy symbols format
-        let ez_symbols_array = $("#ez_symbols").val().split("\n");
-        for (let i = 0; i < ez_symbols_array.length; i++) {
+        var ez_symbols_array = $("#ez_symbols").val().split("\n");
+        for (var i = 0; i < ez_symbols_array.length; i++) {
             if (!/^[A-Z][ ].{1,10}$/.test(ez_symbols_array[i])) {
                 // Select error range
                 $("#ez_symbols").select();
-                let selectionStart = 0;
-                for (let j = 0; j < i; j++) {
+                var selectionStart = 0;
+                for (var j = 0; j < i; j++) {
                     selectionStart += ez_symbols_array[j].length + 1;
                 }
                 $("#ez_symbols").prop("selectionStart", selectionStart);
                 $("#ez_symbols").prop("selectionEnd", selectionStart + ez_symbols_array[i].length + 1);
                 swal.fire(
                     "輸入錯誤",
-                    `第 ${i} 行格式錯誤：<br><b>${ez_symbols_array[i]}</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元`,
+                    "第 " + i + " 行格式錯誤：<br><b>" + ez_symbols_array[i] + "</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元",
                     "error"
                 );
                 return false;
@@ -221,34 +241,34 @@ $(function () {
         }
 
         // Check symbols format
-        let symbols_array = $("#symbols").val().split("\n");
-        for (let i = 0; i < symbols_array.length; i++) {
+        var symbols_array = $("#symbols").val().split("\n");
+        for (var i = 0; i < symbols_array.length; i++) {
             if (symbols_array[i].length > 1 && symbols_array[i].search("=") === -1) {
                 // Select error range
                 $("#symbols").select();
-                let selectionStart = 1;
-                for (let j = 0; j < i; j++) {
+                var selectionStart = 1;
+                for (var j = 0; j < i; j++) {
                     selectionStart += symbols_array[j].length;
                 }
                 $("#symbols").prop("selectionStart", selectionStart);
                 $("#symbols").prop("selectionEnd", selectionStart + symbols_array[i].length);
                 swal.fire(
                     "輸入錯誤",
-                    `特殊符號設定第 ${i + 1} 行格式錯誤：<br><b>${symbols_array[i]}</b><br>單行不能超過一個字元，或是沒有 = 符號區隔`,
+                    "特殊符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + symbols_array[i] + "</b><br>單行不能超過一個字元，或是沒有 = 符號區隔",
                     "error"
                 );
                 return false;
             }
         }
 
-        let data = {
-            config: chewingConfig,
+        var data = {
+            config: chewingConfig
         };
 
         // Append "\n" on symbols end prevent error
         if (symbolsChanged) {
             if ($("#symbols").val().slice(-1) !== "\n") {
-                $("#symbols").val(`${$("#symbols").val()}\n`);
+                $("#symbols").val($("#symbols").val() + "\n");
             }
             data.symbols = $("#symbols").val();
         }
@@ -263,7 +283,7 @@ $(function () {
             success: callbackFunc,
             contentType: "application/json",
             data: JSON.stringify(data),
-            dataType: "json",
+            dataType: "json"
         });
     }
 
@@ -281,11 +301,11 @@ $(function () {
                 case "text":
                 case "hidden":
                 case "number":
-                    chewingConfig[inputItem.name] = Number.parseInt(inputItem.value);
+                    chewingConfig[inputItem.name] = parseInt(inputItem.value, 10);
                     break;
                 case "radio":
                     if (inputItem.checked === true) {
-                        chewingConfig[inputItem.name] = Number.parseInt(inputItem.value);
+                        chewingConfig[inputItem.name] = parseInt(inputItem.value, 10);
                     }
                     break;
             }
@@ -298,7 +318,7 @@ $(function () {
                     chewingConfig[selectItem.name] = selectItem.value;
                 }
                 else {
-                    chewingConfig[selectItem.name] = Number.parseInt(selectItem.value);
+                    chewingConfig[selectItem.name] = parseInt(selectItem.value, 10);
                 }
             }
         });
@@ -324,17 +344,17 @@ $(function () {
         });
 
         // Setup select options and values
-        let selectOptions = {
+        var selectOptions = {
             switchLangWithWhichShift: ["左右兩邊都使用", "僅使用左 Shift", "僅使用右 Shift"],
             upDownAction: ["移動游標選字", "在選字時翻頁"],
             leftRightAction: ["移動游標選字（循環）", "在選字時翻頁"],
             spaceKeyAction: {
                 1: "叫出選字視窗",
-                0: "輸出空格",
+                0: "輸出空格"
             },
             spaceKeyCandidatesAction: {
                 1: "移動游標（循環）",
-                0: "翻頁",
+                0: "翻頁"
             },
             selKeyType: ["1234567890", "asdfghjkl;", "asdfzxcv89", "asdfjkl789", "aoeuhtn789", "1234qweras"],
             addPhraseForward: ["後方的詞", "前方的詞"],
@@ -350,15 +370,15 @@ $(function () {
                 "Light": "Light",
                 "Paper": "Paper",
                 "Mist Light": "Mist Light",
-                "Sepia Dim": "Sepia Dim",
-            },
+                "Sepia Dim": "Sepia Dim"
+            }
         };
 
         $.each(selectOptions, function (id, options) {
             $.each(options, function (value, optionName) {
                 $("#" + id).append('<option value="' + value + '">' + optionName + "</option>");
                 if (value == chewingConfig[id]) {
-                    $(`#${id} option:last-child`).prop("selected", true);
+                    $("#" + id + " option:last-child").prop("selected", true);
                 }
             });
         });
@@ -400,7 +420,7 @@ $(function () {
         });
 
         // Setup keybord page
-        let keyboardNames = [
+        var keyboardNames = [
             ["預設", "default-chewing"],
             ["許氏鍵盤", "hsu"],
             ["IBM", "ibm"],
@@ -413,15 +433,15 @@ $(function () {
             ["漢語拼音", "pinyin"],
             ["台灣華語羅馬拼音", "pinyin"],
             ["注音二式", "pinyin"],
-            ["CARPALX", "carpalx"],
+            ["CARPALX", "carpalx"]
         ];
 
-        let item = '<img id="keyboard_layouts" src="images\\keyborad_layouts\\pinyin.png" alt="pinyin">';
+        var item = '<img id="keyboard_layouts" src="images\\keyborad_layouts\\pinyin.png" alt="pinyin">';
 
-        for (let i = 0; i < keyboardNames.length; ++i) {
-            let id = `kb${i}`;
-            let name = keyboardNames[i][0];
-            let layout = keyboardNames[i][1];
+        for (var i = 0; i < keyboardNames.length; ++i) {
+            var id = "kb" + i;
+            var name = keyboardNames[i][0];
+            var layout = keyboardNames[i][1];
             item +=
                 '<div class="custom-control custom-radio">' +
                 '<input class="custom-control-input" type="radio" id="' +
@@ -441,16 +461,16 @@ $(function () {
         $("#keyboard_tab").html(item);
 
         // Checked keyboard layout radio
-        let checkedKetboardLayoutRadio = $(`#kb${chewingConfig.keyboardLayout}`);
+        var checkedKetboardLayoutRadio = $("#kb" + chewingConfig.keyboardLayout);
         checkedKetboardLayoutRadio.prop("checked", true);
-        $("#keyboard_layouts").prop("src", `images/keyborad_layouts/${checkedKetboardLayoutRadio.data("layout")}.png`);
+        $("#keyboard_layouts").prop("src", "images/keyborad_layouts/" + checkedKetboardLayoutRadio.data("layout") + ".png");
         $("#keyboard_layouts").prop("alt", checkedKetboardLayoutRadio.data("layout"));
 
         // Bind change keyboard_layouts event
         $("#keyboard_tab input:radio").on("click", function () {
-            let layout_file_name = $(this).data("layout");
+            var layout_file_name = $(this).data("layout");
             $("#keyboard_layouts").fadeOut(200, function () {
-                $("#keyboard_layouts").prop("src", `images/keyborad_layouts/${layout_file_name}.png`);
+                $("#keyboard_layouts").prop("src", "images/keyborad_layouts/" + layout_file_name + ".png");
                 $("#keyboard_layouts").prop("alt", layout_file_name);
             });
 
@@ -460,11 +480,11 @@ $(function () {
 
     // Use for select phrase example
     function updateSelExample() {
-        let example = ["選", "字", "視", "窗", "大", "小", "範", "例"];
-        let selectItems = $("#selKeyType option").eq($("#selKeyType").val()).html();
-        let html = "";
+        var example = ["選", "字", "視", "窗", "大", "小", "範", "例"];
+        var selectItems = $("#selKeyType option").eq($("#selKeyType").val()).html();
+        var html = "";
 
-        for (let number = 0, i = 0, row = 0; number < $("#candPerPage").val(); number++, i++, row++) {
+        for (var number = 0, i = 0, row = 0; number < $("#candPerPage").val(); number++, i++, row++) {
             if (example[i] == null) {
                 i = 0;
             }
@@ -474,11 +494,11 @@ $(function () {
                 html += "<br>";
             }
 
-            html += `<span>${selectItems.substr(number, 1)}.</span>${example[i]}`;
+            html += "<span>" + selectItems.substr(number, 1) + ".</span>" + example[i];
         }
 
         $("#selExample").html(html);
-        $("#selExample").css("font-size", `${$("#fontSize").val()}pt`);
+        $("#selExample").css("font-size", $("#fontSize").val() + "pt");
     }
 
     // workaround the same origin policy of IE.
@@ -512,7 +532,7 @@ $(function () {
     // Keep the server alive every 20 second
     setInterval(function () {
         $.ajax({
-            url: KEEP_ALIVE_URL + "?" + Date.now(),
+            url: KEEP_ALIVE_URL + "?" + Date.now()
         });
     }, 20 * 1000);
 
@@ -520,6 +540,8 @@ $(function () {
     $("#test_input").on("shown.bs.modal", function () {
         $("#test_input_text").val("").select();
     });
+
+    bindTabsFallback();
 
     return false;
 });
