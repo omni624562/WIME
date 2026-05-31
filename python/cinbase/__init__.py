@@ -1176,6 +1176,9 @@ class CinBase:
                     cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
                     cbTS.isSelKeysChanged = True
 
+        if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
+            self.resetComposition(cbTS)
+
         # 按下的鍵為 CIN 內有定義的字根
         if cbTS.cin.isInKeyName(charStrLow) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
             # 若按下 Shift 鍵
@@ -1568,7 +1571,12 @@ class CinBase:
                 else:
                     cbTS.setCandidateCursor(0)
                     cbTS.setCandidatePage(0)
-                    cbTS.wildcardcandidates = cbTS.cin.getWildcardCharDefs(cbTS.compositionChar, cbTS.selWildcardChar, cbTS.candMaxItems)
+                    cbTS.wildcardcandidates = cbTS.cin.getWildcardCharDefs(
+                        cbTS.compositionChar,
+                        cbTS.selWildcardChar,
+                        cbTS.candMaxItems,
+                        self.isVariableWildcardQuery(cbTS)
+                    )
                     if cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[cbTS.cfg.selCinType] == "thpinyin.json":
                         if not cbTS.wildcardcandidates:
                             cbTS.wildcardcandidates = cbTS.cin.getWildcardCharDefs(cbTS.compositionChar + "1", cbTS.selWildcardChar, cbTS.candMaxItems)
@@ -2966,6 +2974,17 @@ class CinBase:
         if getattr(cbTS, 'intelligentSelect', False) and key:
             cbTS.cin.addCount(key, commitStr, self.getIntelligentSelectPreviousChar(cbTS))
 
+    def isVariableWildcardQuery(self, cbTS):
+        compositionChar = getattr(cbTS, 'compositionChar', '')
+        wildcardChar = getattr(cbTS, 'selWildcardChar', '')
+        return (
+            getattr(cbTS, 'imeDirName', '') == "chedayi" and
+            wildcardChar == "*" and
+            compositionChar.count(wildcardChar) == 1 and
+            not compositionChar.startswith(wildcardChar) and
+            not compositionChar.endswith(wildcardChar)
+        )
+
     def sortByPhrase(self, cbTS, candidates):
         sortbyphraselist = []
         if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
@@ -3053,6 +3072,25 @@ class CinBase:
 
     def shouldKeepNoCandidateMessageInCandidateWindow(self, cbTS):
         return cbTS.imeDirName in ("chedayi", "checj", "cheliu") and not self.isCompositionCharPrefix(cbTS)
+
+    def shouldRestartNoCandidateComposition(self, cbTS, charStrLow, keyEvent):
+        if getattr(cbTS, 'imeDirName', '') not in ("chedayi", "checj", "cheliu"):
+            return False
+        if not getattr(cbTS, 'compositionChar', ''):
+            return False
+        if self.isCompositionCharPrefix(cbTS):
+            return False
+
+        if (
+            not cbTS.closemenu or cbTS.multifunctionmode or cbTS.ctrlsymbolsmode or
+            cbTS.dayisymbolsmode or cbTS.selcandmode or cbTS.tempEnglishMode or cbTS.phrasemode
+        ):
+            return False
+        if keyEvent.isKeyDown(VK_CONTROL) or keyEvent.isKeyDown(VK_MENU) or keyEvent.isKeyDown(VK_SHIFT):
+            return False
+
+        cin = getattr(cbTS, 'cin', None)
+        return cin is not None and cin.isInKeyName(charStrLow)
 
     def setNoCandidateMessageInCandidateWindow(self, cbTS, confirmed=False):
         cbTS.currentReply["candidateMessage"] = "查無組字"

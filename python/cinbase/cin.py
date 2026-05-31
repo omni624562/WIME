@@ -177,7 +177,7 @@ class Cin(object):
         return False
 
 
-    def getWildcardCharDefs(self, CompositionChar, WildcardChar, candMaxItems):
+    def getWildcardCharDefs(self, CompositionChar, WildcardChar, candMaxItems, variableWildcard=False):
         wildcardchardefs = []
         matchchardefs = {}
         lowFrequencyChardefs = {}
@@ -191,16 +191,18 @@ class Cin(object):
             lowFrequencyChardefs[i] = []
 
         keyLength = len(CompositionChar)
+        matchstring = ''
+        for char in CompositionChar:
+            if char == WildcardChar:
+                matchstring += '(.*)' if variableWildcard else '(.)'
+            else:
+                matchstring += re.escape(char)
 
-        matchstring = CompositionChar
-        for char in ['\\', '.', '*', '?', '+', '[', '{', '|', '(', ')', '^', '$']:
-            if char in matchstring:
-                if not char == WildcardChar:
-                    matchstring = matchstring.replace(char, '\\' + char)
-
-        matchstring = matchstring.replace(WildcardChar, '(.)')
         sortedchardefs = sorted(self.chardefs.keys())
-        matchchardefs = [self.chardefs[key] for key in sortedchardefs if re.match('^' + matchstring + '$', key) and len(key) == keyLength]
+        if variableWildcard:
+            matchchardefs = [self.chardefs[key] for key in sortedchardefs if re.match('^' + matchstring + '$', key)]
+        else:
+            matchchardefs = [self.chardefs[key] for key in sortedchardefs if re.match('^' + matchstring + '$', key) and len(key) == keyLength]
 
         if matchchardefs:
             for chardef in matchchardefs:

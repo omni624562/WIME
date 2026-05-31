@@ -35,6 +35,33 @@ class CinCountTests(unittest.TestCase):
             json.dump(count_data, f)
         return cin
 
+    def make_wildcard_cin(self):
+        spec = importlib.util.spec_from_file_location("cin_module_for_test", os.path.join(PYTHON_DIR, "cinbase", "cin.py"))
+        cin_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cin_module)
+        cin = cin_module.Cin.__new__(cin_module.Cin)
+        cin.charsetRange = {
+            "bopomofo": [int("0x3100", 16), int("0x3130", 16)],
+            "bopomofoTone": [int("0x02D9", 16), int("0x02CB", 16)],
+            "cjk": [int("0x4E00", 16), int("0x9FEB", 16)],
+            "big5F": [int("0xA440", 16), int("0xC67F", 16)],
+            "big5LF": [int("0xC940", 16), int("0xF9D6", 16)],
+            "big5S": [int("0xA140", 16), int("0xA3C0", 16)],
+        }
+        cin.chardefs = {
+            "ab": ["木"],
+            "acb": ["林"],
+            "acdb": ["森"],
+            "ba": ["火"],
+        }
+        return cin
+
+    def test_variable_wildcard_can_span_zero_or_more_roots(self):
+        cin = self.make_wildcard_cin()
+
+        self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10), ["林"])
+        self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True), ["木", "林", "森"])
+
     def test_load_count_file_ignores_malformed_entries(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             cin = self.make_cin(temp_dir, {
