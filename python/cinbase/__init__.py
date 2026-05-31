@@ -437,10 +437,14 @@ class CinBase:
                 if cbTS.fullShapeSymbols and (self.isSymbolsChar(keyEvent.keyCode) or self.isNumberChar(keyEvent.keyCode)):
                     return True
                 # 若萬用字元使用*，輸入法需要處理*按鍵
-                if cbTS.selWildcardChar == '*' and keyEvent.keyCode == 0x38:
+                if self.isWildcardInputKey(cbTS, charStr, keyEvent):
                     return True
                 if not cbTS.isComposing() and cbTS.compositionBufferMode and not cbTS.directShowCand and cbTS.shapeMode == HALFSHAPE_MODE:
                     return False
+
+        # 數字鍵盤 * 沒有 Shift 狀態，也要能作為萬用字元。
+        if cbTS.langMode == CHINESE_MODE and self.isWildcardInputKey(cbTS, charStr, keyEvent):
+            return True
 
         # 不論中英文模式，NumPad 都允許直接輸入數字，輸入法不處理
         if keyEvent.isKeyToggled(VK_NUMLOCK): # NumLock is on
@@ -520,7 +524,9 @@ class CinBase:
         if keyEvent.isKeyToggled(VK_NUMLOCK): # NumLock is on
             # if this key is Num pad 0-9, +, -, *, /, pass it back to the system
             if keyEvent.keyCode >= VK_NUMPAD0 and keyEvent.keyCode <= VK_DIVIDE:
-                if not cbTS.compositionBufferMode or cbTS.showCandidates:
+                if self.isWildcardInputKey(cbTS, charStr, keyEvent):
+                    pass
+                elif not cbTS.compositionBufferMode or cbTS.showCandidates:
                     return True # bypass IME
 
         if cbTS.compositionBufferMode and not cbTS.isComposing():
@@ -1184,21 +1190,17 @@ class CinBase:
         if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
             self.resetComposition(cbTS)
 
+        # 按下萬用字元鍵。大易常用 Shift+8 或數字鍵盤 * 輸入 *。
+        if self.isWildcardInputKey(cbTS, charStr, keyEvent) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
+            self.appendWildcardComposition(cbTS)
         # 按下的鍵為 CIN 內有定義的字根
-        if cbTS.cin.isInKeyName(charStrLow) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
+        elif cbTS.cin.isInKeyName(charStrLow) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
             # 若按下 Shift 鍵
             if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE and not cbTS.imeDirName == "cheez":
                 CommitStr = charStr
                 # 如果按鍵及萬用字元為*
-                if charStr == '*' and cbTS.supportWildcard and cbTS.selWildcardChar == charStr: 
-                    keyname = '＊'
-                    if cbTS.compositionBufferMode:
-                        if (len(cbTS.compositionChar) < cbTS.maxCharLength):
-                            cbTS.compositionChar += '*'
-                            self.setCompositionBufferString(cbTS, keyname, 0)
-                    else:
-                        cbTS.compositionChar += '*'
-                        cbTS.setCompositionString(cbTS.compositionString + keyname)
+                if self.isWildcardInputKey(cbTS, charStr, keyEvent):
+                    self.appendWildcardComposition(cbTS)
                 # 使用 Shift 鍵做全形輸入 (easy symbol input)
                 # 這裡的 easy symbol input，是定義在 swkb.dat 設定檔中的符號
                 elif cbTS.easySymbolsWithShift and self.isLetterChar(keyCode):
@@ -1364,15 +1366,8 @@ class CinBase:
             # 若按下 Shift 鍵
             if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE:
                 # 如果按鍵及萬用字元為*
-                if charStr == '*' and cbTS.supportWildcard and cbTS.selWildcardChar == charStr: 
-                    keyname = '＊'
-                    if cbTS.compositionBufferMode:
-                        if (len(cbTS.compositionChar) < cbTS.maxCharLength):
-                            cbTS.compositionChar += '*'
-                            self.setCompositionBufferString(cbTS, keyname, 0)
-                    else:
-                        cbTS.compositionChar += '*'
-                        cbTS.setCompositionString(cbTS.compositionString + keyname)
+                if self.isWildcardInputKey(cbTS, charStr, keyEvent):
+                    self.appendWildcardComposition(cbTS)
                 # 如果停用 Shift 輸入全形標點
                 elif not cbTS.fullShapeSymbols:
                     # 如果是全形模式，將字串轉為全形再輸出
@@ -3001,6 +2996,36 @@ class CinBase:
             not compositionChar.startswith(wildcardChar) and
             not compositionChar.endswith(wildcardChar)
         )
+
+    def isWildcardInputKey(self, cbTS, charStr, keyEvent):
+        if not getattr(cbTS, 'supportWildcard', False):
+            return False
+        wildcardChar = getattr(cbTS, 'selWildcardChar', '')
+        if not wildcardChar:
+            return False
+        if charStr == wildcardChar:
+            return True
+        if wildcardChar == "*" and keyEvent.keyCode == VK_MULTIPLY:
+            return True
+        if wildcardChar == "*" and keyEvent.keyCode == 0x38 and keyEvent.isKeyDown(VK_SHIFT):
+            return True
+        return False
+
+    def appendWildcardComposition(self, cbTS):
+        wildcardChar = getattr(cbTS, 'selWildcardChar', '')
+        if not wildcardChar:
+            return False
+        keyname = '＊' if wildcardChar == '*' else wildcardChar
+        if cbTS.compositionBufferMode:
+            if len(cbTS.compositionChar) >= cbTS.maxCharLength:
+                return False
+            cbTS.compositionChar += wildcardChar
+            self.setCompositionBufferString(cbTS, keyname, 0)
+        else:
+            cbTS.compositionChar += wildcardChar
+            cbTS.setCompositionString(cbTS.compositionString + keyname)
+            cbTS.setCompositionCursor(len(cbTS.compositionString))
+        return True
 
     def sortByPhrase(self, cbTS, candidates):
         sortbyphraselist = []

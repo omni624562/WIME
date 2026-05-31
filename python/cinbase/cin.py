@@ -136,7 +136,7 @@ class Cin(object):
         """ 
         will return a list conaining all possible result
         """
-        return self.chardefs[key]
+        return self.chardefs.get(key, [])
 
 
     def isCharDefPrefix(self, key):
@@ -182,12 +182,12 @@ class Cin(object):
         matchchardefs = {}
         lowFrequencyChardefs = {}
         highFrequencyCharSetList = ["bopomofo", "bopomofoTone", "cjk", "big5F", "big5LF", "big5S"]
-        lowFrequencyCharSetList = ["cjkExtA", "cjkExtB", "cjkExtC", "cjkExtD", "cjkExtE", "cjkExtF", "cjkCIibm", "pua", "cjkOther"]
+        lowFrequencyCharSetList = ["big5Other", "cjkExtA", "cjkExtB", "cjkExtC", "cjkExtD", "cjkExtE", "cjkExtF", "cjkCIibm", "pua", "cjkOther"]
 
         highFrequencyWordCount = 0
         lowFrequencyWordCount = 0
 
-        for i in range(7):
+        for i in range(len(lowFrequencyCharSetList)):
             lowFrequencyChardefs[i] = []
 
         keyLength = len(CompositionChar)
@@ -218,7 +218,7 @@ class Cin(object):
                         if len(wildcardchardefs) >= candMaxItems:
                             return wildcardchardefs
                     else:
-                        i = lowFrequencyCharSetList.index(charSet)
+                        i = lowFrequencyCharSetList.index(charSet) if charSet in lowFrequencyCharSetList else len(lowFrequencyCharSetList) - 1
                         if not matchstr in lowFrequencyChardefs[i]:
                             lowFrequencyChardefs[i].append(matchstr)
                             lowFrequencyWordCount += 1

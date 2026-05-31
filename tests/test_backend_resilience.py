@@ -47,6 +47,7 @@ class CinCountTests(unittest.TestCase):
             "big5F": [int("0xA440", 16), int("0xC67F", 16)],
             "big5LF": [int("0xC940", 16), int("0xF9D6", 16)],
             "big5S": [int("0xA140", 16), int("0xA3C0", 16)],
+            "cjkExtA": [int("0x3400", 16), int("0x4DB6", 16)],
         }
         cin.chardefs = {
             "ab": ["木"],
@@ -64,6 +65,25 @@ class CinCountTests(unittest.TestCase):
         self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10), ["林"])
         self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True), ["木", "林", "森"])
         self.assertEqual(cin.getWildcardCharDefs("n*1", "*", 10, variableWildcard=True), ["尼", "屋"])
+
+    def test_get_char_def_returns_empty_for_missing_key(self):
+        cin = self.make_wildcard_cin()
+
+        self.assertEqual(cin.getCharDef("="), [])
+
+    def test_wildcard_keeps_low_frequency_other_charset_matches(self):
+        cin = self.make_wildcard_cin()
+        cin.chardefs["azb"] = ["A"]
+
+        self.assertIn("A", cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True))
+
+    def test_wildcard_keeps_low_frequency_unlisted_charset_matches(self):
+        cin = self.make_wildcard_cin()
+        cin.chardefs["ayb"] = ["B"]
+        original_get_char_set = cin.getCharSet
+        cin.getCharSet = lambda root: "unlisted" if root == "B" else original_get_char_set(root)
+
+        self.assertIn("B", cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True))
 
     def test_load_count_file_ignores_malformed_entries(self):
         with tempfile.TemporaryDirectory() as temp_dir:
