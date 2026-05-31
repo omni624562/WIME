@@ -177,7 +177,7 @@ class TextService:
         self.compositionString = ""
 
     def onKeyboardStatusChanged(self, opened):
-        pass
+        self.keyboardOpen = opened
 
     # public methods that should not be touched
 
@@ -253,6 +253,7 @@ class TextService:
         self.currentReply["setSelKeys"] = keys
 
     def setKeyboardOpen(self, opened):
+        self.keyboardOpen = opened
         self.currentReply["openKeyboard"] = opened
 
     '''

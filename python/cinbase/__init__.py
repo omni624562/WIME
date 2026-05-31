@@ -247,6 +247,11 @@ class CinBase:
     # 輸入法被使用者啟用
     def onActivate(self, cbTS):
         cfg = cbTS.cfg
+        keyboardWillOpen = getattr(cbTS, "keyboardOpen", True)
+        if cbTS.client.isWindows8Above:
+            keyboardWillOpen = not cfg.disableOnStartup
+        self.restoreChineseModeOnKeyboardOpen(cbTS, keyboardWillOpen, updateButtons=False)
+
         # 向系統宣告 Shift + Space 這個組合為特殊用途 (全半形切換)
         # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
         cbTS.addPreservedKey(VK_SPACE, TF_MOD_SHIFT, SHIFT_SPACE_GUID); # shift + space
@@ -2637,6 +2642,7 @@ class CinBase:
         if opened: # 鍵盤開啟
             self.resetComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
+            self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=True)
         else: # 鍵盤關閉，輸入法停用
             self.resetComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
@@ -2695,6 +2701,17 @@ class CinBase:
         elif cbTS.langMode == ENGLISH_MODE:
             cbTS.langMode = CHINESE_MODE
         self.updateLangButtons(cbTS)
+
+
+    def restoreChineseModeOnKeyboardOpen(self, cbTS, opened=None, updateButtons=True):
+        if opened is None:
+            opened = getattr(cbTS, "keyboardOpen", True)
+        if not opened or cbTS.langMode != ENGLISH_MODE or cbTS.cfg.defaultEnglish:
+            return False
+        cbTS.langMode = CHINESE_MODE
+        if updateButtons:
+            self.updateLangButtons(cbTS)
+        return True
 
 
     # 切換全形/半形
