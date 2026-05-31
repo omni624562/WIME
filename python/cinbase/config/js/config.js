@@ -373,8 +373,38 @@ function colorLuma(color) {
     return Math.round((rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000);
 }
 
+function colorContrastHex(a, b) {
+    return Math.abs(colorLuma(a) - colorLuma(b));
+}
+
+function readableTextOnHex(bg, preferred, alternate) {
+    var dark = "#111827";
+    var light = "#f8fafc";
+    var result = preferred;
+    var resultContrast = colorContrastHex(bg, result);
+    var alternateContrast = colorContrastHex(bg, alternate);
+    if (alternateContrast > resultContrast) {
+        result = alternate;
+        resultContrast = alternateContrast;
+    }
+    var darkContrast = colorContrastHex(bg, dark);
+    var lightContrast = colorContrastHex(bg, light);
+    if (resultContrast < 72 && darkContrast > resultContrast) {
+        result = dark;
+        resultContrast = darkContrast;
+    }
+    if (resultContrast < 72 && lightContrast > resultContrast) {
+        result = light;
+    }
+    return result;
+}
+
 function applyCandidatePreviewTheme(preview, theme, modern) {
     var selectedBg = modern ? blendHex(theme[0], theme[6], 28) : "#000000";
+    var selectedFg = modern ? readableTextOnHex(selectedBg, theme[8], theme[3]) : "#ffffff";
+    var selectedBorder = modern
+        ? (colorContrastHex(selectedBg, theme[7]) >= 38 ? blendHex(theme[7], selectedBg, 28) : blendHex(selectedFg, selectedBg, 40))
+        : "#000000";
     preview.css({
         "background-color": modern ? theme[0] : "#ffffff",
         "border-color": modern ? theme[1] : "#000000",
@@ -388,11 +418,11 @@ function applyCandidatePreviewTheme(preview, theme, modern) {
     preview.find(".candidate-preview-word").css("color", modern ? theme[3] : "#000000");
     preview.find(".candidate-preview-item.active").css({
         "background-color": selectedBg,
-        "border-color": modern ? selectedBg : "#000000",
+        "border-color": selectedBorder,
         "border-radius": modern ? "6px" : "0",
-        "color": modern ? theme[8] : "#ffffff"
+        "color": selectedFg
     });
-    preview.find(".candidate-preview-item.active .candidate-preview-key, .candidate-preview-item.active .candidate-preview-word").css("color", modern ? theme[8] : "#ffffff");
+    preview.find(".candidate-preview-item.active .candidate-preview-key, .candidate-preview-item.active .candidate-preview-word").css("color", selectedFg);
 }
 
 function applyCandidatePreviewKeyStyle(preview, keyStyle) {

@@ -28,6 +28,7 @@
 - 修正新版候選窗第一次啟動、candidate window 建立時樣式未套用、以及舊樣式殘留的問題。
 - 修正候選字貼近下緣、body 過寬、字不完整、選字符與候選字距離不自然等排版問題。
 - 淡色系配色調整 header 字根可讀性，避免字根在淺底上看不清楚。
+- 被選候選字與選字符會依選取底色自動挑選高對比文字色，避免淡色系或柔和高亮下看不清楚。
 - 新增多組候選窗配色與多種選字符樣式，並改成在設定頁一次列出預覽，不再只靠下拉選單。
 - 被選候選字的外框與底色改成較柔和的高亮設計，降低視覺壓力。
 
@@ -98,12 +99,22 @@
 - Python backend 啟動時加入 `PYTHONUNBUFFERED=1`，並讓 server 輸出立即 flush，降低輸入延遲。
 - 後端 debug/error 輸出移到 stderr，避免污染 stdout 上的 IPC 協定。
 - PIMELauncher Rust 版後端管理修正 mutex 持有時機，減少冷啟動阻塞。
+- PIMELauncher 背景模式只啟用 warn 以上 tracing，避免每鍵輸入時仍處理大量 info/debug log 事件。
 - PIMEClient pipe read buffer 加大，降低候選清單回傳時的 syscall 次數。
 - key-event RPC 連線等待改短，避免 backend 或 launcher 不可用時 UI 長時間卡住。
+- PIMEClient 在 pipe 失敗關閉 overlapped I/O event 後會重建 event，避免暫時斷線後同一個 Client 難以恢復。
 - JSON 回應處理改用更安全的預設值讀取，避免缺欄位造成 crash。
 - `updateCandidateList` 補強欄位缺失防護。
 - 候選窗樣式 setter 加入 no-op 檢查，樣式未變時不重算、不重畫。
 - `updateCandidates()` 改為批次更新 message/header/pageInfo，最後只重算一次候選窗尺寸。
+- 大易/碼表系與新酷音的候選窗 UI 設定加入快取，設定未改變時不再每次候選字更新都重送 `customizeUI`。
+
+## 設定工具可靠性
+
+- 大易/碼表系設定工具補上 no-cache 靜態檔回應與登入後 URL cache-buster，降低更新後設定頁仍讀到舊 HTML/JS 的機率。
+- 大易/碼表系設定工具改用暫存檔加 `os.replace()` 原子寫檔，降低套用設定中斷時留下半寫入檔案的風險。
+- 大易/碼表系與新酷音設定工具允許符號/詞庫類內容存成空檔，避免使用者清空欄位後按套用卻沒有作用。
+- 新增 `docs/WIME_LONG_TERM_EVALUATION.md`，集中整理長期效能、設定頁易用性、已修正風險與長測清單。
 
 ## 測試與工具
 

@@ -100,10 +100,10 @@ class ConfigHandler(BaseHandler):
         if config is not None:
             self.save_file("config.json", json.dumps(config, indent=2))
         symbols = data.get("symbols", None)
-        if symbols:
+        if symbols is not None:
             self.save_file("symbols.dat", symbols)
         swkb = data.get("swkb", None)
-        if swkb:
+        if swkb is not None:
             self.save_file("swkb.dat", swkb)
         self.write('{"return":true}')
 

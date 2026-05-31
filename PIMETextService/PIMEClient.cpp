@@ -999,7 +999,10 @@ json Client::createRpcRequest(const char* methodName) {
 }
 
 bool Client::callPipeIO(bool isRead, void *buffer, DWORD size, DWORD *rlen, int timeoutMs) {
-	if (!ioEvent_) {
+	if (!ioEvent_ || ioEvent_ == INVALID_HANDLE_VALUE) {
+		ioEvent_ = CreateEvent(NULL, TRUE, FALSE, NULL);
+	}
+	if (!ioEvent_ || ioEvent_ == INVALID_HANDLE_VALUE) {
 		return false;
 	}
 
@@ -1184,9 +1187,9 @@ void Client::closeRpcConnection() {
 		CloseHandle(pipe_);
 		pipe_ = INVALID_HANDLE_VALUE;
 	}
-	if (ioEvent_ != INVALID_HANDLE_VALUE) {
+	if (ioEvent_ && ioEvent_ != INVALID_HANDLE_VALUE) {
 		CloseHandle(ioEvent_);
-		ioEvent_ = INVALID_HANDLE_VALUE;
+		ioEvent_ = NULL;
 	}
 	readBuffer_.clear();
 }
