@@ -3076,7 +3076,11 @@ class CinBase:
     def shouldRestartNoCandidateComposition(self, cbTS, charStrLow, keyEvent):
         if getattr(cbTS, 'imeDirName', '') not in ("chedayi", "checj", "cheliu"):
             return False
-        if not getattr(cbTS, 'compositionChar', ''):
+        compositionChar = getattr(cbTS, 'compositionChar', '')
+        if not compositionChar:
+            return False
+        wildcardChar = getattr(cbTS, 'selWildcardChar', '')
+        if getattr(cbTS, 'supportWildcard', False) and wildcardChar and wildcardChar in compositionChar:
             return False
         if self.isCompositionCharPrefix(cbTS):
             return False

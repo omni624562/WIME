@@ -53,6 +53,8 @@ class CinCountTests(unittest.TestCase):
             "acb": ["林"],
             "acdb": ["森"],
             "ba": ["火"],
+            "n1": ["尼"],
+            "nx1": ["屋"],
         }
         return cin
 
@@ -61,6 +63,7 @@ class CinCountTests(unittest.TestCase):
 
         self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10), ["林"])
         self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True), ["木", "林", "森"])
+        self.assertEqual(cin.getWildcardCharDefs("n*1", "*", 10, variableWildcard=True), ["尼", "屋"])
 
     def test_load_count_file_ignores_malformed_entries(self):
         with tempfile.TemporaryDirectory() as temp_dir:
