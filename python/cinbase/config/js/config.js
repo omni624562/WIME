@@ -145,6 +145,8 @@ loadConfig();
 
 function applyCandidateDefaults() {
     var currentIme = typeof imeFolderName !== "undefined" ? imeFolderName : "";
+    checjConfig.outputSimpChinese = false;
+    checjConfig.enableSwitchTCSC = false;
     if (typeof checjConfig.autoCommitSingleCandidate === "undefined") {
         checjConfig.autoCommitSingleCandidate = false;
     }
@@ -881,6 +883,8 @@ function updateConfig() {
     if (checjConfig.candidateTheme) {
         checjConfig.candidateColors = {};
     }
+    checjConfig.outputSimpChinese = false;
+    checjConfig.enableSwitchTCSC = false;
 }
 
 

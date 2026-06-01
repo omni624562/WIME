@@ -43,7 +43,7 @@ class CinBaseConfig:
         self.outputSmallLetterWithShift = False
         self.switchPageWithSpace = False
         self.outputSimpChinese = False
-        self.enableSwitchTCSC = True
+        self.enableSwitchTCSC = False
         self.messageDurationTime = 3
         self.hidePromptMessages = True
         self.autoClearCompositionChar = False
@@ -157,6 +157,8 @@ class CinBaseConfig:
                     self.__dict__.update(json.load(f))
         except Exception:
             self.save()
+        self.outputSimpChinese = False
+        self.enableSwitchTCSC = False
         self.update()
 
     def toJson(self):

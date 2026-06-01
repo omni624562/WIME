@@ -34,6 +34,8 @@ For a detailed Traditional Chinese summary of the changes made after the project
 
         makensis /DONLY_DAYI_CHEWING_CHECJ installer\installer.nsi
 
+*   The limited installer is Traditional-Chinese-focused and no longer packages Simplified Chinese output conversion, OpenCC data, Simplified status icons, Rime, Pinyin, or Quick.
+
 **Bug fixes**
 *   Fixed extra space inserted after character selection in cinbase-based input methods.
 *   Fixed `[json.exception.type_error.302]` crash when backend response arrives before C++ timeout — all `ret["return"].get<bool>()` calls now use `ret.value("return", false)` to handle absent fields safely.

@@ -102,7 +102,9 @@ RequestExecutionLevel admin
 !macroend
 
 !insertmacro LANG_LOAD "TradChinese" ; Traditional Chinese
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 !insertmacro LANG_LOAD "SimpChinese" ; Simplified Chinese
+!endif
 !insertmacro LANG_LOAD "English" ; English
 
 var UPDATEX86DLL
@@ -283,8 +285,10 @@ Function .onInit
 		Push ""
 		Push ${LANG_TRADCHINESE}
 		Push "繁體中文"
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 		Push ${LANG_SIMPCHINESE}
 		Push "简体中文"
+!endif
 		Push ${LANG_ENGLISH}
 		Push "English"
 		Push A ; A means auto count languages
@@ -482,7 +486,7 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 		Section $(CHEWING) chewing
 			SectionIn 1 2
 			SetOutPath "$INSTDIR\python\input_methods\chewing"
-			File /r /x "__pycache__" "..\python\input_methods\chewing\*.*"
+			File /r /x "__pycache__" /x "simC.ico" "..\python\input_methods\chewing\*.*"
 			StrCpy $INST_PYTHON "True"
 		SectionEnd
 
@@ -664,7 +668,11 @@ Section "" Register
 	; Install the python backend and input method modules along with an embedable version of python 3.
 	${If} $INST_PYTHON == "True"
 		SetOutPath "$INSTDIR\python"
+!ifdef ONLY_DAYI_CHEWING_CHECJ
+		File /r /x "__pycache__" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" "..\python\*.*"
+!else
 		File /r /x "__pycache__" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"
+!endif
 		SetOutPath "$INSTDIR\python\input_methods"
 		File "..\python\input_methods\__init__.py"
 	${EndIf}
@@ -673,7 +681,7 @@ Section "" Register
 	${If} $INST_CINBASE == "True"
 		SetOutPath "$INSTDIR\python"
 !ifdef ONLY_DAYI_CHEWING_CHECJ
-		File /r /x "__pycache__" /x "cin" /x "json" "..\python\cinbase"
+		File /r /x "__pycache__" /x "cin" /x "json" /x "sim_*.ico" "..\python\cinbase"
 		SetOutPath "$INSTDIR\python\cinbase\json"
 		File "..\python\cinbase\json\checj.json"
 		File "..\python\cinbase\json\mscj3.json"

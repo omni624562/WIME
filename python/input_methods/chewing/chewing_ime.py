@@ -22,7 +22,6 @@ import time
 from libchewing import ChewingContext, CHEWING_DATA_DIR, CHINESE_MODE, \
     ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE
 
-import opencc  # OpenCC 繁體簡體中文轉換
 import sys
 import copy
 from ctypes import windll  # for ShellExecuteW() and GetAsyncKeyState()
@@ -142,7 +141,6 @@ class ChewingTextService(TextService):
 
         self.configVersion = chewingConfig.getVersion()
 
-        # 使用 OpenCC 繁體中文轉簡體
         self.opencc = None
 
         # has language buttons
@@ -243,8 +241,7 @@ class ChewingTextService(TextService):
         # 設定選字按鍵 (123456..., asdf.... 等)
         self.setSelKeys(cfg.getSelKeys())
 
-        # 轉換輸出成簡體中文
-        self.setOutputSimplifiedChinese(cfg.outputSimpChinese)
+        self.setOutputSimplifiedChinese(False)
 
         # 設定向後詞彙選字模式
         chewingContext.set_phraseChoiceRearward(cfg.phraseChoiceRearward)
@@ -283,8 +280,8 @@ class ChewingTextService(TextService):
 
         self.applyConfig()  # 套用其餘的使用者設定
 
-        if self.lastOutputSimpChinese is not None:  # 恢復上次鍵盤暫時關閉時儲存的狀態
-            self.setOutputSimplifiedChinese(self.lastOutputSimpChinese)
+        if self.lastOutputSimpChinese is not None:
+            self.setOutputSimplifiedChinese(False)
 
     # 輸入法被使用者啟用
     def onActivate(self):
@@ -312,10 +309,7 @@ class ChewingTextService(TextService):
                 if self.getCapslockState() == True:
                     icon_name = "capsEng.ico"
                 else:
-                    if self.outputSimpChinese:
-                        icon_name = "simC.ico"
-                    else:
-                        icon_name = "traC.ico"
+                    icon_name = "traC.ico"
             else:
                 icon_name = "eng.ico"
             self.addButton("windows-mode-icon",
@@ -332,10 +326,7 @@ class ChewingTextService(TextService):
             if self.getCapslockState() == True:
                 icon_name = "capsEng.ico"
             else:
-                if self.outputSimpChinese:
-                    icon_name = "simC.ico"
-                else:
-                    icon_name = "traC.ico"
+                icon_name = "traC.ico"
         else:
             icon_name = "eng.ico"
         self.addButton("switch-lang",
@@ -401,14 +392,8 @@ class ChewingTextService(TextService):
 
     # 設定輸出成簡體中文
     def setOutputSimplifiedChinese(self, outputSimpChinese):
-        self.outputSimpChinese = outputSimpChinese
-        # 建立 OpenCC instance 用來做繁簡體中文轉換
-        if outputSimpChinese:
-            if not self.opencc:
-                self.opencc = opencc.OpenCC(
-                    opencc.OPENCC_DEFAULT_CONFIG_TRAD_TO_SIMP)
-        else:
-            self.opencc = None
+        self.outputSimpChinese = False
+        self.opencc = None
 
         self.updateSwitchLangIcon = True
         self.updateLangButtons()
@@ -750,10 +735,6 @@ class ChewingTextService(TextService):
             if chewingContext.commit_Check():
                 commitStr = chewingContext.commit_String().decode("UTF-8")
 
-                # 如果使用打繁出簡，就轉成簡體中文
-                if self.outputSimpChinese:
-                    commitStr = self.opencc.convert(commitStr)
-
                 self.setCommitString(commitStr)  # 設定要輸出的 commit string
 
             # 編輯區正在輸入中，尚未送出的中文字串 (composition string)
@@ -789,8 +770,6 @@ class ChewingTextService(TextService):
             committedCandidateSelection = False
             if getattr(cfg, 'candidateModernStyle', False) and candidateSelectionKey and visibleCompStr and not rootStr and chewingContext.cand_TotalChoice() == 0:
                 commitStr = visibleCompStr
-                if self.outputSimpChinese:
-                    commitStr = self.opencc.convert(commitStr)
                 if chewingContext.buffer_Check():
                     chewingContext.clean_preedit_buf()
                 self.setCandidateList([])
@@ -869,11 +848,6 @@ class ChewingTextService(TextService):
                 # 按下和放開的時間相隔 < 0.5 秒
                 if pressedDuration < 0.5:
                     self.toggleLanguageMode()  # 切換中英文模式
-
-        # 使用 Ctrl + F12 切換簡體/繁體中文
-        if chewingConfig.enableSwitchTCSC and self.lastKeyEvent:
-            if keyEvent.isKeyDown(VK_CONTROL) and self.lastKeyEvent.keyCode == VK_F12 and keyEvent.keyCode == VK_F12:
-                self.setOutputSimplifiedChinese(not self.outputSimpChinese)
 
         # 按下 Capslcok 會切換圖示
         if chewingConfig.enableCapsLock and self.lastKeyEvent:
@@ -967,9 +941,6 @@ class ChewingTextService(TextService):
                 "https://dict.idioms.moe.edu.tw/")
         elif commandId == ID_CHEWING_HELP:
             pass
-        elif commandId == ID_OUTPUT_SIMP_CHINESE:  # 切換簡體中文輸出
-            self.setOutputSimplifiedChinese(not self.outputSimpChinese)
-
     # 開啟語言列按鈕選單
     def onMenu(self, buttonId):
         # 設定按鈕 (windows 8 mode icon 按鈕也使用同一個選單)
@@ -993,9 +964,7 @@ class ChewingTextService(TextService):
                     {"text": "教育部國語辭典簡編本", "id": ID_SIMPDICT},
                     {"text": "教育部國語小字典", "id": ID_LITTLEDICT},
                     {"text": "教育部成語典", "id": ID_PROVERBDICT},
-                ]},
-                {"text": "輸出簡體中文 (&S)", "id": ID_OUTPUT_SIMP_CHINESE,
-                 "checked": self.outputSimpChinese}
+                ]}
             ]
         return None
 
@@ -1014,10 +983,7 @@ class ChewingTextService(TextService):
                 if self.getCapslockState() == True:
                    icon_name = "capsEng.ico"
                 else:
-                    if self.outputSimpChinese:
-                        icon_name = "simC.ico"
-                    else:
-                        icon_name = "traC.ico"
+                    icon_name = "traC.ico"
             else:
                 icon_name = "eng.ico"
             icon_path = os.path.join(self.icon_dir, icon_name)
@@ -1074,7 +1040,7 @@ class ChewingTextService(TextService):
             # 備份目前狀態 (下次重新開啟時套用)
             self.lastLangMode = self.langMode
             self.lastShapeMode = self.shapeMode
-            self.lastOutputSimpChinese = self.outputSimpChinese
+            self.lastOutputSimpChinese = False
 
             # self.hideMessage() # hide message window, if there's any
             self.chewingContext = None  # 釋放新酷音引擎資源

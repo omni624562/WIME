@@ -10,7 +10,7 @@
     "easySymbolsWithShift":false,
     "enableCapsLock":true,
     "enableShiftSpace":true,
-    "enableSwitchTCSC":true,
+    "enableSwitchTCSC":false,
     "escCleanAllBuf":false,
     "fontSize":12,
     "fullShapeSymbols":false,

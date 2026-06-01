@@ -98,6 +98,8 @@ class ConfigHandler(BaseHandler):
         # write the config to files
         config = data.get("config", None)
         if config is not None:
+            config["outputSimpChinese"] = False
+            config["enableSwitchTCSC"] = False
             self.save_file("config.json", json.dumps(config, indent=2))
         symbols = data.get("symbols", None)
         if symbols is not None:
@@ -115,6 +117,8 @@ class ConfigHandler(BaseHandler):
                 config.update(json.load(f))
         except Exception as e:
             print(e)
+        config["outputSimpChinese"] = False
+        config["enableSwitchTCSC"] = False
         return config
 
     def load_data(self, name):
