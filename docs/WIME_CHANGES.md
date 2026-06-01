@@ -24,7 +24,7 @@
 - 設定頁、語言列選單與 ` 鍵功能選單移除簡體輸出相關入口。
 - 舊版設定檔若曾含有 `outputSimpChinese: true` 或 `enableSwitchTCSC: true`，載入與儲存時都會強制視為關閉，避免升級後仍輸出簡體。
 - limited installer 排除 `python/opencc`、簡體狀態 icon、簡體安裝語系與不在限定版範圍內的簡體/拼音相關輸入法。
-- 詳細執行規劃見 `docs/WIME_SIMPLIFIED_CHINESE_REMOVAL.md`。
+- full installer 與 source tree 內第三方 Rime/OpenCC 資料暫不刪除，作為相容性保留；詳細完成範圍見 `docs/WIME_SIMPLIFIED_CHINESE_REMOVAL.md`。
 
 ## 候選窗 UI
 

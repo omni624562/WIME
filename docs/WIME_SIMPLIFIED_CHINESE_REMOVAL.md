@@ -2,6 +2,8 @@
 
 本文件整理 WIME 移除簡體中文相關功能的範圍、階段與驗收方式。目標是讓目前面向大易、新酷音、新酷倉的 WIME limited installer 成為繁體中文取向版本，同時保留必要相容性，避免舊設定或第三方資料造成升級風險。
 
+目前結論：此計劃已完成 limited installer 與大易、新酷音、新酷倉相關的去簡體化範圍。full installer、Rime 與 source tree 內第三方 OpenCC/Rime 資料暫不列入本次完成範圍，僅保留為後續獨立決策。
+
 ## 移除範圍
 
 移除或停用：
@@ -34,12 +36,13 @@
 
 ## Phase 2：設定相容性
 
-狀態：已執行第一版，後續可觀察。
+狀態：已完成。
 
 - 舊 config 載入後強制關閉簡體輸出與繁簡切換。
 - 設定工具儲存時也寫回關閉狀態。
 - 保留 `outputSimpChinese` 與 `enableSwitchTCSC` key 作為一版相容欄位，避免舊設定檔或舊工具讀取時發生例外。
-- 若長期觀察無問題，下一階段可評估完全移除相容欄位。
+- 保留相容欄位不代表功能仍存在；runtime、設定頁與 installer 都不再提供簡體輸出或繁簡切換。
+- 若長期觀察無問題，後續可另開任務完全移除相容欄位。
 
 ## Phase 3：limited installer 清理
 
@@ -54,7 +57,7 @@
 
 ## Phase 4：full installer 決策
 
-狀態：待討論。
+狀態：已決定採用選項 A。
 
 選項 A：只讓 limited installer 去簡體化。
 
@@ -74,7 +77,15 @@
 - 可能影響 Rime menu conversion 或 full installer 使用者。
 - 只有在確定 WIME 不再維護 full installer 相關簡體/拼音/Rime 功能時才建議執行。
 
-目前建議先停在 A，觀察 limited installer 一版後再決定是否推進 B 或 C。
+目前本計劃停在 A，視為完成。B 與 C 不併入本次去簡體化完成範圍，若未來要處理 full installer 或 source tree 深層資料，應另開任務並重新評估 Rime/OpenCC 相依。
+
+## 完成狀態
+
+- limited installer 去簡體化：完成。
+- 大易、新酷音、新酷倉使用者可見簡體輸出入口：移除完成。
+- 舊設定強制關閉簡體輸出與繁簡切換：完成。
+- full installer 深層去簡體化：本次不執行，保留相容性。
+- source tree 刪除 OpenCC/Rime 第三方資料：本次不執行，保留相容性。
 
 ## 驗收清單
 
