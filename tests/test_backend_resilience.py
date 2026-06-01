@@ -185,8 +185,20 @@ class ServerResilienceTests(unittest.TestCase):
                 contextlib.redirect_stderr(io.StringIO()):
             server.run()
 
-        self.assertEqual(stdout.getvalue(), "")
-        append_error_log.assert_called_once()
+            self.assertEqual(stdout.getvalue(), "")
+            append_error_log.assert_called_once()
+
+
+class TextServiceProtocolTests(unittest.TestCase):
+    def test_ping_is_a_successful_noop(self):
+        import textService
+
+        service = textService.TextService(client=object())
+        reply = service.handleRequest({"method": "ping", "seqNum": 7})
+
+        self.assertTrue(reply["success"])
+        self.assertEqual(reply["seqNum"], 7)
+        self.assertNotIn("return", reply)
 
 
 if __name__ == "__main__":

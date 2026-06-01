@@ -128,6 +128,8 @@ class TextService:
         elif method == "onDeactivate":
             self.onDeactivate()
             self.isActivated = False
+        elif method == "ping":
+            pass
         else:
             success = False
 

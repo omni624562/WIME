@@ -115,6 +115,13 @@ void TextService::onFocus() {
 }
 
 // virtual
+void TextService::onSetFocus() {
+	if (client_) {
+		client_->onSetFocus();
+	}
+}
+
+// virtual
 bool TextService::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	// if (keyEvent.isKeyToggled(VK_CAPITAL))
 	//	return true;

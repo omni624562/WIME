@@ -42,8 +42,17 @@ static constexpr const char* kChewingProfileGuid = "{f80736aa-28db-423a-92c9-554
 static constexpr const char* kChecjProfileGuid = "{f828d2dc-81be-466e-9cfe-24bb03172693}";
 static constexpr const char* kCheliuProfileGuid = "{72844b94-5908-4674-8626-4353755bc5db}";
 static constexpr int kKeyEventRpcTimeoutMs = 250;
-static constexpr int kKeyEventConnectTimeoutMs = 25;
-static constexpr int kKeyEventConnectAttempts = 1;
+static constexpr int kWarmKeyEventRpcTimeoutMs = 1000;
+static constexpr int kKeyEventConnectTimeoutMs = 500;
+static constexpr int kKeyEventConnectAttempts = 2;
+static constexpr int kLifecycleRpcTimeoutMs = 1000;
+static constexpr int kLifecycleConnectTimeoutMs = 750;
+static constexpr int kLifecycleConnectAttempts = 2;
+static constexpr int kFocusPingRpcTimeoutMs = 750;
+static constexpr int kFocusPingConnectTimeoutMs = 750;
+static constexpr int kFocusPingConnectAttempts = 2;
+static constexpr ULONGLONG kColdKeyEventIdleMs = 30000;
+static constexpr ULONGLONG kFocusPingMinIntervalMs = 1000;
 
 static std::string uuidToString(const UUID& uuid) {
 	std::string result;
@@ -272,7 +281,9 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	isActivated_(false),
 	guid_{ uuidToString(langProfileGuid) },
 	shouldWaitConnection_{ true },
-	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) } {
+	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) },
+	lastSuccessfulRpcTick_{ 0 },
+	lastFocusPingTick_{ 0 } {
 	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
@@ -750,7 +761,7 @@ void Client::onActivate() {
 	req["isKeyboardOpen"] = textService_->isKeyboardOpened();
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, kLifecycleRpcTimeoutMs, kLifecycleConnectTimeoutMs, kLifecycleConnectAttempts);
 	if (handleRpcResponse(ret)) {
 	}
 	isActivated_ = true;
@@ -759,11 +770,42 @@ void Client::onActivate() {
 void Client::onDeactivate() {
 	json req = createRpcRequest("onDeactivate");
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, kLifecycleRpcTimeoutMs, kLifecycleConnectTimeoutMs, kLifecycleConnectAttempts);
 	if (handleRpcResponse(ret)) {
 	}
 	LangBarButton::clearIconCache();
 	isActivated_ = false;
+}
+
+void Client::onSetFocus() {
+	if (!usesModernCandidateDefault(guid_))
+		return;
+
+	ULONGLONG now = ::GetTickCount64();
+	bool shouldPing = (
+		pipe_ == INVALID_HANDLE_VALUE ||
+		lastSuccessfulRpcTick_ == 0 ||
+		now - lastSuccessfulRpcTick_ > kColdKeyEventIdleMs
+	);
+	if (!shouldPing)
+		return;
+
+	if (lastFocusPingTick_ != 0 && now - lastFocusPingTick_ < kFocusPingMinIntervalMs)
+		return;
+	lastFocusPingTick_ = now;
+
+	json req = createRpcRequest("ping");
+	json ret;
+	if (!callRpcMethod(req, ret, kFocusPingRpcTimeoutMs, kFocusPingConnectTimeoutMs, kFocusPingConnectAttempts)) {
+		return;
+	}
+	if (isRecoverableBackendStateFailure(ret)) {
+		closeRpcConnection();
+		resetTextServiceState();
+		json retryReq = createRpcRequest("ping");
+		json retryRet;
+		callRpcMethod(retryReq, retryRet, kFocusPingRpcTimeoutMs, kFocusPingConnectTimeoutMs, kFocusPingConnectAttempts);
+	}
 }
 
 bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
@@ -771,7 +813,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
+	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -779,15 +821,11 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 }
 
 bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
-	if (pipe_ == INVALID_HANDLE_VALUE && shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent)) {
-		return true;
-	}
-
 	json req = createRpcRequest("onKeyDown");
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
+	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -799,7 +837,7 @@ bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
+	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
 		return ret.value("return", false);
 	}
@@ -811,7 +849,7 @@ bool Client::onKeyUp(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	addKeyEventToRpcRequest(req, keyEvent);
 
 	json ret;
-	callRpcMethod(req, ret, kKeyEventRpcTimeoutMs, kKeyEventConnectTimeoutMs, kKeyEventConnectAttempts);
+	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
@@ -949,7 +987,7 @@ void Client::onCompartmentChanged(const GUID& key) {
 		req["guid"] = std::move(guidStr);
 
 		json ret;
-		callRpcMethod(req, ret);
+		callRpcMethod(req, ret, kLifecycleRpcTimeoutMs, kLifecycleConnectTimeoutMs, kLifecycleConnectAttempts);
 		if (handleRpcResponse(ret)) {
 		}
 	}
@@ -961,7 +999,7 @@ void Client::onKeyboardStatusChanged(bool opened) {
 	req["opened"] = opened;
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, kLifecycleRpcTimeoutMs, kLifecycleConnectTimeoutMs, kLifecycleConnectAttempts);
 	if (handleRpcResponse(ret)) {
 	}
 }
@@ -972,7 +1010,7 @@ void Client::onCompositionTerminated(bool forced) {
 	req["forced"] = forced;
 
 	json ret;
-	callRpcMethod(req, ret);
+	callRpcMethod(req, ret, kLifecycleRpcTimeoutMs, kLifecycleConnectTimeoutMs, kLifecycleConnectAttempts);
 	if (handleRpcResponse(ret)) {
 	}
 }
@@ -1062,6 +1100,61 @@ bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std:
 	}
 }
 
+bool Client::isRecoverableBackendStateFailure(const json& response) const {
+	auto successIt = response.find("success");
+	if (successIt == response.end() || !successIt->is_boolean() || successIt->get<bool>())
+		return false;
+
+	// If the launcher restarts the Python backend, the named pipe can remain
+	// alive while the backend no longer knows this client id. The backend then
+	// replies with only seqNum + success:false; reconnect so init() is sent
+	// again instead of eating printable keys until the user switches IMEs.
+	return response.contains("seqNum") && response.size() <= 2;
+}
+
+int Client::keyEventRpcTimeout() const {
+	if (pipe_ == INVALID_HANDLE_VALUE || lastSuccessfulRpcTick_ == 0)
+		return kWarmKeyEventRpcTimeoutMs;
+
+	ULONGLONG now = ::GetTickCount64();
+	if (now - lastSuccessfulRpcTick_ > kColdKeyEventIdleMs)
+		return kWarmKeyEventRpcTimeoutMs;
+
+	return kKeyEventRpcTimeoutMs;
+}
+
+bool Client::recoverStaleBackendClient(json& request, json& response) {
+	closeRpcConnection();
+	resetTextServiceState();
+
+	response = json();
+	return callRpcMethod(
+		request,
+		response,
+		kWarmKeyEventRpcTimeoutMs,
+		kKeyEventConnectTimeoutMs,
+		kKeyEventConnectAttempts);
+}
+
+bool Client::callKeyRpcMethod(json& request, json& response) {
+	bool hadConnectedPipe = pipe_ != INVALID_HANDLE_VALUE;
+	if (!callRpcMethod(
+		request,
+		response,
+		keyEventRpcTimeout(),
+		kKeyEventConnectTimeoutMs,
+		kKeyEventConnectAttempts)) {
+		if (hadConnectedPipe && usesModernCandidateDefault(guid_))
+			return recoverStaleBackendClient(request, response);
+		return false;
+	}
+
+	if (!isRecoverableBackendStateFailure(response))
+		return true;
+
+	return recoverStaleBackendClient(request, response);
+}
+
 // send the request to the server
 // a sequence number will be added to the req object automatically.
 bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int connectTimeoutMs, int connectAttempts) {
@@ -1095,6 +1188,9 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 	if (!success) { // fail to send the request to the server
 		closeRpcConnection(); // close the pipe connection since it's broken
 		resetTextServiceState();  // since we lost the connection, the state is unknonw so we reset.
+	}
+	else {
+		lastSuccessfulRpcTick_ = ::GetTickCount64();
 	}
 	return success;
 }

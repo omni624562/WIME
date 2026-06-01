@@ -48,6 +48,7 @@ public:
 	// handlers for the text service
 	void onActivate();
 	void onDeactivate();
+	void onSetFocus();
 
 	bool filterKeyDown(Ime::KeyEvent& keyEvent);
 	bool onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session);
@@ -80,6 +81,8 @@ private:
 
 	nlohmann::json createRpcRequest(const char* methodName);
 	bool callRpcMethod(nlohmann::json& request, nlohmann::json& response, int timeoutMs = 2000, int connectTimeoutMs = 3000, int connectAttempts = 3);
+	bool callKeyRpcMethod(nlohmann::json& request, nlohmann::json& response);
+	bool recoverStaleBackendClient(nlohmann::json& request, nlohmann::json& response);
 
 	bool isPipeCreatedByPIMEServer(HANDLE pipe);
 	bool waitForRpcConnection(int connectTimeoutMs = 3000, int connectAttempts = 3);
@@ -94,6 +97,8 @@ private:
 	bool sendOnMenu(std::string button_id, nlohmann::json& result);
 
 	bool handleRpcResponse(nlohmann::json& msg, Ime::EditSession* session = nullptr);
+	bool isRecoverableBackendStateFailure(const nlohmann::json& response) const;
+	int keyEventRpcTimeout() const;
 
 	// Update text service and UI status based on RPC responses.
 	void updateSelectionKeys(nlohmann::json& msg);
@@ -117,6 +122,8 @@ private:
 	bool shouldWaitConnection_;
 	std::string readBuffer_;
 	HANDLE ioEvent_;
+	ULONGLONG lastSuccessfulRpcTick_;
+	ULONGLONG lastFocusPingTick_;
 };
 
 }

@@ -42,6 +42,7 @@ public:
 	virtual void onDeactivate();
 
 	virtual void onFocus();
+	virtual void onSetFocus();
 
 	virtual bool filterKeyDown(Ime::KeyEvent& keyEvent);
 	virtual bool onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session);
