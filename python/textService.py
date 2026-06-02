@@ -121,6 +121,8 @@ class TextService:
         elif method == "onCompositionTerminated":
             forced = msg["forced"]
             self.onCompositionTerminated(forced)
+        elif method == "onKillFocus":
+            self.onKillFocus()
         elif method == "onActivate":
             self.isActivated = True
             self.keyboardOpen = msg["isKeyboardOpen"]
@@ -177,6 +179,13 @@ class TextService:
     def onCompositionTerminated(self, forced):
         self.commitString = ""
         self.compositionString = ""
+
+    def onKillFocus(self):
+        self.commitString = ""
+        self.compositionString = ""
+        self.candidateList = []
+        self.candidateCursor = 0
+        self.showCandidates = False
 
     def onKeyboardStatusChanged(self, opened):
         self.keyboardOpen = opened

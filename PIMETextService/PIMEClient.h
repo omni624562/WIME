@@ -49,6 +49,7 @@ public:
 	void onActivate();
 	void onDeactivate();
 	void onSetFocus();
+	void onKillFocus();
 
 	bool filterKeyDown(Ime::KeyEvent& keyEvent);
 	bool onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session);

@@ -169,6 +169,10 @@ class CheDayiTextService(TextService):
         TextService.onCompositionTerminated(self, forced)
         self.cinbase.onCompositionTerminated(self, forced)
 
+    def onKillFocus(self):
+        TextService.onKillFocus(self)
+        self.cinbase.onCompositionTerminated(self, True)
+
 
     # 設定候選字頁數
     def setCandidatePage(self, page):

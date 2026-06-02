@@ -200,6 +200,26 @@ class TextServiceProtocolTests(unittest.TestCase):
         self.assertEqual(reply["seqNum"], 7)
         self.assertNotIn("return", reply)
 
+    def test_kill_focus_clears_composition_and_candidates(self):
+        import textService
+
+        service = textService.TextService(client=object())
+        service.commitString = "送出"
+        service.compositionString = "組字"
+        service.candidateList = ["候", "選"]
+        service.candidateCursor = 1
+        service.showCandidates = True
+
+        reply = service.handleRequest({"method": "onKillFocus", "seqNum": 8})
+
+        self.assertTrue(reply["success"])
+        self.assertEqual(reply["seqNum"], 8)
+        self.assertEqual(service.commitString, "")
+        self.assertEqual(service.compositionString, "")
+        self.assertEqual(service.candidateList, [])
+        self.assertEqual(service.candidateCursor, 0)
+        self.assertFalse(service.showCandidates)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,6 +51,7 @@ static constexpr int kLifecycleConnectAttempts = 2;
 static constexpr int kFocusPingRpcTimeoutMs = 750;
 static constexpr int kFocusPingConnectTimeoutMs = 750;
 static constexpr int kFocusPingConnectAttempts = 2;
+static constexpr int kFocusLostRpcTimeoutMs = 250;
 static constexpr ULONGLONG kColdKeyEventIdleMs = 30000;
 static constexpr ULONGLONG kFocusPingMinIntervalMs = 1000;
 
@@ -805,6 +806,17 @@ void Client::onSetFocus() {
 		json retryReq = createRpcRequest("ping");
 		json retryRet;
 		callRpcMethod(retryReq, retryRet, kFocusPingRpcTimeoutMs, kFocusPingConnectTimeoutMs, kFocusPingConnectAttempts);
+	}
+}
+
+void Client::onKillFocus() {
+	if (pipe_ == INVALID_HANDLE_VALUE)
+		return;
+
+	json req = createRpcRequest("onKillFocus");
+	json ret;
+	callRpcMethod(req, ret, kFocusLostRpcTimeoutMs, kKeyEventConnectTimeoutMs, 1);
+	if (handleRpcResponse(ret)) {
 	}
 }
 

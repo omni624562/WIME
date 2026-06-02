@@ -1069,3 +1069,18 @@ class ChewingTextService(TextService):
                     chewingContext.clean_bopomofo_buf()
                 if chewingContext.buffer_Check():
                     chewingContext.commit_preedit_buf()
+
+    def onKillFocus(self):
+        chewingContext = self.chewingContext
+        wasShowingCandidates = self.showCandidates
+        if chewingContext:
+            if wasShowingCandidates:
+                chewingContext.cand_close()
+            if chewingContext.bopomofo_Check():
+                chewingContext.clean_bopomofo_buf()
+            if chewingContext.buffer_Check():
+                chewingContext.clean_preedit_buf()
+        TextService.onKillFocus(self)
+        self.setShowCandidates(False)
+        self.setCandidateList([])
+        self.setCandidateCursor(0)

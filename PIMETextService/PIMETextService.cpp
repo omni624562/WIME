@@ -122,6 +122,15 @@ void TextService::onSetFocus() {
 }
 
 // virtual
+void TextService::onKillFocus() {
+	if (client_)
+		client_->onKillFocus();
+	if (showingCandidates())
+		hideCandidates();
+	hideMessage();
+}
+
+// virtual
 bool TextService::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	// if (keyEvent.isKeyToggled(VK_CAPITAL))
 	//	return true;
@@ -451,6 +460,10 @@ void TextService::showCandidates(Ime::EditSession* session) {
 
 // hide candidate list window
 void TextService::hideCandidates() {
+	if (candidateWindow_) {
+		candidateWindow_->resetStableWidth();
+		candidateWindow_->Show(FALSE);
+	}
 	if (validCandidateListElementId_) {
 		auto elementMgr = Ime::ComPtr<ITfUIElementMgr>::queryFrom(threadMgr());
 		if (elementMgr) {
