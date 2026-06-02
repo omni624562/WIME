@@ -8,3 +8,10 @@ PIMELauncher/target/
 .claude/
 cleanup_x64.ps1
 replace_x64_dll.ps1
+
+# Local test/deploy artifacts
+$tmp/
+deploy-test-*.log
+candidate-message-*-mockup.svg
+candidate-no-*-mockup.svg
+candidate-selected-item-*.svg
