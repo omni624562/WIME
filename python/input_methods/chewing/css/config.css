@@ -620,3 +620,83 @@ textarea {
 .indent {
     margin-left: 2em;
 }
+
+/* ===== 比照 cinbase：側欄式導覽與就地說明 ===== */
+#chewingSidebar {
+    background: #1f2733;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    padding: 8px;
+    position: fixed;
+    top: 0;
+    width: 210px;
+    z-index: 1030;
+}
+
+#chewingSidebar .sidebar-brand {
+    color: #f1f4f9;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 10px 12px 12px;
+}
+
+#chewingSidebar .nav-link {
+    border-radius: 6px;
+    color: #c7d0dc;
+    margin-bottom: 2px;
+    padding: 9px 12px;
+}
+
+#chewingSidebar .nav-link:hover,
+#chewingSidebar .nav-link:focus {
+    background: #2b3543;
+    color: #ffffff;
+}
+
+#chewingSidebar .nav-link.active {
+    background: #3f6fe8;
+    color: #ffffff;
+}
+
+#chewingSidebar .sidebar-divider {
+    border-top: 1px solid #36404e;
+    list-style: none;
+    margin: 8px 6px;
+}
+
+.container {
+    margin-left: 210px;
+    max-width: none;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.setting-hint {
+    color: #6b7483;
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 2px 0 6px 24px;
+}
+
+.setting-hint-warn {
+    color: #b9770e;
+}
+
+@media (max-width: 768px) {
+    #chewingSidebar {
+        bottom: auto;
+        position: static;
+        width: 100%;
+    }
+
+    #chewingSidebar .nav {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .container {
+        margin-left: 0;
+    }
+}
