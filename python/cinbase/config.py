@@ -42,11 +42,8 @@ class CinBaseConfig:
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT
         self.outputSmallLetterWithShift = False
         self.switchPageWithSpace = False
-        self.outputSimpChinese = False
-        self.enableSwitchTCSC = False
         self.messageDurationTime = 3
         self.hidePromptMessages = True
-        self.autoClearCompositionChar = False
         self.playSoundWhenNonCand = False
         self.directShowCand = False
         self.autoCommitSingleCandidate = False
@@ -157,8 +154,6 @@ class CinBaseConfig:
                     self.__dict__.update(json.load(f))
         except Exception:
             self.save()
-        self.outputSimpChinese = False
-        self.enableSwitchTCSC = False
         self.update()
 
     def toJson(self):

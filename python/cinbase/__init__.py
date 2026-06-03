@@ -113,17 +113,13 @@ class CinBase:
     def initTextService(self, cbTS, TextService):
         cbTS.TextService = TextService
         cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
-        cbTS.opencc = None
 
         cbTS.keyboardLayout = 0
         cbTS.selKeys = "1234567890"
         cbTS.langMode = -1
         cbTS.shapeMode = -1
         cbTS.switchPageWithSpace = False
-        cbTS.outputSimpChinese = False
-        cbTS.enableSwitchTCSC = False
         cbTS.hidePromptMessages = True
-        cbTS.autoClearCompositionChar = False
         cbTS.playSoundWhenNonCand = False
         cbTS.directShowCand = False
         cbTS.autoCommitSingleCandidate = False
@@ -768,7 +764,6 @@ class CinBase:
         if cbTS.langMode == CHINESE_MODE and (cbTS.compositionChar == "`M" or cbTS.compositionChar == "`E"):
             menu_fullShapeSymbols = "☑ Shift 輸入全形標點" if cbTS.fullShapeSymbols else "☐ Shift 輸入全形標點"
             menu_easySymbolsWithShift = "☑ Shift 快速輸入符號" if cbTS.easySymbolsWithShift else "☐ Shift 快速輸入符號"
-            menu_autoClearCompositionChar = "☑ 拆錯字碼時自動清除輸入字串" if cbTS.autoClearCompositionChar else "☐ 拆錯字碼時自動清除輸入字串"
             menu_playSoundWhenNonCand = "☑ 拆錯字碼時發出警告嗶聲提示" if cbTS.playSoundWhenNonCand else "☐ 拆錯字碼時發出警告嗶聲提示"
             menu_showPhrase = "☑ 輸出字串後顯示聯想字詞" if cbTS.showPhrase else "☐ 輸出字串後顯示聯想字詞"
             menu_sortByPhrase = "☑ 優先以聯想字詞排序候選清單" if cbTS.sortByPhrase else "☐ 優先以聯想字詞排序候選清單"
@@ -780,17 +775,17 @@ class CinBase:
             menu_homophoneQuery = "☑ 同音字查詢" if cbTS.homophoneQuery else "☐ 同音字查詢"
 
             if cbTS.imeDirName == "chephonetic":
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems =  ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "imeReverseLookup", "homophoneQuery"]
+                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_imeReverseLookup, menu_homophoneQuery]
+                cbTS.smenuitems =  ["fullShapeSymbols", "easySymbolsWithShift", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "imeReverseLookup", "homophoneQuery"]
             elif cbTS.imeDirName == "cheez":
-                cbTS.smenucandidates = [menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup]
-                cbTS.smenuitems = ["autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup"]
+                cbTS.smenucandidates = [menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup]
+                cbTS.smenuitems = ["playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup"]
             elif cbTS.imeDirName == "chearray" or cbTS.imeDirName == "chedayi":
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_intelligentSelect, menu_intelligentSelectRecent, menu_intelligentSelectContext, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "intelligentSelect", "intelligentSelectRecent", "intelligentSelectContext", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
+                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_intelligentSelect, menu_intelligentSelectRecent, menu_intelligentSelectContext, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
+                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "intelligentSelect", "intelligentSelectRecent", "intelligentSelectContext", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
             else:
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
+                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
+                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
 
             if not cbTS.closemenu:
                 cbTS.setCandidateCursor(0)
@@ -2133,13 +2128,6 @@ class CinBase:
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
-                            if cbTS.autoClearCompositionChar and not keepNoCandidateMessageInCandidateWindow:
-                                if cbTS.compositionBufferMode:
-                                    RemoveStringLength = 0
-                                    if not cbTS.compositionChar == '':
-                                        RemoveStringLength = self.calcRemoveStringLength(cbTS)
-                                    self.removeCompositionBufferString(cbTS, RemoveStringLength, True)
-                                self.resetComposition(cbTS)
                             if cbTS.playSoundWhenNonCand:
                                 winsound.PlaySound('alert', winsound.SND_ASYNC)
                 elif cbTS.useEndKey and charStr in cbTS.endKeyList:
@@ -2151,13 +2139,6 @@ class CinBase:
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
                                 cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
-                            if cbTS.autoClearCompositionChar and not keepNoCandidateMessageInCandidateWindow:
-                                if cbTS.compositionBufferMode:
-                                    RemoveStringLength = 0
-                                    if not cbTS.compositionChar == '':
-                                        RemoveStringLength = self.calcRemoveStringLength(cbTS)
-                                    self.removeCompositionBufferString(cbTS, RemoveStringLength, True)
-                                self.resetComposition(cbTS)
                             if cbTS.playSoundWhenNonCand:
                                 winsound.PlaySound('alert', winsound.SND_ASYNC)
 
@@ -2725,13 +2706,6 @@ class CinBase:
         cbTS.changeButton("switch-shape", icon=icon_path)
 
 
-    # 設定輸出成簡體中文
-    def setOutputSimplifiedChinese(self, cbTS, outputSimpChinese):
-        cbTS.outputSimpChinese = False
-        cbTS.opencc = None
-        self.updateLangButtons(cbTS)
-
-
     # 按下「`」鍵的選單命令
     def onMenuCommand(self, cbTS, commandId, commandType):
         if commandType == 0:
@@ -2750,8 +2724,6 @@ class CinBase:
                 cbTS.easySymbolsWithShift = not cbTS.easySymbolsWithShift
             elif commandItem == "supportWildcard":
                 cbTS.supportWildcard = not cbTS.supportWildcard
-            elif commandItem == "autoClearCompositionChar":
-                cbTS.autoClearCompositionChar = not cbTS.autoClearCompositionChar
             elif commandItem == "playSoundWhenNonCand":
                 cbTS.playSoundWhenNonCand = not cbTS.playSoundWhenNonCand
             elif commandItem == "showPhrase":
@@ -3445,8 +3417,7 @@ class CinBase:
         # 使用空白鍵作為候選清單換頁鍵?
         cbTS.switchPageWithSpace = cfg.switchPageWithSpace
 
-        self.setOutputSimplifiedChinese(cbTS, False)
-        cbTS.enableSwitchTCSC = False
+        self.updateLangButtons(cbTS)
 
         # Shift 輸入全形標點?
         cbTS.fullShapeSymbols = cfg.fullShapeSymbols
@@ -3478,9 +3449,6 @@ class CinBase:
         cbTS.hideComposition = getattr(cfg, 'hideComposition', False)
         cbTS.hideCompositionLabel = getattr(cfg, 'hideCompositionLabel', '')
         cbTS.imeDisplayName = getattr(cfg, 'imeDisplayName', '')
-
-        # 拆錯字碼時自動清除輸入字串?
-        cbTS.autoClearCompositionChar = cfg.autoClearCompositionChar
 
         # 拆錯字碼時發出警告嗶聲提示?
         cbTS.playSoundWhenNonCand  = cfg.playSoundWhenNonCand 

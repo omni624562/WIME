@@ -54,14 +54,12 @@ class ChewingConfig:
         self.easySymbolsWithShift = True
         self.enableCapsLock = True
         self.enableShiftSpace = True
-        self.enableSwitchTCSC = False
         self.escCleanAllBuf = True
         self.fontSize = DEF_FONT_SIZE
         self.fullShapeSymbols = True
         self.fullShapeSymbolsWithShift = True
         self.keyboardLayout = 0
         self.leftRightAction = 0
-        self.outputSimpChinese = False
         self.phraseChoiceRearward = False
         self.selKeyType = 0
         self.shiftMoveCursor = 0
@@ -133,8 +131,6 @@ class ChewingConfig:
 
         except Exception:
             self.save()
-        self.outputSimpChinese = False
-        self.enableSwitchTCSC = False
         self.update()
 
     def toJson(self):

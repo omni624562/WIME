@@ -129,19 +129,15 @@ class ChewingTextService(TextService):
 
         self.langMode = -1
         self.shapeMode = -1
-        self.outputSimpChinese = False
 
         # remember last state when the input method is temporarily closed
         self.lastLangMode = None
         self.lastShapeMode = None
-        self.lastOutputSimpChinese = None
 
         self.lastKeyDownTime = 0.0
         self.lastKeyEvent = None
 
         self.configVersion = chewingConfig.getVersion()
-
-        self.opencc = None
 
         # has language buttons
         self.hasLangButtons = False
@@ -241,8 +237,6 @@ class ChewingTextService(TextService):
         # 設定選字按鍵 (123456..., asdf.... 等)
         self.setSelKeys(cfg.getSelKeys())
 
-        self.setOutputSimplifiedChinese(False)
-
         # 設定向後詞彙選字模式
         chewingContext.set_phraseChoiceRearward(cfg.phraseChoiceRearward)
 
@@ -279,9 +273,6 @@ class ChewingTextService(TextService):
             chewingContext.set_ShapeMode(self.shapeMode)
 
         self.applyConfig()  # 套用其餘的使用者設定
-
-        if self.lastOutputSimpChinese is not None:
-            self.setOutputSimplifiedChinese(False)
 
     # 輸入法被使用者啟用
     def onActivate(self):
@@ -368,7 +359,6 @@ class ChewingTextService(TextService):
         # 丟棄輸入法狀態
         self.lastLangMode = None
         self.lastShapeMode = None
-        self.lastOutputSimpChinese = None
 
         # 移除語言列按鈕
         self.removeLangButtons()
@@ -389,14 +379,6 @@ class ChewingTextService(TextService):
         self.selKeys = selKeys
         if self.chewingContext:
             self.chewingContext.set_selKeys(selKeys)
-
-    # 設定輸出成簡體中文
-    def setOutputSimplifiedChinese(self, outputSimpChinese):
-        self.outputSimpChinese = False
-        self.opencc = None
-
-        self.updateSwitchLangIcon = True
-        self.updateLangButtons()
 
     # 使用者按下按鍵，在 app 收到前先過濾那些鍵是輸入法需要的。
     # return True，系統會呼叫 onKeyDown() 進一步處理這個按鍵
@@ -1040,7 +1022,6 @@ class ChewingTextService(TextService):
             # 備份目前狀態 (下次重新開啟時套用)
             self.lastLangMode = self.langMode
             self.lastShapeMode = self.shapeMode
-            self.lastOutputSimpChinese = False
 
             # self.hideMessage() # hide message window, if there's any
             self.chewingContext = None  # 釋放新酷音引擎資源

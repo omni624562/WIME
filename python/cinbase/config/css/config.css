@@ -547,6 +547,163 @@ select[disabled] {
     cursor: not-allowed;
 }
 
+/* Phase 0: 設定項就地說明與相依狀態 */
+.setting-hint {
+    color: #6b7483;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 2px 0 10px 20px;
+}
+
+.setting-subitem {
+    margin-left: 22px;
+}
+
+.setting-subitem > .setting-hint {
+    margin-left: 20px;
+}
+
+.setting-subitem.is-disabled {
+    opacity: 0.45;
+}
+
+select:disabled,
+input[type="text"]:disabled {
+    opacity: 0.55;
+}
+
+
+/* ===== Phase 1–3：側欄式設定畫面 ===== */
+#navbar_top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    background: #1f2733;
+    overflow-y: auto;
+    z-index: 1030;
+}
+
+#sidebar {
+    padding: 0 0 16px;
+}
+
+.sidebar-brand {
+    align-items: center;
+    color: #f1f4f9;
+    display: flex;
+    font-size: 16px;
+    font-weight: 700;
+    gap: 10px;
+    padding: 16px 16px 12px;
+}
+
+.sidebar-brand img {
+    border-radius: 6px;
+    height: 28px;
+    width: 28px;
+}
+
+.sidebar-search {
+    background: #2b3543;
+    border: 1px solid #3a4658;
+    border-radius: 6px;
+    color: #e7ecf3;
+    display: block;
+    font-size: 13px;
+    margin: 0 12px 10px;
+    padding: 7px 10px;
+    width: calc(100% - 24px);
+}
+
+.sidebar-search::placeholder {
+    color: #8893a4;
+}
+
+.sidebar-search:focus {
+    border-color: #5a8cff;
+    outline: none;
+}
+
+.sidebar-nav {
+    margin: 0;
+    padding: 0 8px;
+}
+
+.sidebar-heading {
+    color: #7d8a9c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 12px 0 2px;
+    padding: 0 12px;
+}
+
+.sidebar-nav > li > a {
+    border-radius: 6px;
+    color: #c7d0dc;
+    font-size: 14px;
+    padding: 8px 12px;
+}
+
+.sidebar-nav > li > a:hover,
+.sidebar-nav > li > a:focus {
+    background: #2b3543;
+    color: #ffffff;
+}
+
+.sidebar-nav > li.active > a,
+.sidebar-nav > li.active > a:hover,
+.sidebar-nav > li.active > a:focus {
+    background: #3f6fe8;
+    color: #ffffff;
+}
+
+.search-hidden {
+    display: none !important;
+}
+
+/* 主內容區右移，避開固定側欄與底部套用列（只鎖定 body 直屬 container） */
+body > .container {
+    margin-left: 220px;
+    margin-right: 0;
+    padding-bottom: 72px;
+    padding-left: 24px;
+    padding-right: 24px;
+    width: auto;
+}
+
+#navbar_bottom .navbar-fixed-bottom {
+    left: 220px;
+}
+
+@media (max-width: 768px) {
+    #navbar_top {
+        bottom: auto;
+        position: static;
+        width: 100%;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .sidebar-nav > li.sidebar-heading {
+        width: 100%;
+    }
+
+    body > .container {
+        margin-left: 0;
+    }
+
+    #navbar_bottom .navbar-fixed-bottom {
+        left: 0;
+    }
+}
+
 
 /* Bootstrap */
 /* ================================================================== */

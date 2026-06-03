@@ -29,8 +29,6 @@ $(function () {
     }
 
     function applyCandidateDefaults() {
-        chewingConfig.outputSimpChinese = false;
-        chewingConfig.enableSwitchTCSC = false;
         if (typeof chewingConfig.candidateModernStyle === "undefined") {
             chewingConfig.candidateModernStyle = true;
         }
@@ -756,8 +754,6 @@ $(function () {
         if (chewingConfig.candidateTheme) {
             chewingConfig.candidateColors = {};
         }
-        chewingConfig.outputSimpChinese = false;
-        chewingConfig.enableSwitchTCSC = false;
     }
 
     // Initialize UI

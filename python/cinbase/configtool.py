@@ -110,8 +110,6 @@ class ConfigHandler(BaseHandler):
         # write the config to files
         config = data.get("config", None)
         if config is not None:
-            config["outputSimpChinese"] = False
-            config["enableSwitchTCSC"] = False
             self.save_file("config.json", json.dumps(config, sort_keys=True, indent=4))
 
         symbols = data.get("symbols", None)
