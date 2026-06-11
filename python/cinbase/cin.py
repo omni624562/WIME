@@ -178,18 +178,26 @@ class Cin(object):
         return False
 
 
+    def sortedCharDefKeys(self):
+        # sorted() over all chardef keys is expensive on large tables
+        # (dayi3 has ~12k keys); cache until the table content changes
+        chardef_count = len(self.chardefs)
+        cached = getattr(self, "_sorted_chardef_keys", None)
+        if cached is None or getattr(self, "_sorted_chardef_keys_count", -1) != chardef_count:
+            cached = sorted(self.chardefs.keys())
+            self._sorted_chardef_keys = cached
+            self._sorted_chardef_keys_count = chardef_count
+        return cached
+
     def getWildcardCharDefs(self, CompositionChar, WildcardChar, candMaxItems, variableWildcard=False):
         wildcardchardefs = []
-        matchchardefs = {}
         lowFrequencyChardefs = {}
         highFrequencyCharSetList = ["bopomofo", "bopomofoTone", "cjk", "big5F", "big5LF", "big5S"]
         lowFrequencyCharSetList = ["big5Other", "cjkExtA", "cjkExtB", "cjkExtC", "cjkExtD", "cjkExtE", "cjkExtF", "cjkCIibm", "pua", "cjkOther"]
 
-        highFrequencyWordCount = 0
-        lowFrequencyWordCount = 0
-
         for i in range(len(lowFrequencyCharSetList)):
             lowFrequencyChardefs[i] = []
+        lowFrequencySeen = set()
 
         keyLength = len(CompositionChar)
         matchstring = ''
@@ -198,12 +206,13 @@ class Cin(object):
                 matchstring += '(.*)' if variableWildcard else '(.)'
             else:
                 matchstring += re.escape(char)
+        pattern = re.compile('^' + matchstring + '$')
 
-        sortedchardefs = sorted(self.chardefs.keys())
+        sortedchardefs = self.sortedCharDefKeys()
         if variableWildcard:
-            matchchardefs = [self.chardefs[key] for key in sortedchardefs if re.match('^' + matchstring + '$', key)]
+            matchchardefs = [self.chardefs[key] for key in sortedchardefs if pattern.match(key)]
         else:
-            matchchardefs = [self.chardefs[key] for key in sortedchardefs if re.match('^' + matchstring + '$', key) and len(key) == keyLength]
+            matchchardefs = [self.chardefs[key] for key in sortedchardefs if len(key) == keyLength and pattern.match(key)]
 
         if matchchardefs:
             for chardef in matchchardefs:
@@ -215,19 +224,20 @@ class Cin(object):
 
                     if charSet in highFrequencyCharSetList:
                         wildcardchardefs.append(matchstr)
-                        highFrequencyWordCount += 1
                         if len(wildcardchardefs) >= candMaxItems:
                             return wildcardchardefs
                     else:
                         i = lowFrequencyCharSetList.index(charSet) if charSet in lowFrequencyCharSetList else len(lowFrequencyCharSetList) - 1
-                        if not matchstr in lowFrequencyChardefs[i]:
+                        if matchstr not in lowFrequencySeen:
                             lowFrequencyChardefs[i].append(matchstr)
-                            lowFrequencyWordCount += 1
+                            lowFrequencySeen.add(matchstr)
 
+            highFrequencySeen = set(wildcardchardefs)
             for key in lowFrequencyChardefs:
                 for char in lowFrequencyChardefs[key]:
-                    if not char in wildcardchardefs:
+                    if char not in highFrequencySeen:
                         wildcardchardefs.append(char)
+                        highFrequencySeen.add(char)
                     if len(wildcardchardefs) >= candMaxItems:
                         return wildcardchardefs
         return wildcardchardefs

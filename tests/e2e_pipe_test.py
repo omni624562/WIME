@@ -91,7 +91,9 @@ class PipeClient:
     def activate(self):
         return self.rpc({"method": "onActivate", "isKeyboardOpen": True})
 
-    def key(self, char, key_code=None, method="filterKeyDown"):
+    def key(self, char, key_code=None, method="filterKeyDown", legacy_states=False):
+        # sparse object mirrors what the C++ client sends; legacy_states
+        # exercises the backward-compatible 256-element array path
         return self.rpc({
             "method": method,
             "charCode": ord(char),
@@ -99,7 +101,7 @@ class PipeClient:
             "repeatCount": 1,
             "scanCode": 0,
             "isExtended": False,
-            "keyStates": [0] * 256,
+            "keyStates": [0] * 256 if legacy_states else {},
         })
 
     def press(self, char, key_code=None):
@@ -124,6 +126,10 @@ class ChewingE2ETests(unittest.TestCase):
                 self.assertTrue(reply.get("success"))
             # bopomofo 'a' (ㄇ) must enter the composition, not pass through
             self.assertTrue(replies[0].get("return"))
+            # legacy full-array keyStates must keep working too
+            legacy = c.key("a", 0x41, legacy_states=True)
+            self.assertTrue(legacy.get("success"))
+            self.assertTrue(legacy.get("return"))
             self.assertTrue(c.rpc({"method": "onDeactivate"}).get("success"))
         finally:
             c.close()

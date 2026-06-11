@@ -40,7 +40,25 @@ class KeyEvent:
         self.repeatCount = msg["repeatCount"]
         self.scanCode = msg["scanCode"]
         self.isExtended = msg["isExtended"]
-        self.keyStates = msg["keyStates"]
+        # keyStates comes as either the legacy 256-element array or a sparse
+        # {"vk": state} object holding only the non-zero entries
+        states = msg.get("keyStates", None)
+        if isinstance(states, dict):
+            full = [0] * 256
+            for key, value in states.items():
+                try:
+                    index = int(key)
+                except (TypeError, ValueError):
+                    continue
+                if 0 <= index < 256:
+                    try:
+                        full[index] = int(value)
+                    except (TypeError, ValueError):
+                        pass
+            states = full
+        elif not isinstance(states, list):
+            states = [0] * 256
+        self.keyStates = states
 
     def isKeyDown(self, code):
         return (self.keyStates[code] & (1 << 7)) != 0

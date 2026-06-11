@@ -85,6 +85,14 @@ class CinCountTests(unittest.TestCase):
 
         self.assertIn("B", cin.getWildcardCharDefs("a*b", "*", 10, variableWildcard=True))
 
+    def test_sorted_chardef_keys_cache_refreshes_on_table_change(self):
+        cin = self.make_wildcard_cin()
+        self.assertEqual(cin.getWildcardCharDefs("a*b", "*", 10), ["林"])
+
+        # 表格內容改變（如載入擴充表）後，快取必須跟著更新
+        cin.chardefs["azb"] = ["新"]
+        self.assertIn("新", cin.getWildcardCharDefs("a*b", "*", 10))
+
     def test_load_count_file_ignores_malformed_entries(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             cin = self.make_cin(temp_dir, {
@@ -219,6 +227,72 @@ class ServerResilienceTests(unittest.TestCase):
 
             self.assertEqual(stdout.getvalue(), "")
             append_error_log.assert_called_once()
+
+
+class KeyEventTests(unittest.TestCase):
+    def make_event(self, keyStates):
+        import textService
+
+        msg = {"charCode": 97, "keyCode": 65, "repeatCount": 1,
+               "scanCode": 30, "isExtended": False}
+        if keyStates is not None:
+            msg["keyStates"] = keyStates
+        return textService.KeyEvent(msg)
+
+    def test_accepts_legacy_256_array(self):
+        states = [0] * 256
+        states[16] = 0x81
+        event = self.make_event(states)
+        self.assertTrue(event.isKeyDown(16))
+        self.assertTrue(event.isKeyToggled(16))
+        self.assertFalse(event.isKeyDown(65))
+
+    def test_accepts_sparse_object(self):
+        event = self.make_event({"16": 0x80, "20": 1})
+        self.assertTrue(event.isKeyDown(16))
+        self.assertFalse(event.isKeyToggled(16))
+        self.assertTrue(event.isKeyToggled(20))
+        self.assertFalse(event.isKeyDown(65))
+
+    def test_sparse_object_ignores_bad_entries(self):
+        event = self.make_event({"abc": 0x80, "300": 0x80, "-1": 0x80, "16": "bad"})
+        self.assertEqual(event.keyStates, [0] * 256)
+
+    def test_missing_keystates_defaults_to_all_zero(self):
+        event = self.make_event(None)
+        self.assertEqual(len(event.keyStates), 256)
+        self.assertFalse(event.isKeyDown(16))
+
+
+class SortByPhraseTests(unittest.TestCase):
+    class StubDef:
+        def __init__(self, defs):
+            self.defs = defs
+
+        def isInCharDef(self, key):
+            return key in self.defs
+
+        def getCharDef(self, key):
+            return self.defs[key]
+
+    def test_phrase_candidates_move_to_front_preserving_rest(self):
+        import cinbase
+
+        cbTS = type("FakeTS", (), {})()
+        cbTS.lastCommitString = "你"
+        cbTS.userphrase = self.StubDef({"你": ["好", "們", "不在清單"]})
+        old_phrase = cinbase.PhraseData.phrase
+        cinbase.PhraseData.phrase = self.StubDef({})
+        try:
+            original = ["甲", "們", "乙", "好"]
+            result = cinbase.CinBase.sortByPhrase(cbTS, list(original))
+            self.assertEqual(result, ["好", "們", "甲", "乙"])
+            # 沒有詞庫建議時原樣返回
+            cbTS.lastCommitString = "無"
+            self.assertEqual(
+                cinbase.CinBase.sortByPhrase(cbTS, list(original)), original)
+        finally:
+            cinbase.PhraseData.phrase = old_phrase
 
 
 class TextServiceProtocolTests(unittest.TestCase):

@@ -1531,7 +1531,7 @@ class CinBase:
             elif cbTS.cin.isInCharDef(cbTS.compositionChar) and cbTS.closemenu and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode:
                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                 if cbTS.sortByPhrase and candidates:
-                    candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                    candidates = self.sortByPhrase(cbTS, list(candidates))
                 candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                 if cbTS.compositionBufferMode and not cbTS.selcandmode:
                     cbTS.compositionBufferType = "default"
@@ -1539,7 +1539,7 @@ class CinBase:
                 if cbTS.cin.isInCharDef(cbTS.compositionChar + "1") and cbTS.closemenu and not cbTS.ctrlsymbolsmode:
                     candidates = cbTS.cin.getCharDef(cbTS.compositionChar + '1')
                     if cbTS.sortByPhrase and candidates:
-                        candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                        candidates = self.sortByPhrase(cbTS, list(candidates))
                     candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar + "1", candidates)
                     if cbTS.compositionBufferMode and not cbTS.selcandmode:
                         cbTS.compositionBufferType = "default"
@@ -1581,7 +1581,7 @@ class CinBase:
                         cbTS.compositionBufferType = "default"
                 cbTS.isWildcardChardefs = True
                 if cbTS.sortByPhrase and candidates:
-                    candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                    candidates = self.sortByPhrase(cbTS, list(candidates))
                 candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
 
         # 組字編輯模式
@@ -1684,7 +1684,7 @@ class CinBase:
                             cbTS.compositionChar = sellist[1]
                             candidates = cbTS.cin.getCharDef(sellist[1])
                             if cbTS.sortByPhrase and candidates:
-                                candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                candidates = self.sortByPhrase(cbTS, list(candidates))
                             candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                             cbTS.selcandmode = True
                     else:
@@ -1692,7 +1692,7 @@ class CinBase:
                             cbTS.compositionChar = cbTS.cin.getKey(cbTS.compositionBufferString[cbTS.compositionBufferCursor])
                             candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                             if cbTS.sortByPhrase and candidates:
-                                candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                candidates = self.sortByPhrase(cbTS, list(candidates))
                             candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                             cbTS.selcandmode = True
                         else:
@@ -1704,7 +1704,7 @@ class CinBase:
                     if cbTS.selcandmode:
                         cbTS.isShowCandidates = True
                         cbTS.canSetCommitString = False
-                        cbTS.tempengcandidates = copy.deepcopy(candidates)
+                        cbTS.tempengcandidates = list(candidates)
 
             if changelastCommitString and cbTS.compositionBufferString != '':
                 if cbTS.compositionBufferCursor > 0:
@@ -1737,7 +1737,7 @@ class CinBase:
                             if cbTS.cin.isInCharDef(cbTS.compositionChar):
                                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                 if cbTS.sortByPhrase and candidates:
-                                    candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                    candidates = self.sortByPhrase(cbTS, list(candidates))
                                 candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                 # 如果是碼表標點
                 if cbTS.cin.isInKeyName(cbTS.compositionChar[0]):
@@ -1763,7 +1763,7 @@ class CinBase:
                             if cbTS.cin.isInCharDef(cbTS.compositionChar):
                                 candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                 if cbTS.sortByPhrase and candidates:
-                                    candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                    candidates = self.sortByPhrase(cbTS, list(candidates))
                                 candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
 
             if cbTS.langMode == CHINESE_MODE and cbTS.dayisymbolsmode and len(cbTS.compositionChar) == 1 and (keyCode == VK_SPACE or keyCode == VK_RETURN) and cbTS.cin.isInCharDef(cbTS.compositionChar):
@@ -2325,7 +2325,7 @@ class CinBase:
                                 if cbTS.cin.isInCharDef(cbTS.compositionChar):
                                     candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                                     if cbTS.sortByPhrase and candidates:
-                                        candidates = self.sortByPhrase(cbTS, copy.deepcopy(candidates))
+                                        candidates = self.sortByPhrase(cbTS, list(candidates))
                                     candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                                 if candidates:
                                     pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
@@ -2997,24 +2997,39 @@ class CinBase:
     def sortByPhrase(self, cbTS, candidates):
         sortbyphraselist = []
         if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
-            sortbyphraselist = cbTS.userphrase.getCharDef(cbTS.lastCommitString)
+            sortbyphraselist = list(cbTS.userphrase.getCharDef(cbTS.lastCommitString))
         if PhraseData.phrase.isInCharDef(cbTS.lastCommitString):
             if len(sortbyphraselist) == 0:
                 sortbyphraselist = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
             else:
-                plist = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
-                for pstr in plist:
-                    if not pstr in sortbyphraselist:
+                seen = set(sortbyphraselist)
+                for pstr in PhraseData.phrase.getCharDef(cbTS.lastCommitString):
+                    if pstr not in seen:
                         sortbyphraselist.append(pstr)
+                        seen.add(pstr)
 
-        i = 0
-        if len(sortbyphraselist) > 0:
-            for pStr in sortbyphraselist:
-                if pStr in candidates:
-                    candidates.remove(pStr)
-                    candidates.insert(i, pStr)
-                    i += 1
-        return candidates
+        if not sortbyphraselist:
+            return candidates
+
+        # 把詞庫建議字搬到最前面；用 set 過濾避免 remove/insert 的 O(n*m) 重排
+        candidateSet = set(candidates)
+        front = []
+        frontSet = set()
+        for pStr in sortbyphraselist:
+            if pStr in candidateSet and pStr not in frontSet:
+                front.append(pStr)
+                frontSet.add(pStr)
+        if not front:
+            return candidates
+        moved = set()
+        rest = []
+        for candidate in candidates:
+            # 與原本 list.remove() 行為一致：每個建議字只移走第一個出現位置
+            if candidate in frontSet and candidate not in moved:
+                moved.add(candidate)
+                continue
+            rest.append(candidate)
+        return front + rest
 
     def shouldAutoCommitSingleCandidate(self, cbTS, candidates):
         if not getattr(cbTS, 'autoCommitSingleCandidate', False):

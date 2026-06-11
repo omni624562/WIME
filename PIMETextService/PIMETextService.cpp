@@ -296,7 +296,7 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 		// font for candidate and mesasge windows
 		LOGFONT lf;
 		GetObject(font_, sizeof(lf), &lf);
-		::DeleteObject(font_); // delete old font
+		HFONT oldFont = font_;
 		lf.lfHeight = candFontHeight(); // apply the new size
 		if (!candFontName_.empty()) { // apply new font name
 			wcsncpy(lf.lfFaceName, candFontName_.c_str(), 31);
@@ -304,8 +304,14 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 		font_ = CreateFontIndirect(&lf); // create new font
 		// if (messageWindow_)
 		//	messageWindow_->setFont(font_);
-		if (candidateWindow_)
+		if (candidateWindow_) {
+			// the window holds the same old handle and setFont() deletes it;
+			// deleting it here as well would double-delete the HFONT
 			candidateWindow_->setFont(font_);
+		}
+		else if (oldFont) {
+			::DeleteObject(oldFont);
+		}
 		updateFont_ = false;
 	}
 

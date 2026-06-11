@@ -4,6 +4,7 @@ package pime
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 // 消息类型
@@ -36,6 +37,19 @@ func (k *KeyStates) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &ints); err == nil {
 		states := make(KeyStates, len(ints))
 		copy(states, ints)
+		*k = states
+		return nil
+	}
+
+	// sparse {"vk": state} object holding only the non-zero entries
+	var sparse map[string]int
+	if err := json.Unmarshal(data, &sparse); err == nil {
+		states := make(KeyStates, 256)
+		for key, value := range sparse {
+			if index, err := strconv.Atoi(key); err == nil && index >= 0 && index < 256 {
+				states[index] = value
+			}
+		}
 		*k = states
 		return nil
 	}

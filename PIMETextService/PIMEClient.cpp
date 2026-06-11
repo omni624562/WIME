@@ -317,10 +317,17 @@ void Client::addKeyEventToRpcRequest(json& request, Ime::KeyEvent& keyEvent) {
 	request["repeatCount"] = keyEvent.repeatCount();
 	request["scanCode"] = keyEvent.scanCode();
 	request["isExtended"] = keyEvent.isExtended();
-	json keyStates = json::array();
+	// Send key states as a sparse {"vk": state} object instead of the legacy
+	// 256-element array: only a handful of entries are ever non-zero, and the
+	// full array dominated the per-keystroke payload (~900 vs ~130 bytes).
+	json keyStates = json::object();
 	const BYTE* states = keyEvent.keyStates();
+	char vk[4];
 	for (int i = 0; i < 256; ++i) {
-		keyStates.push_back(states[i]);
+		if (states[i]) {
+			_itoa_s(i, vk, 10);
+			keyStates[vk] = states[i];
+		}
 	}
 	request["keyStates"] = keyStates;
 }

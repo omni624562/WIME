@@ -130,6 +130,16 @@
 - 每頁候選數現在以選字鍵數為硬上限（大易候選鍵 6 個、其餘 10 個）；C++ `updateCandidates()` 同步夾住迴圈上限，Release 版不再可能以超出 `selKeys_` 長度的索引越界取鍵（原本只有會被編譯掉的 assert 保護）（2026-06-11）。
 - `CandidateWindow::setCurrentSel()` 對負數游標做防護（2026-06-11）。
 
+## 2026-06-11 效能優化
+
+- 鍵盤事件的 `keyStates` 由 256 元素陣列改為稀疏物件（只送非零鍵），單一鍵事件 payload 由約 900 bytes 降到約 130 bytes；Python/Go 後端同時相容兩種格式，Node 端 JS 索引語意天然相容。
+- 候選窗繪製快取：選字鍵縮放字型、面板背景刷、邊框與 header 分隔線畫筆改為跨重繪重用（主題或字型改變時重建），不再每個候選項每次重繪都建立/銷毀 GDI 物件。
+- `itemRect()` 改用 `recalculateSize()` 量好的 header 高度，方向鍵移動選取不再每次 `GetWindowDC` 重量。
+- 選取移動的重繪改為一次聯集區域且不清背景（`onPaint` 本就覆蓋完整背景），減少重繪與閃爍。
+- 修正候選字型更換時 HFONT 被刪除兩次的潛在問題（TextService 與視窗共持同一 handle）。
+- `sortByPhrase()` 改用 set 過濾重排（原為 O(n×m) 的 remove/insert），呼叫端以淺拷貝取代 `copy.deepcopy`（每鍵約 20µs → 0.4µs）。
+- 大易萬用字元查詢：排序後的字根鍵列表加入快取（表格內容變更時失效）、低頻字去重改用 set、regex 預編譯。
+
 ## 設定工具可靠性
 
 - 大易/碼表系設定工具補上 no-cache 靜態檔回應與登入後 URL cache-buster，降低更新後設定頁仍讀到舊 HTML/JS 的機率。
