@@ -149,6 +149,15 @@
 - `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
 - 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
+## 2026-06-12 結構性重構（第一階段）
+
+cinbase 神模組開始以 strangler 模式拆分，先抽出兩塊已有測試保護、bug 密度最高的邏輯：
+
+- 新增 `cinbase/selkeys.py`：選字鍵狀態的唯一擁有者。原本散在 4 處的切換邏輯（非大易預設鍵、大易功能選單、大易組字 ×2）與 init 送出收斂為 `initSelKeys` / `applyDefaultSelKeys` / `applyDayiSelKeys`，per-client 快取與「只在變更時送出」的規則只寫一次——「大易選字符變 12345」這類共享狀態 bug 從結構上失去生存空間。
+- 新增 `cinbase/pager.py`：候選分頁的唯一擁有者。原本 19 處重複的 `list(self.chunks(...))`、3 處 `math.ceil` 頁數計算、每頁上限 clamp 收斂為 `paginate` / `pageCount` / `clampCandPerPage`，「每頁候選數 ≤ 選字鍵數」的不變量在此集中防守；死碼 `chunks()` 移除。
+- 新增 `tests/test_pager.py` 與 selkeys 管理者測試共 19 項，含與舊 `list(chunks(...))` 的全組合等價驗證（total 0–22 × perPage 1–10），確保行為零變化。
+- 測試總數 48 項（單元）+ 4 項（實機 E2E）。
+
 ## 設定工具可靠性
 
 - 大易/碼表系設定工具補上 no-cache 靜態檔回應與登入後 URL cache-buster，降低更新後設定頁仍讀到舊 HTML/JS 的機率。

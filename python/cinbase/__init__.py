@@ -38,6 +38,8 @@ from .phrase import phrase
 from .userphrase import userphrase
 from .emoji import emoji
 from .extendtable import extendtable
+from . import pager
+from . import selkeys
 from .config import SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
 
 from .debug import Debug
@@ -111,11 +113,8 @@ class CinBase:
     # 初始化輸入行為設定
     def initTextService(self, cbTS, TextService):
         cbTS.TextService = TextService
-        # 「上次送出的選字鍵」快取必須是 per-client 狀態：每個應用程式視窗
-        # 各有自己的 C++ TextService，共用快取會讓另一個視窗的候選窗停留在
-        # 預設的 1234567890
-        cbTS.candselKeys = "1234567890"
-        cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
+        # 選字鍵狀態（per-client）一律由 selkeys 模組管理
+        selkeys.initSelKeys(cbTS)
         cbTS.opencc = None
 
         cbTS.keyboardLayout = 0
@@ -557,11 +556,7 @@ class CinBase:
 
         # 檢查選字鍵
         if not cbTS.imeDirName == "chedayi":
-            cbTS.selKeys = "1234567890"
-            if not cbTS.candselKeys == "1234567890":
-                cbTS.candselKeys = "1234567890"
-                cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
-                cbTS.isSelKeysChanged = True
+            selkeys.applyDefaultSelKeys(cbTS)
 
         if cbTS.autoMoveCursorInBrackets:
             if cbTS.compositionBufferMode and keyEvent.isPrintableChar() and not keyEvent.isKeyDown(VK_SPACE):
@@ -799,14 +794,10 @@ class CinBase:
                 cbTS.setCandidateCursor(0)
                 cbTS.setCandidatePage(0)
 
-                # 大易須更換選字鍵
+                # 大易須更換選字鍵（功能選單用數字鍵）
                 if cbTS.imeDirName == "chedayi":
-                    cbTS.selKeys = "1234567890"
-                    if not cbTS.candselKeys == "1234567890":
-                        cbTS.candselKeys = "1234567890"
-                        cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
+                    if selkeys.applyDefaultSelKeys(cbTS):
                         cbTS.isShowCandidates = True
-                        cbTS.isSelKeysChanged = True
 
                 if not cbTS.emojimenumode:
                     cbTS.menutype = 0
@@ -827,11 +818,11 @@ class CinBase:
                 candidates = cbTS.menucandidates
                 candCursor = cbTS.candidateCursor  # 目前的游標位置
                 candCount = len(cbTS.candidateList)  # 目前選字清單項目數
-                currentCandPageCount = math.ceil(len(candidates) / cbTS.candPerPage) # 目前的選字清單總頁數
+                currentCandPageCount = pager.pageCount(len(candidates), cbTS.candPerPage) # 目前的選字清單總頁數
                 currentCandPage = cbTS.currentCandPage # 目前的選字清單頁數
 
                 # 候選清單分頁
-                pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
+                pagecandidates = pager.paginate(candidates, cbTS.candPerPage)
                 cbTS.setCandidateList(pagecandidates[currentCandPage])
                 if not cbTS.isSelKeysChanged:
                     cbTS.setShowCandidates(True)
@@ -928,23 +919,23 @@ class CinBase:
                     cbTS.switchmenu = False
                     if cbTS.menutype == 0 and itemName == "功能開關": # 切至功能開關頁面
                         cbTS.menucandidates = cbTS.smenucandidates
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 1, ["0," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 0 and itemName == "特殊符號": # 切至特殊符號頁面
                         cbTS.menucandidates = cbTS.symbols.getKeyNames()
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 2, ["0," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 0 and itemName == "注音符號": # 切至注音符號頁面
                         cbTS.menucandidates = cbTS.bopomofolist
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 4, ["0," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 0 and itemName == "外語文字": # 切至外語文字頁面
                         cbTS.menucandidates = cbTS.flangs.getKeyNames()
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 5, ["0," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 0 and itemName == "表情符號": # 切至表情符號頁面
                         cbTS.menucandidates = self.emojimenulist
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         if not cbTS.emojimenumode:
                             cbTS.resetMenuCand = self.switchMenuType(cbTS, 7, ["0," + str(candCursor) + "," + str(currentCandPage)])
                         else:
@@ -966,7 +957,7 @@ class CinBase:
                         if cbTS.compositionBufferMode:
                             cbTS.compositionBufferMenuItem = cbTS.candidateList[candCursor]
                         cbTS.menucandidates = cbTS.symbols.getCharDef(cbTS.candidateList[candCursor])
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 3, ["2," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 3: # 執行特殊符號子頁面項目
                         if cbTS.compositionBufferMode:
@@ -990,7 +981,7 @@ class CinBase:
                         if cbTS.compositionBufferMode:
                             cbTS.compositionBufferMenuItem = cbTS.candidateList[candCursor]
                         cbTS.menucandidates = cbTS.flangs.getCharDef(cbTS.candidateList[candCursor])
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 6, ["5," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 6: # 執行外語文字子頁面項目
                         if cbTS.compositionBufferMode:
@@ -1023,7 +1014,7 @@ class CinBase:
                             cbTS.emojitype = 5
                             cbTS.menucandidates = self.emoji.modifiercolor
                             menutype = 9
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, menutype, ["7," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 8: # 切換至表情符號分類子頁面
                         if cbTS.emojitype == 0:
@@ -1046,7 +1037,7 @@ class CinBase:
                             if cbTS.compositionBufferMode:
                                 cbTS.compositionBufferMenuItem = "transport," + cbTS.candidateList[candCursor]
                             cbTS.menucandidates = self.emoji.getCharDef("transport", cbTS.candidateList[candCursor])
-                        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 9, ["8," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 9: # 執行表情符號分類子頁面項目
                         if cbTS.compositionBufferMode:
@@ -1175,11 +1166,7 @@ class CinBase:
         # 大易須換回選字鍵
         if not cbTS.showmenu:
             if cbTS.imeDirName == "chedayi":
-                cbTS.selKeys = "'[]-\\"
-                if not cbTS.candselKeys == "␣'[]-\\":
-                    cbTS.candselKeys = "␣'[]-\\"
-                    cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
-                    cbTS.isSelKeysChanged = True
+                selkeys.applyDayiSelKeys(cbTS)
 
         if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
             self.resetComposition(cbTS)
@@ -1452,11 +1439,7 @@ class CinBase:
             # 功能選單會暫時改用數字選字鍵；回到一般大易組字候選時，
             # 必須在同一包候選回覆內切回大易選字鍵，避免候選窗殘留 1/2/3。
             if cbTS.imeDirName == "chedayi":
-                cbTS.selKeys = "'[]-\\"
-                if cbTS.candselKeys != "␣'[]-\\":
-                    cbTS.candselKeys = "␣'[]-\\"
-                    cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
-                    cbTS.isSelKeysChanged = True
+                selkeys.applyDayiSelKeys(cbTS)
             if not cbTS.directShowCand and not cbTS.selcandmode:
                 if not cbTS.lastCompositionCharLength == len(cbTS.compositionChar):
                     cbTS.lastCompositionCharLength = len(cbTS.compositionChar)
@@ -1920,7 +1903,7 @@ class CinBase:
                 if cbTS.isShowCandidates:
                     candCursor = cbTS.candidateCursor  # 目前的游標位置
                     candCount = len(cbTS.candidateList)  # 目前選字清單項目數
-                    currentCandPageCount = math.ceil(len(candidates) / cbTS.candPerPage) # 目前的選字清單總頁數
+                    currentCandPageCount = pager.pageCount(len(candidates), cbTS.candPerPage) # 目前的選字清單總頁數
                     currentCandPage = cbTS.currentCandPage # 目前的選字清單頁數
 
                     # 候選清單分頁
@@ -1928,10 +1911,10 @@ class CinBase:
                         if cbTS.wildcardpagecandidates:
                             pagecandidates = cbTS.wildcardpagecandidates
                         else:
-                            cbTS.wildcardpagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
+                            cbTS.wildcardpagecandidates = pager.paginate(candidates, cbTS.candPerPage)
                             pagecandidates = cbTS.wildcardpagecandidates
                     else:
-                        pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
+                        pagecandidates = pager.paginate(candidates, cbTS.candPerPage)
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
 
                     if not cbTS.isSelKeysChanged:
@@ -1982,7 +1965,7 @@ class CinBase:
                             cbTS.homophoneChar = cbTS.compositionChar
                             cbTS.isHomophoneChardefs = True
                             cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[i])
-                            pagecandidates = list(self.chunks(cbTS.homophonecandidates, cbTS.candPerPage))
+                            pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
                             cbTS.setCandidateList(pagecandidates[currentCandPage])
                     elif keyCode == VK_UP:  # 游標上移
                         if (candCursor - cbTS.candPerRow) < 0:
@@ -2038,14 +2021,14 @@ class CinBase:
                                     cbTS.homophoneChar = cbTS.compositionChar
                                     cbTS.homophoneStr = commitStr
                                     cbTS.homophonecandidates = HCinTable.cin.getKeyNameList(HCinTable.cin.getKeyList(commitStr))
-                                    pagecandidates = list(self.chunks(cbTS.homophonecandidates, cbTS.candPerPage))
+                                    pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
                                 else:
                                     cbTS.homophonemode = True
                                     cbTS.homophoneChar = cbTS.compositionChar
                                     cbTS.isHomophoneChardefs = True
                                     cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKey(commitStr))
-                                    pagecandidates = list(self.chunks(cbTS.homophonecandidates, cbTS.candPerPage))
+                                    pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
                     elif (keyCode == VK_RETURN or (keyCode == VK_SPACE and not cbTS.switchPageWithSpace)) and cbTS.canSetCommitString:  # 按下 Enter 鍵或空白鍵
                         if not cbTS.homophoneselpinyinmode:
@@ -2072,7 +2055,7 @@ class CinBase:
                             cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[candCursor])
                             candCursor = 0
                             currentCandPage = 0
-                            pagecandidates = list(self.chunks(cbTS.homophonecandidates, cbTS.candPerPage))
+                            pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
                             cbTS.setCandidateList(pagecandidates[currentCandPage])
                     elif keyCode == VK_SPACE and cbTS.switchPageWithSpace: # 按下空白鍵
                         if cbTS.canUseSpaceAsPageKey:
@@ -2192,7 +2175,7 @@ class CinBase:
             if phrasecandidates:
                 candCursor = cbTS.candidateCursor  # 目前的游標位置
                 candCount = len(cbTS.candidateList)  # 目前選字清單項目數
-                currentCandPageCount = math.ceil(len(phrasecandidates) / cbTS.candPerPage) # 目前的選字清單總頁數
+                currentCandPageCount = pager.pageCount(len(phrasecandidates), cbTS.candPerPage) # 目前的選字清單總頁數
                 currentCandPage = cbTS.currentCandPage # 目前的選字清單頁數
 
                 if cbTS.isShowPhraseCandidates:
@@ -2201,7 +2184,7 @@ class CinBase:
                     cbTS.canSetPhraseCommitString = False
 
                 # 候選清單分頁
-                pagecandidates = list(self.chunks(phrasecandidates, cbTS.candPerPage))
+                pagecandidates = pager.paginate(phrasecandidates, cbTS.candPerPage)
                 cbTS.setCandidateList(pagecandidates[currentCandPage])
                 cbTS.setShowCandidates(True)
 
@@ -2328,7 +2311,7 @@ class CinBase:
                                         candidates = self.sortByPhrase(cbTS, list(candidates))
                                     candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                                 if candidates:
-                                    pagecandidates = list(self.chunks(candidates, cbTS.candPerPage))
+                                    pagecandidates = pager.paginate(candidates, cbTS.candPerPage)
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
                                     self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
                                     cbTS.setShowCandidates(True)
@@ -2817,7 +2800,7 @@ class CinBase:
             elif cbTS.emojitype == 5:
                 cbTS.menucandidates = self.emoji.modifiercolor
 
-        pagecandidates = list(self.chunks(cbTS.menucandidates, cbTS.candPerPage))
+        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
         return pagecandidates
 
 
@@ -3053,11 +3036,6 @@ class CinBase:
         if cbTS.showPhrase and not cbTS.selcandmode:
             cbTS.phrasemode = True
         self.resetComposition(cbTS)
-
-    # List 分段
-    def chunks(self, l, n):
-        for i in range(0, len(l), n):
-            yield l[i:i+n]
 
     def compositionHeaderText(self, cbTS):
         compositionChar = getattr(cbTS, 'compositionChar', '')
@@ -3432,8 +3410,7 @@ class CinBase:
 
     @staticmethod
     def maxCandPerPage(imeDirName):
-        # 大易候選選字鍵為「␣'[]-\」共 6 鍵，其餘輸入法為 1234567890
-        return 6 if imeDirName == "chedayi" else 10
+        return pager.maxCandPerPage(imeDirName)
 
     def applyConfig(self, cbTS):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
@@ -3457,7 +3434,7 @@ class CinBase:
             cbTS.candPerPage = cbTS.candPerRow
         # 每頁候選數不可超過選字鍵數，否則多出來的候選沒有鍵可選，
         # C++ 端也會以超出選字鍵長度的索引取鍵字元
-        cbTS.candPerPage = max(1, min(cbTS.candPerPage, self.maxCandPerPage(cbTS.imeDirName)))
+        cbTS.candPerPage = pager.clampCandPerPage(cbTS.candPerPage, cbTS.imeDirName)
 
         # 設定 UI 外觀
         self.customizeCandidateUI(cbTS, force=True)

@@ -63,6 +63,65 @@ class SelKeysCacheTests(unittest.TestCase):
         self.assertNotEqual(b.candselKeys, "␣'[]-\\")
 
 
+class SelKeysManagerTests(unittest.TestCase):
+    """selkeys 模組是選字鍵切換的唯一入口：只在實際變更時送 setSelKeys。"""
+
+    def setUp(self):
+        from cinbase import selkeys
+        self.selkeys = selkeys
+        self.cbTS = FakeClient()
+        self.cbTS.TextService = FakeTextService
+        self.cbTS.isSelKeysChanged = False
+        self.selkeys.initSelKeys(self.cbTS)
+
+    def test_init_sends_default_keys(self):
+        self.assertEqual(self.cbTS.candselKeys, "1234567890")
+        self.assertEqual(self.cbTS.sentSelKeys, ["1234567890"])
+
+    def test_switch_to_dayi_sends_once(self):
+        changed = self.selkeys.applyDayiSelKeys(self.cbTS)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.cbTS.selKeys, "'[]-\\")
+        self.assertEqual(self.cbTS.candselKeys, "␣'[]-\\")
+        self.assertEqual(self.cbTS.sentSelKeys, ["1234567890", "␣'[]-\\"])
+        self.assertTrue(self.cbTS.isSelKeysChanged)
+
+    def test_repeated_apply_is_idempotent(self):
+        self.selkeys.applyDayiSelKeys(self.cbTS)
+        self.cbTS.isSelKeysChanged = False
+
+        changed = self.selkeys.applyDayiSelKeys(self.cbTS)
+
+        self.assertFalse(changed)
+        # 不重送、不重設變更旗標，但顯示用 selKeys 仍維持正確
+        self.assertEqual(len(self.cbTS.sentSelKeys), 2)
+        self.assertFalse(self.cbTS.isSelKeysChanged)
+        self.assertEqual(self.cbTS.selKeys, "'[]-\\")
+
+    def test_round_trip_dayi_menu_dayi(self):
+        # 大易組字 → 功能選單（數字鍵）→ 回到組字
+        self.selkeys.applyDayiSelKeys(self.cbTS)
+        self.assertTrue(self.selkeys.applyDefaultSelKeys(self.cbTS))
+        self.assertEqual(self.cbTS.selKeys, "1234567890")
+        self.assertTrue(self.selkeys.applyDayiSelKeys(self.cbTS))
+        self.assertEqual(
+            self.cbTS.sentSelKeys,
+            ["1234567890", "␣'[]-\\", "1234567890", "␣'[]-\\"])
+
+    def test_two_clients_do_not_share_state(self):
+        other = FakeClient()
+        other.TextService = FakeTextService
+        other.isSelKeysChanged = False
+        self.selkeys.initSelKeys(other)
+
+        self.selkeys.applyDayiSelKeys(self.cbTS)
+
+        # 另一個 client 的快取不受影響，切換時必定重送
+        self.assertEqual(other.candselKeys, "1234567890")
+        self.assertTrue(self.selkeys.applyDayiSelKeys(other))
+
+
 class CandPerPageClampTests(unittest.TestCase):
     def setUp(self):
         import cinbase
