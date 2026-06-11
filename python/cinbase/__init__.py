@@ -100,7 +100,6 @@ class CinBase:
     def __init__(self):
         self.cinbasecurdir = os.path.abspath(os.path.dirname(__file__))
         self.icondir = os.path.join(os.path.dirname(__file__), "icons")
-        self.candselKeys = "1234567890"
 
         with io.open(os.path.join(os.path.dirname(__file__), "data", "emoji.json"), 'r', encoding='utf8') as fs:
             self.emoji = emoji(fs)
@@ -112,7 +111,11 @@ class CinBase:
     # 初始化輸入行為設定
     def initTextService(self, cbTS, TextService):
         cbTS.TextService = TextService
-        cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+        # 「上次送出的選字鍵」快取必須是 per-client 狀態：每個應用程式視窗
+        # 各有自己的 C++ TextService，共用快取會讓另一個視窗的候選窗停留在
+        # 預設的 1234567890
+        cbTS.candselKeys = "1234567890"
+        cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
         cbTS.opencc = None
 
         cbTS.keyboardLayout = 0
@@ -555,9 +558,9 @@ class CinBase:
         # 檢查選字鍵
         if not cbTS.imeDirName == "chedayi":
             cbTS.selKeys = "1234567890"
-            if not self.candselKeys == "1234567890":
-                self.candselKeys = "1234567890"
-                cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+            if not cbTS.candselKeys == "1234567890":
+                cbTS.candselKeys = "1234567890"
+                cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
                 cbTS.isSelKeysChanged = True
 
         if cbTS.autoMoveCursorInBrackets:
@@ -799,9 +802,9 @@ class CinBase:
                 # 大易須更換選字鍵
                 if cbTS.imeDirName == "chedayi":
                     cbTS.selKeys = "1234567890"
-                    if not self.candselKeys == "1234567890":
-                        self.candselKeys = "1234567890"
-                        cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+                    if not cbTS.candselKeys == "1234567890":
+                        cbTS.candselKeys = "1234567890"
+                        cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
                         cbTS.isShowCandidates = True
                         cbTS.isSelKeysChanged = True
 
@@ -1173,9 +1176,9 @@ class CinBase:
         if not cbTS.showmenu:
             if cbTS.imeDirName == "chedayi":
                 cbTS.selKeys = "'[]-\\"
-                if not self.candselKeys == "␣'[]-\\":
-                    self.candselKeys = "␣'[]-\\"
-                    cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+                if not cbTS.candselKeys == "␣'[]-\\":
+                    cbTS.candselKeys = "␣'[]-\\"
+                    cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
                     cbTS.isSelKeysChanged = True
 
         if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
@@ -1450,9 +1453,9 @@ class CinBase:
             # 必須在同一包候選回覆內切回大易選字鍵，避免候選窗殘留 1/2/3。
             if cbTS.imeDirName == "chedayi":
                 cbTS.selKeys = "'[]-\\"
-                if self.candselKeys != "␣'[]-\\":
-                    self.candselKeys = "␣'[]-\\"
-                    cbTS.TextService.setSelKeys(cbTS, self.candselKeys)
+                if cbTS.candselKeys != "␣'[]-\\":
+                    cbTS.candselKeys = "␣'[]-\\"
+                    cbTS.TextService.setSelKeys(cbTS, cbTS.candselKeys)
                     cbTS.isSelKeysChanged = True
             if not cbTS.directShowCand and not cbTS.selcandmode:
                 if not cbTS.lastCompositionCharLength == len(cbTS.compositionChar):
@@ -3411,6 +3414,11 @@ class CinBase:
         cbTS._lastCandidateUIArgs = copy.deepcopy(ui_args)
         cbTS.customizeUI(**ui_args)
 
+    @staticmethod
+    def maxCandPerPage(imeDirName):
+        # 大易候選選字鍵為「␣'[]-\」共 6 鍵，其餘輸入法為 1234567890
+        return 6 if imeDirName == "chedayi" else 10
+
     def applyConfig(self, cbTS):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
         cbTS.configVersion = cfg.getVersion()
@@ -3431,6 +3439,9 @@ class CinBase:
         cbTS.candPerPage = cfg.candPerPage
         if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
             cbTS.candPerPage = cbTS.candPerRow
+        # 每頁候選數不可超過選字鍵數，否則多出來的候選沒有鍵可選，
+        # C++ 端也會以超出選字鍵長度的索引取鍵字元
+        cbTS.candPerPage = max(1, min(cbTS.candPerPage, self.maxCandPerPage(cbTS.imeDirName)))
 
         # 設定 UI 外觀
         self.customizeCandidateUI(cbTS, force=True)

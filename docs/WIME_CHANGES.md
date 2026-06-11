@@ -126,6 +126,9 @@
 - 修正 `getPipeName()` 失敗路徑以空指標建構 `std::wstring` 的崩潰風險（2026-06-11）。
 - 修正 backend/launcher 不可用時宿主應用程式直接崩潰的問題：RPC 失敗後 `handleRpcResponse()` 仍被呼叫，對 null json 取值會拋出例外並穿過 TSF COM 邊界終止宿主（實測 explorer/conhost 以 ucrtbase 0xc0000409 崩潰）；現在改為 null 防護，且 `updateStatus()` 例外不再外洩（2026-06-11）。
 - 候選窗穩定寬度改為跨候選窗重建保留：打字過程收窗再開不會縮回最小寬度造成「時大時小」，焦點離開欄位或寬度設定改變時才重設（2026-06-11）。
+- 修正大易候選窗選字符有時顯示 1234567890 的問題：「上次送出的選字鍵」快取原本掛在 CinBase 共享單例上，但實際選字鍵狀態是每個視窗各自的 C++ TextService；多視窗交錯使用時快取誤判已送出，新視窗就停留在 C++ 預設值。快取改為 per-client（2026-06-11）。
+- 每頁候選數現在以選字鍵數為硬上限（大易候選鍵 6 個、其餘 10 個）；C++ `updateCandidates()` 同步夾住迴圈上限，Release 版不再可能以超出 `selKeys_` 長度的索引越界取鍵（原本只有會被編譯掉的 assert 保護）（2026-06-11）。
+- `CandidateWindow::setCurrentSel()` 對負數游標做防護（2026-06-11）。
 
 ## 設定工具可靠性
 
@@ -138,6 +141,8 @@
 
 - 補回 go backend input method 相關測試資料。
 - 新增後端韌性測試，涵蓋 malformed request、backend 例外、CIN count 載入容錯、智慧選字資料上限與寫檔節流。
+- 新增 `tests/test_selkeys.py`：選字鍵快取 per-client 隔離與每頁候選數上限的單元測試（2026-06-11）。
+- 新增 `tests/e2e_pipe_test.py`：直接對 PIMELauncher named pipe 的端對端測試（新酷音打字、大易雙客戶端選字鍵回歸、後端閒置重啟恢復）；未部署環境會自動跳過（2026-06-11）。
 - 保留 mockup HTML/SVG 作為候選窗配色、選字符樣式、查無組字提示行為討論與驗證用素材。
 
 ## 仍保留 PIME 名稱的地方

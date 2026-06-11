@@ -312,10 +312,13 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	candidateWindow_->setUseCursor(candUseCursor_);
 	candidateWindow_->setCandPerRow(candPerRow_);
 
-	// the items in the candidate list should not exist the
+	// the items in the candidate list should not exceed the
 	// number of available keys used to select them.
 	assert(candidates_.size() <= selKeys_.size());
-	for (int i = 0; i < candidates_.size(); ++i) {
+	// assert is compiled out in release builds: clamp so a backend page
+	// larger than the key set cannot index selKeys_ out of bounds
+	size_t shownCandidates = candidates_.size() <= selKeys_.size() ? candidates_.size() : selKeys_.size();
+	for (size_t i = 0; i < shownCandidates; ++i) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
 	candidateWindow_->recalculateSize();
