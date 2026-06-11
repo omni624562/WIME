@@ -129,6 +129,8 @@ void TextService::onKillFocus() {
 	if (showingCandidates())
 		hideCandidates();
 	hideMessage();
+	// drop the kept message window: its owner belongs to the field being left
+	messageWindow_ = nullptr;
 	// drop the remembered width when leaving the field so a wide window from
 	// one app doesn't carry over to the next
 	candidateStableWidthPx_ = 0;
@@ -500,11 +502,22 @@ void TextService::hideCandidates() {
 void TextService::showMessage(Ime::EditSession* session, std::wstring message, int duration) {
 	// remove previous message if there's any
 	hideMessage();
-	// FIXME: reuse the window whenever possible
-	messageWindow_ = make_unique<Ime::MessageWindow>(this, session);
-	messageWindow_->setFont(font_);
+	// reuse the previous window only while it is still alive and owned by the
+	// same app window: the owner destroys its owned popups together with itself
+	if (messageWindow_) {
+		HWND hwnd = messageWindow_->hwnd();
+		if (!::IsWindow(hwnd) || ::GetWindow(hwnd, GW_OWNER) != compositionWindow(session)) {
+			messageWindow_ = nullptr;
+		}
+	}
+	if (!messageWindow_) {
+		messageWindow_ = make_unique<Ime::MessageWindow>(this, session);
+		// set the font only on a fresh window: ImeWindow::setFont() deletes the
+		// previous handle, and we hand every window the same shared HFONT
+		messageWindow_->setFont(font_);
+	}
 	messageWindow_->setText(message);
-	
+
 	int x = 0, y = 0;
 	if(isComposing()) {
 		RECT rc;
@@ -520,7 +533,7 @@ void TextService::showMessage(Ime::EditSession* session, std::wstring message, i
 }
 
 void TextService::updateMessageWindow(Ime::EditSession* session) {
-    if (messageWindow_) {
+    if (messageWindow_ && messageWindow_->isVisible()) {
         RECT textRect;
         // get the position of composition area from TSF
         if (selectionRect(session, &textRect)) {
@@ -532,11 +545,16 @@ void TextService::updateMessageWindow(Ime::EditSession* session) {
 
 void TextService::hideMessage() {
 	if(messageTimerId_) {
-		::KillTimer(messageWindow_->hwnd(), messageTimerId_);
+		if (messageWindow_ && ::IsWindow(messageWindow_->hwnd()))
+			::KillTimer(messageWindow_->hwnd(), messageTimerId_);
 		messageTimerId_ = 0;
 	}
-	if(messageWindow_) {
-		messageWindow_ = nullptr;
+	// keep the window for reuse; showMessage() drops it when the owner changed
+	if (messageWindow_ && ::IsWindow(messageWindow_->hwnd())) {
+		messageWindow_->hide();
+	}
+	else if (messageWindow_) {
+		messageWindow_ = nullptr; // owner already destroyed the window
 	}
 }
 

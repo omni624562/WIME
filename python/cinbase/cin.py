@@ -320,8 +320,12 @@ class Cin(object):
             return
         filename = self.getCountFile()
         try:
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(self.cincount, f, ensure_ascii=False, separators=(",", ":"))
+            # 先序列化、寫暫存檔再原子取代，中途中斷不會留下半寫入的計數檔
+            payload = json.dumps(self.cincount, ensure_ascii=False, separators=(",", ":"))
+            tempname = filename + ".tmp"
+            with open(tempname, "w", encoding="utf-8") as f:
+                f.write(payload)
+            os.replace(tempname, filename)
             self._count_dirty = False
             self._last_count_save_time = now
         except Exception:

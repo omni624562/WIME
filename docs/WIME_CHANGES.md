@@ -142,6 +142,11 @@
 - 修正 8 個碼表系輸入法在等待碼表載入時的 busy-wait 自旋鎖（`while CinTable.loading: continue`）：自旋會佔滿一顆 CPU 核心，且 GIL 競爭反而拖慢載入執行緒；改為 `time.sleep(0.01)` 讓出 GIL。
 - 傳統（非 modern）候選 UI 的 `itemRect()` 也改用 `recalculateSize()` 快取的 header 高度，不再每次取 window DC 重量。
 - `deploy-test.ps1` 部署清單補上 8 個碼表系 `*_ime.py`。
+- MessageWindow 改為重用：同一個視窗 owner 存活期間 `showMessage()` 不再每次重建 HWND；owner 改變、被銷毀或焦點離開時才釋放。
+- 候選字字串的文字寬度加入快取（同字型下重複候選不再每次 `GetTextExtentPoint32W`），字型改變時清空，上限 4096 筆。
+- `ImeWindow::move()` 在位置與尺寸皆未變時跳過 `MoveWindow`（原本每次候選更新都強制重繪）。
+- `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
+- 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
 ## 設定工具可靠性
 
