@@ -38,6 +38,7 @@ from .phrase import phrase
 from .userphrase import userphrase
 from .emoji import emoji
 from .extendtable import extendtable
+from . import compositionbuffer
 from . import pager
 from . import selkeys
 from .config import SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
@@ -1590,11 +1591,7 @@ class CinBase:
                 changelastCommitString = True
             elif keyCode == VK_BACK:
                 if cbTS.compositionBufferCursor != 0 and cbTS.compositionBufferString != "" and not cbTS.keyUsedState:
-                    if cbTS.compositionBufferCursor - 1 in cbTS.compositionBufferChar:
-                        del cbTS.compositionBufferChar[cbTS.compositionBufferCursor - 1]
-                    for key in cbTS.compositionBufferChar:
-                        if key > cbTS.compositionBufferCursor - 1:
-                            cbTS.compositionBufferChar[key - 1] = cbTS.compositionBufferChar.pop(key)
+                    compositionbuffer.dropCharAt(cbTS, cbTS.compositionBufferCursor - 1)
                     self.removeCompositionBufferString(cbTS, 1, True)
                     changelastCommitString = True
                 if cbTS.compositionBufferString == '':
@@ -1604,11 +1601,7 @@ class CinBase:
                     cbTS.tempEnglishMode = False
             elif keyCode == VK_DELETE:
                 if cbTS.compositionBufferCursor != len(cbTS.compositionBufferString) and cbTS.compositionBufferString != "":
-                    if cbTS.compositionBufferCursor in cbTS.compositionBufferChar:
-                        del cbTS.compositionBufferChar[cbTS.compositionBufferCursor]
-                    for key in cbTS.compositionBufferChar:
-                        if key > cbTS.compositionBufferCursor:
-                            cbTS.compositionBufferChar[key - 1] = cbTS.compositionBufferChar.pop(key)
+                    compositionbuffer.dropCharAt(cbTS, cbTS.compositionBufferCursor)
                     self.removeCompositionBufferString(cbTS, 1, False)
                     changelastCommitString = True
                 if cbTS.compositionBufferString == '':
@@ -3118,45 +3111,15 @@ class CinBase:
     def isPressed(self, keyCode):
         return windll.user32.GetAsyncKeyState(keyCode) >= 1
 
+    # 組字編輯緩衝的實作集中在 compositionbuffer 模組；保留薄委派維持呼叫端 API
     def setCompositionBufferString(self, cbTS, compositionString, removeStringLength):
-        compPos1 = cbTS.compositionBufferCursor - removeStringLength
-        compPos2 = cbTS.compositionBufferCursor - len(cbTS.compositionBufferString)
-        if compPos2 < 0:
-            cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1] + compositionString + cbTS.compositionBufferString[compPos2:]
-        else:
-            cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1] + compositionString
-
-        cbTS.compositionBufferCursor += len(compositionString) - removeStringLength
-        cbTS.setCompositionString(cbTS.compositionBufferString)
-        cbTS.setCompositionCursor(cbTS.compositionBufferCursor)
+        compositionbuffer.insertString(cbTS, compositionString, removeStringLength)
 
     def setCompositionBufferChar(self, cbTS, compositionType, compositionChar, compositionCursor):
-        if compositionCursor - 1 in cbTS.compositionBufferChar:
-            for key in sorted(cbTS.compositionBufferChar.keys(), reverse=True):
-                if key >= compositionCursor - 1:
-                    cbTS.compositionBufferChar[key + 1] = cbTS.compositionBufferChar.pop(key)
-        cbTS.compositionBufferChar[compositionCursor - 1] = [compositionType, compositionChar]
+        compositionbuffer.recordChar(cbTS, compositionType, compositionChar, compositionCursor)
 
     def removeCompositionBufferString(self, cbTS, removeStringLength, removeBefore):
-        if removeBefore:
-            compPos1 = cbTS.compositionBufferCursor - removeStringLength
-            compPos2 = cbTS.compositionBufferCursor - len(cbTS.compositionBufferString)
-            if compPos2 < 0:
-                cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1] + cbTS.compositionBufferString[compPos2:]
-            else:
-                cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1]
-            cbTS.compositionBufferCursor -= removeStringLength
-        else:
-            compPos1 = cbTS.compositionBufferCursor
-            compPos2 = cbTS.compositionBufferCursor - len(cbTS.compositionBufferString) + removeStringLength
-            if compPos2 < 0:
-                cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1] + cbTS.compositionBufferString[compPos2:]
-            else:
-                cbTS.compositionBufferString = cbTS.compositionBufferString[:compPos1]
-            cbTS.compositionBufferCursor = cbTS.compositionBufferCursor
-
-        cbTS.setCompositionString(cbTS.compositionBufferString)
-        cbTS.setCompositionCursor(cbTS.compositionBufferCursor)
+        compositionbuffer.removeString(cbTS, removeStringLength, removeBefore)
 
     def setOutputString(self, cbTS, RCinTable, commitStr):
         # 如果使用萬用字元解碼

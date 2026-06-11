@@ -391,6 +391,7 @@ try {
         "input_methods\chesimplex\chesimplex_ime.py",
         "cinbase\__init__.py",
         "cinbase\cin.py",
+        "cinbase\compositionbuffer.py",
         "cinbase\pager.py",
         "cinbase\selkeys.py",
         "cinbase\config.py",

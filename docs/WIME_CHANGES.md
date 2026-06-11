@@ -156,7 +156,9 @@ cinbase 神模組開始以 strangler 模式拆分，先抽出兩塊已有測試�
 - 新增 `cinbase/selkeys.py`：選字鍵狀態的唯一擁有者。原本散在 4 處的切換邏輯（非大易預設鍵、大易功能選單、大易組字 ×2）與 init 送出收斂為 `initSelKeys` / `applyDefaultSelKeys` / `applyDayiSelKeys`，per-client 快取與「只在變更時送出」的規則只寫一次——「大易選字符變 12345」這類共享狀態 bug 從結構上失去生存空間。
 - 新增 `cinbase/pager.py`：候選分頁的唯一擁有者。原本 19 處重複的 `list(self.chunks(...))`、3 處 `math.ceil` 頁數計算、每頁上限 clamp 收斂為 `paginate` / `pageCount` / `clampCandPerPage`，「每頁候選數 ≤ 選字鍵數」的不變量在此集中防守；死碼 `chunks()` 移除。
 - 新增 `tests/test_pager.py` 與 selkeys 管理者測試共 19 項，含與舊 `list(chunks(...))` 的全組合等價驗證（total 0–22 × perPage 1–10），確保行為零變化。
-- 測試總數 48 項（單元）+ 4 項（實機 E2E）。
+- 新增 `cinbase/compositionbuffer.py`：組字編輯緩衝（compositionBufferMode）的唯一擁有者。插入/取代/刪除與字元記錄（`compositionBufferChar`）的索引位移收斂為 `insertString` / `removeString` / `recordChar` / `dropCharAt`；原 CinBase 三個方法改為薄委派，VK_BACK/VK_DELETE 的內聯位移迴圈移除。
+- 順手修正潛伏 bug：舊的 BACK/DELETE 位移迴圈**邊迭代邊改 dict 的 key**，新 key 會排到迭代尾端被重複處理，使後方字元記錄一次左移多格（例如索引 5 的記錄在刪除索引 0 後滑到 1 而非 4）；新實作以排序快照迭代，僅左移一格，並有迴歸測試鎖住。
+- 測試總數 62 項（單元）+ 4 項（實機 E2E）。
 
 ## 設定工具可靠性
 
