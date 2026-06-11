@@ -392,6 +392,7 @@ try {
         "cinbase\__init__.py",
         "cinbase\cin.py",
         "cinbase\compositionbuffer.py",
+        "cinbase\menu.py",
         "cinbase\pager.py",
         "cinbase\selkeys.py",
         "cinbase\config.py",

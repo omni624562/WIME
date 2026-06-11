@@ -200,6 +200,66 @@ class DayiSelKeysE2ETests(unittest.TestCase):
 
 
 @unittest.skipUnless(pipe_available(), "PIMELauncher pipe not available")
+class DayiMenuE2ETests(unittest.TestCase):
+    """功能選單重新設計：麵包屑 header、子頁「↩ 返回」項目。"""
+
+    def last_value(self, replies, key):
+        value = None
+        for reply in replies:
+            if key in reply:
+                value = reply[key]
+        return value
+
+    def wait_table_ready(self, client, timeout=30.0):
+        """剛重啟的後端可能還在載入碼表（每鍵回「正在載入…」訊息）。"""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            replies = client.press("v", 0x56)
+            loading = any(
+                "載入" in reply.get("showMessage", {}).get("message", "")
+                for reply in replies if isinstance(reply.get("showMessage"), dict)
+            )
+            client.press("\x1b", 0x1B)
+            if not loading:
+                return
+            time.sleep(0.5)
+        self.fail("dayi table still loading after %.0fs" % timeout)
+
+    def test_menu_breadcrumb_and_back_item(self):
+        c = PipeClient(CHEDAYI_GUID)
+        try:
+            self.assertTrue(c.init().get("success"))
+            self.assertTrue(c.activate().get("success"))
+            self.wait_table_ready(c)
+
+            # ``` 進入功能選單
+            replies = []
+            for _ in range(3):
+                replies = c.press("`", 0xC0)
+            header = self.last_value(replies, "candidateHeader")
+            items = self.last_value(replies, "candidateList")
+            self.assertEqual(header, "選單 功能選單")
+            self.assertIn("特殊符號", items)
+            self.assertNotIn("↩ 返回", items)  # 主選單沒有返回項
+
+            # 選 1（特殊符號）→ 子頁第一項是「↩ 返回」，header 顯示路徑
+            replies = c.press("1", 0x31)
+            header = self.last_value(replies, "candidateHeader")
+            items = self.last_value(replies, "candidateList")
+            self.assertEqual(header, "選單 特殊符號")
+            self.assertEqual(items[0], "↩ 返回")
+
+            # 選 1（↩ 返回）→ 回主選單
+            replies = c.press("1", 0x31)
+            header = self.last_value(replies, "candidateHeader")
+            self.assertEqual(header, "選單 功能選單")
+
+            c.press("\x1b", 0x1B)
+        finally:
+            c.close()
+
+
+@unittest.skipUnless(pipe_available(), "PIMELauncher pipe not available")
 class RecoveryE2ETests(unittest.TestCase):
     def test_new_connection_after_idle_backend_exit(self):
         # Repeated fresh connections must always succeed: the launcher

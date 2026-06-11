@@ -39,6 +39,7 @@ from .userphrase import userphrase
 from .emoji import emoji
 from .extendtable import extendtable
 from . import compositionbuffer
+from . import menu
 from . import pager
 from . import selkeys
 from .config import SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
@@ -765,31 +766,8 @@ class CinBase:
 
         # 功能選單 ----------------------------------------------------------------
         if cbTS.langMode == CHINESE_MODE and (cbTS.compositionChar == "`M" or cbTS.compositionChar == "`E"):
-            menu_fullShapeSymbols = "☑ Shift 輸入全形標點" if cbTS.fullShapeSymbols else "☐ Shift 輸入全形標點"
-            menu_easySymbolsWithShift = "☑ Shift 快速輸入符號" if cbTS.easySymbolsWithShift else "☐ Shift 快速輸入符號"
-            menu_autoClearCompositionChar = "☑ 拆錯字碼時自動清除輸入字串" if cbTS.autoClearCompositionChar else "☐ 拆錯字碼時自動清除輸入字串"
-            menu_playSoundWhenNonCand = "☑ 拆錯字碼時發出警告嗶聲提示" if cbTS.playSoundWhenNonCand else "☐ 拆錯字碼時發出警告嗶聲提示"
-            menu_showPhrase = "☑ 輸出字串後顯示聯想字詞" if cbTS.showPhrase else "☐ 輸出字串後顯示聯想字詞"
-            menu_sortByPhrase = "☑ 優先以聯想字詞排序候選清單" if cbTS.sortByPhrase else "☐ 優先以聯想字詞排序候選清單"
-            menu_intelligentSelect = "☑ 智慧選字" if cbTS.intelligentSelect else "☐ 智慧選字"
-            menu_intelligentSelectRecent = "☑ 智慧選字：近期選字優先" if cbTS.intelligentSelectRecent else "☐ 智慧選字：近期選字優先"
-            menu_intelligentSelectContext = "☑ 智慧選字：前一字上下文" if cbTS.intelligentSelectContext else "☐ 智慧選字：前一字上下文"
-            menu_supportWildcard = "☑ 萬用字元查詢" if cbTS.supportWildcard else "☐ 萬用字元查詢"
-            menu_imeReverseLookup = "☑ 反查輸入字根" if cbTS.imeReverseLookup else "☐ 反查輸入字根"
-            menu_homophoneQuery = "☑ 同音字查詢" if cbTS.homophoneQuery else "☐ 同音字查詢"
-
-            if cbTS.imeDirName == "chephonetic":
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems =  ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "imeReverseLookup", "homophoneQuery"]
-            elif cbTS.imeDirName == "cheez":
-                cbTS.smenucandidates = [menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup]
-                cbTS.smenuitems = ["autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup"]
-            elif cbTS.imeDirName == "chearray" or cbTS.imeDirName == "chedayi":
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_intelligentSelect, menu_intelligentSelectRecent, menu_intelligentSelectContext, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "intelligentSelect", "intelligentSelectRecent", "intelligentSelectContext", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
-            else:
-                cbTS.smenucandidates = [menu_fullShapeSymbols, menu_easySymbolsWithShift, menu_autoClearCompositionChar, menu_playSoundWhenNonCand, menu_showPhrase, menu_sortByPhrase, menu_supportWildcard, menu_imeReverseLookup, menu_homophoneQuery]
-                cbTS.smenuitems = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase", "sortByPhrase", "supportWildcard", "imeReverseLookup", "homophoneQuery"]
+            # 功能開關清單（含目前 ☑/☐ 狀態）由 menu 模組建構
+            cbTS.smenucandidates, cbTS.smenuitems = menu.buildToggleItems(cbTS)
 
             if not cbTS.closemenu:
                 cbTS.setCandidateCursor(0)
@@ -802,11 +780,13 @@ class CinBase:
 
                 if not cbTS.emojimenumode:
                     cbTS.menutype = 0
-                    menu = ["功能設定", "功能開關", "特殊符號", "注音符號", "外語文字", "表情符號"]
-                    cbTS.setCandidateList(menu)
+                    menu.resetPath(cbTS)
+                    cbTS.setCandidateList(menu.mainMenuLabels())
                 else:
                     cbTS.menutype = 7
-                    cbTS.setCandidateList(self.emojimenulist)
+                    menu.resetPath(cbTS)
+                    menu.pushPath(cbTS, "表情符號")
+                    cbTS.setCandidateList(menu.withBack(self.emojimenulist))
 
                 cbTS.menucandidates = cbTS.candidateList
                 cbTS.prevmenutypelist = []
@@ -881,6 +861,7 @@ class CinBase:
                     cbTS.menutype = 0
                     cbTS.prevmenutypelist = []
                     cbTS.prevmenucandlist = []
+                    menu.resetPath(cbTS)
                     if cbTS.compositionBufferMode:
                         self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
                     self.resetComposition(cbTS)
@@ -904,61 +885,62 @@ class CinBase:
                         itemName = cbTS.candidateList[candCursor]
                         cbTS.switchmenu = True
                 elif keyCode == VK_BACK:
-                    if cbTS.prevmenutypelist:
-                        prevmenulist =[]
-                        prevmenutype = len(cbTS.prevmenutypelist) - 1
-                        prevmenulist = cbTS.prevmenutypelist[prevmenutype].split(',', 2)
-                        cbTS.menutype = int(prevmenulist[0], 10)
-                        cbTS.prevmenucandlist = []
-                        cbTS.prevmenucandlist.append(int(prevmenulist[1], 10))
-                        cbTS.prevmenucandlist.append(int(prevmenulist[2], 10))
-                        cbTS.prevmenutypelist.remove(cbTS.prevmenutypelist[prevmenutype])
-                        pagecandidates = self.switchMenuCand(cbTS, cbTS.menutype)
+                    backpages = self.menuNavigateBack(cbTS)
+                    if backpages is not None:
+                        pagecandidates = backpages
 
                 # 選單切換及執行
                 if cbTS.switchmenu and not itemName == "":
                     cbTS.switchmenu = False
-                    if cbTS.menutype == 0 and itemName == "功能開關": # 切至功能開關頁面
-                        cbTS.menucandidates = cbTS.smenucandidates
+                    if itemName == menu.BACK_ITEM: # 「↩ 返回」與 Backspace 同義
+                        backpages = self.menuNavigateBack(cbTS)
+                        if backpages is not None:
+                            pagecandidates = backpages
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "toggles": # 切至功能開關頁面
+                        cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, "功能開關")
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 1, ["0," + str(candCursor) + "," + str(currentCandPage)])
-                    elif cbTS.menutype == 0 and itemName == "特殊符號": # 切至特殊符號頁面
-                        cbTS.menucandidates = cbTS.symbols.getKeyNames()
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "symbols": # 切至特殊符號頁面
+                        cbTS.menucandidates = menu.withBack(cbTS.symbols.getKeyNames())
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, "特殊符號")
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 2, ["0," + str(candCursor) + "," + str(currentCandPage)])
-                    elif cbTS.menutype == 0 and itemName == "注音符號": # 切至注音符號頁面
-                        cbTS.menucandidates = cbTS.bopomofolist
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "bopomofo": # 切至注音符號頁面
+                        cbTS.menucandidates = menu.withBack(cbTS.bopomofolist)
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, "注音符號")
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 4, ["0," + str(candCursor) + "," + str(currentCandPage)])
-                    elif cbTS.menutype == 0 and itemName == "外語文字": # 切至外語文字頁面
-                        cbTS.menucandidates = cbTS.flangs.getKeyNames()
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "flangs": # 切至外語文字頁面
+                        cbTS.menucandidates = menu.withBack(cbTS.flangs.getKeyNames())
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, "外語文字")
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 5, ["0," + str(candCursor) + "," + str(currentCandPage)])
-                    elif cbTS.menutype == 0 and itemName == "表情符號": # 切至表情符號頁面
-                        cbTS.menucandidates = self.emojimenulist
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "emoji": # 切至表情符號頁面
+                        cbTS.menucandidates = menu.withBack(self.emojimenulist)
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, "表情符號")
                         if not cbTS.emojimenumode:
                             cbTS.resetMenuCand = self.switchMenuType(cbTS, 7, ["0," + str(candCursor) + "," + str(currentCandPage)])
                         else:
                             cbTS.resetMenuCand = self.switchMenuType(cbTS, 7, [])
-                    elif cbTS.menutype == 0: # 執行主頁面其它項目
-                        menu = ["功能設定", "功能開關", "特殊符號", "注音符號", "外語文字", "表情符號"]
-                        i = menu.index(itemName)
-                        self.onMenuCommand(cbTS, i, 0)
+                    elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "settings": # 開啟設定視窗
+                        self.onMenuCommand(cbTS, 0, 0)
                         if cbTS.compositionBufferMode:
                             self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
                         cbTS.resetMenuCand = self.closeMenuCand(cbTS)
-                    elif cbTS.menutype == 1: # 執行功能開關頁面項目
+                    elif cbTS.menutype == 1: # 切換功能開關（留在本頁，更新 ☑/☐）
                         i = cbTS.smenucandidates.index(itemName)
                         self.onMenuCommand(cbTS, i, 1)
-                        if cbTS.compositionBufferMode:
-                            self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
-                        cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                        cbTS.smenucandidates, cbTS.smenuitems = menu.buildToggleItems(cbTS)
+                        cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
+                        pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
                     elif cbTS.menutype == 2: # 切至特殊符號子頁面
                         if cbTS.compositionBufferMode:
-                            cbTS.compositionBufferMenuItem = cbTS.candidateList[candCursor]
-                        cbTS.menucandidates = cbTS.symbols.getCharDef(cbTS.candidateList[candCursor])
+                            cbTS.compositionBufferMenuItem = itemName
+                        cbTS.menucandidates = menu.withBack(cbTS.symbols.getCharDef(itemName))
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, itemName)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 3, ["2," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 3: # 執行特殊符號子頁面項目
                         if cbTS.compositionBufferMode:
@@ -980,9 +962,10 @@ class CinBase:
                         cbTS.resetMenuCand = self.closeMenuCand(cbTS)
                     elif cbTS.menutype == 5: # 切至外語文字子頁面
                         if cbTS.compositionBufferMode:
-                            cbTS.compositionBufferMenuItem = cbTS.candidateList[candCursor]
-                        cbTS.menucandidates = cbTS.flangs.getCharDef(cbTS.candidateList[candCursor])
+                            cbTS.compositionBufferMenuItem = itemName
+                        cbTS.menucandidates = menu.withBack(cbTS.flangs.getCharDef(itemName))
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, itemName)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 6, ["5," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 6: # 執行外語文字子頁面項目
                         if cbTS.compositionBufferMode:
@@ -995,50 +978,38 @@ class CinBase:
                         cbTS.resetMenuCand = self.closeMenuCand(cbTS)
                     elif cbTS.menutype == 7: # 切換至表情符號分類頁面
                         menutype = 8
-                        i = self.emojimenulist.index(cbTS.candidateList[candCursor])
+                        i = self.emojimenulist.index(itemName)
                         if i == 0:
                             cbTS.emojitype = 0
-                            cbTS.menucandidates = self.emoji.emoticons_keynames
+                            cbTS.menucandidates = menu.withBack(self.emoji.emoticons_keynames)
                         elif i == 1:
                             cbTS.emojitype = 1
-                            cbTS.menucandidates = self.emoji.pictographs_keynames
+                            cbTS.menucandidates = menu.withBack(self.emoji.pictographs_keynames)
                         elif i == 2:
                             cbTS.emojitype = 2
-                            cbTS.menucandidates = self.emoji.miscellaneous_keynames
+                            cbTS.menucandidates = menu.withBack(self.emoji.miscellaneous_keynames)
                         elif i == 3:
                             cbTS.emojitype = 3
-                            cbTS.menucandidates = self.emoji.dingbats_keynames
+                            cbTS.menucandidates = menu.withBack(self.emoji.dingbats_keynames)
                         elif i == 4:
                             cbTS.emojitype = 4
-                            cbTS.menucandidates = self.emoji.transport_keynames
+                            cbTS.menucandidates = menu.withBack(self.emoji.transport_keynames)
                         elif i == 5:
                             cbTS.emojitype = 5
-                            cbTS.menucandidates = self.emoji.modifiercolor
+                            cbTS.menucandidates = menu.withBack(self.emoji.modifiercolor)
                             menutype = 9
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, itemName)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, menutype, ["7," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 8: # 切換至表情符號分類子頁面
-                        if cbTS.emojitype == 0:
+                        emojiGroups = {0: "emoticons", 1: "pictographs", 2: "miscellaneous", 3: "dingbats", 4: "transport"}
+                        group = emojiGroups.get(cbTS.emojitype)
+                        if group is not None:
                             if cbTS.compositionBufferMode:
-                                cbTS.compositionBufferMenuItem = "emoticons," + cbTS.candidateList[candCursor]
-                            cbTS.menucandidates = self.emoji.getCharDef("emoticons", cbTS.candidateList[candCursor])
-                        elif cbTS.emojitype == 1:
-                            if cbTS.compositionBufferMode:
-                                cbTS.compositionBufferMenuItem = "pictographs," + cbTS.candidateList[candCursor]
-                            cbTS.menucandidates = self.emoji.getCharDef("pictographs", cbTS.candidateList[candCursor])
-                        elif cbTS.emojitype == 2:
-                            if cbTS.compositionBufferMode:
-                                cbTS.compositionBufferMenuItem = "miscellaneous," + cbTS.candidateList[candCursor]
-                            cbTS.menucandidates = self.emoji.getCharDef("miscellaneous", cbTS.candidateList[candCursor])
-                        elif cbTS.emojitype == 3:
-                            if cbTS.compositionBufferMode:
-                                cbTS.compositionBufferMenuItem = "dingbats," + cbTS.candidateList[candCursor]
-                            cbTS.menucandidates = self.emoji.getCharDef("dingbats", cbTS.candidateList[candCursor])
-                        elif cbTS.emojitype == 4:
-                            if cbTS.compositionBufferMode:
-                                cbTS.compositionBufferMenuItem = "transport," + cbTS.candidateList[candCursor]
-                            cbTS.menucandidates = self.emoji.getCharDef("transport", cbTS.candidateList[candCursor])
+                                cbTS.compositionBufferMenuItem = group + "," + itemName
+                            cbTS.menucandidates = menu.withBack(self.emoji.getCharDef(group, itemName))
                         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                        menu.pushPath(cbTS, itemName)
                         cbTS.resetMenuCand = self.switchMenuType(cbTS, 9, ["8," + str(candCursor) + "," + str(currentCandPage)])
                     elif cbTS.menutype == 9: # 執行表情符號分類子頁面項目
                         if cbTS.compositionBufferMode:
@@ -1063,6 +1034,9 @@ class CinBase:
                 cbTS.setCandidateCursor(candCursor)
                 cbTS.setCandidatePage(currentCandPage)
                 cbTS.setCandidateList(pagecandidates[currentCandPage])
+                if cbTS.showmenu:
+                    # header 顯示「選單」徽章與目前層級麵包屑
+                    cbTS.currentReply["candidateHeader"] = menu.headerText(cbTS)
 
         # 按鍵處理 ----------------------------------------------------------------
         # 某些狀況須要特別處理或忽略
@@ -2383,7 +2357,9 @@ class CinBase:
                     label = cbTS.imeDisplayName or headerCompositionLabels[cbTS.imeDirName]
                 else:
                     label = cbTS.hideCompositionLabel
-                cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + headerText
+                # 功能選單已設定麵包屑 header（「選單 路徑」）時不覆寫
+                if not cbTS.currentReply.get("candidateHeader"):
+                    cbTS.currentReply["candidateHeader"] = (label + ' ' if label else '') + headerText
                 if "candidateList" not in cbTS.currentReply:
                     if forceHeaderComposition and not self.isCompositionCharPrefix(cbTS):
                         if "candidateMessage" not in cbTS.currentReply:
@@ -2749,6 +2725,26 @@ class CinBase:
                 cbTS.homophoneQuery = not cbTS.homophoneQuery
 
 
+    def menuNavigateBack(self, cbTS):
+        """返回上一層選單；無上層時回主選單。回傳新的分頁清單或 None。"""
+        if cbTS.prevmenutypelist:
+            prevmenutype = len(cbTS.prevmenutypelist) - 1
+            prevmenulist = cbTS.prevmenutypelist[prevmenutype].split(',', 2)
+            cbTS.menutype = int(prevmenulist[0], 10)
+            cbTS.prevmenucandlist = []
+            cbTS.prevmenucandlist.append(int(prevmenulist[1], 10))
+            cbTS.prevmenucandlist.append(int(prevmenulist[2], 10))
+            cbTS.prevmenutypelist.remove(cbTS.prevmenutypelist[prevmenutype])
+            menu.popPath(cbTS)
+            return self.switchMenuCand(cbTS, cbTS.menutype)
+        if cbTS.menutype != 0:
+            # 沒有紀錄的上層（例如 `E 直接進表情符號）：回主選單
+            cbTS.menutype = 0
+            menu.resetPath(cbTS)
+            cbTS.prevmenucandlist = [0, 0]
+            return self.switchMenuCand(cbTS, 0)
+        return None
+
     def switchMenuType(self, cbTS, menutype, prevmenutypelist):
         cbTS.menutype = menutype
         if menutype == 0:
@@ -2766,32 +2762,35 @@ class CinBase:
         cbTS.emojimenumode = False
         cbTS.menutype = 0
         cbTS.prevmenutypelist = []
+        menu.resetPath(cbTS)
         self.resetComposition(cbTS)
         return True
 
 
     def switchMenuCand(self, cbTS, menutype):
         if menutype == 0:
-            cbTS.menucandidates = ["功能設定", "功能開關", "特殊符號", "注音符號", "外語文字", "表情符號"]
+            cbTS.menucandidates = menu.mainMenuLabels()
+        if menutype == 1:
+            cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
         if menutype == 2:
-            cbTS.menucandidates = cbTS.symbols.getKeyNames()
+            cbTS.menucandidates = menu.withBack(cbTS.symbols.getKeyNames())
         if menutype == 5:
-            cbTS.menucandidates = cbTS.menucandidates = cbTS.flangs.getKeyNames()
+            cbTS.menucandidates = menu.withBack(cbTS.flangs.getKeyNames())
         if menutype == 7:
-            cbTS.menucandidates = self.emojimenulist
+            cbTS.menucandidates = menu.withBack(self.emojimenulist)
         if menutype == 8:
             if cbTS.emojitype == 0:
-                cbTS.menucandidates = self.emoji.emoticons_keynames
+                cbTS.menucandidates = menu.withBack(self.emoji.emoticons_keynames)
             elif cbTS.emojitype == 1:
-                cbTS.menucandidates = self.emoji.pictographs_keynames
+                cbTS.menucandidates = menu.withBack(self.emoji.pictographs_keynames)
             elif cbTS.emojitype == 2:
-                cbTS.menucandidates = self.emoji.miscellaneous_keynames
+                cbTS.menucandidates = menu.withBack(self.emoji.miscellaneous_keynames)
             elif cbTS.emojitype == 3:
-                cbTS.menucandidates = self.emoji.dingbats_keynames
+                cbTS.menucandidates = menu.withBack(self.emoji.dingbats_keynames)
             elif cbTS.emojitype == 4:
-                cbTS.menucandidates = self.emoji.transport_keynames
+                cbTS.menucandidates = menu.withBack(self.emoji.transport_keynames)
             elif cbTS.emojitype == 5:
-                cbTS.menucandidates = self.emoji.modifiercolor
+                cbTS.menucandidates = menu.withBack(self.emoji.modifiercolor)
 
         pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
         return pagecandidates
