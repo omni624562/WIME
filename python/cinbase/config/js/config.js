@@ -74,6 +74,7 @@ var symbolsChanged = false;
 var swkbChanged = false;
 var fsymbolsChanged = false;
 var phraseChanged = false;
+var excludePhraseChanged = false;
 var flangsChanged = false;
 var extendtableChanged = false;
 
@@ -81,6 +82,7 @@ var symbolsData = "";
 var swkbData = "";
 var fsymbolsData = "";
 var phraseData = "";
+var excludePhraseData = "";
 var flangsData = "";
 var extendtableData = "";
 
@@ -136,6 +138,7 @@ function loadConfig() {
         swkbData = data.swkb;
         fsymbolsData = data.fsymbols;
         phraseData = data.phrase;
+        excludePhraseData = data.excludePhrase || "";
         flangsData = data.flangs;
         extendtableData = data.extendtable;
         configLoaded = true;
@@ -823,6 +826,12 @@ function saveConfig(callbackFunc) {
         return false;
     }
 
+    // Check exclude phrase format
+    checkState = checkDataFormat($("#excludePhrase").val(), "2", "#excludePhrase", "排除聯想字詞");
+    if (!checkState) {
+        return false;
+    }
+
     // Check foreign language format
     checkState = checkDataFormat($("#flangs").val(), "2", "#flangs", "外語文字");
     if (!checkState) {
@@ -850,6 +859,9 @@ function saveConfig(callbackFunc) {
     }
     if(phraseChanged) {
         data.phrase = $("#phrase").val();
+    }
+    if(excludePhraseChanged) {
+        data.excludePhrase = $("#excludePhrase").val();
     }
     if(flangsChanged) {
         data.flangs = $("#flangs").val();
@@ -1124,6 +1136,7 @@ function pageReady() {
     $("#ez_symbols").val(swkbData);
     $("#fs_symbols").val(fsymbolsData);
     $("#phrase").val(phraseData);
+    $("#excludePhrase").val(excludePhraseData);
     $("#flangs").val(flangsData);
     $("#extendtable").val(extendtableData);
 
@@ -1263,6 +1276,10 @@ function pageReady() {
 
     $("#phrase").change(function(){
         phraseChanged = true;
+    });
+
+    $("#excludePhrase").change(function(){
+        excludePhraseChanged = true;
     });
 
     $("#flangs").change(function(){

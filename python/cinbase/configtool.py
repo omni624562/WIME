@@ -96,6 +96,7 @@ class ConfigHandler(BaseHandler):
             "swkb": self.load_data("swkb.dat"),
             "fsymbols": self.load_data("fsymbols.dat"),
             "phrase": self.load_data("userphrase.dat"),
+            "excludePhrase": self.load_data("excludephrase.dat"),
             "flangs": self.load_data("flangs.dat"),
             "extendtable": self.load_data("extendtable.dat")
         }
@@ -129,6 +130,10 @@ class ConfigHandler(BaseHandler):
         phrase = data.get("phrase", None)
         if phrase is not None:
             self.save_file("userphrase.dat", phrase)
+
+        excludePhrase = data.get("excludePhrase", None)
+        if excludePhrase is not None:
+            self.save_file("excludephrase.dat", excludePhrase)
 
         flangs = data.get("flangs", None)
         if flangs is not None:

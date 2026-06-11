@@ -364,6 +364,51 @@ class SortByPhraseTests(unittest.TestCase):
             cinbase.PhraseData.phrase = old_phrase
 
 
+class ExcludePhraseTests(unittest.TestCase):
+    class StubDef:
+        def __init__(self, defs):
+            self.defs = defs
+
+        def isInCharDef(self, key):
+            return key in self.defs
+
+        def getCharDef(self, key):
+            return self.defs[key]
+
+    def filter(self, cbTS, lead, phrases):
+        import cinbase
+        return cinbase.CinBase.filterExcludedPhrases(cbTS, lead, phrases)
+
+    def test_excluded_phrases_are_dropped(self):
+        cbTS = type("FakeTS", (), {})()
+        cbTS.excludephrase = self.StubDef({"毛": ["澤東"]})
+
+        result = self.filter(cbTS, "毛", ["豬", "澤東", "病", "巾"])
+
+        self.assertEqual(result, ["豬", "病", "巾"])
+
+    def test_other_lead_chars_unaffected(self):
+        cbTS = type("FakeTS", (), {})()
+        cbTS.excludephrase = self.StubDef({"毛": ["澤東"]})
+
+        self.assertEqual(self.filter(cbTS, "羽", ["毛球", "澤東"]), ["毛球", "澤東"])
+
+    def test_returns_new_list_to_protect_phrase_table(self):
+        # 過濾結果必須是新清單，呼叫端 append 不可污染詞庫內部資料
+        cbTS = type("FakeTS", (), {})()
+        cbTS.excludephrase = self.StubDef({})
+        original = ["豬", "病"]
+
+        result = self.filter(cbTS, "毛", original)
+        result.append("外加")
+
+        self.assertEqual(original, ["豬", "病"])
+
+    def test_missing_exclude_table_is_safe(self):
+        cbTS = type("FakeTS", (), {})()
+        self.assertEqual(self.filter(cbTS, "毛", ["豬"]), ["豬"])
+
+
 class TextServiceProtocolTests(unittest.TestCase):
     def test_ping_is_a_successful_noop(self):
         import textService

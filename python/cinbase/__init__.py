@@ -2128,7 +2128,7 @@ class CinBase:
                 charStr = chr(charCode)
             phrasecandidates = []
             if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
-                phrasecandidates = cbTS.userphrase.getCharDef(cbTS.lastCommitString)
+                phrasecandidates = list(cbTS.userphrase.getCharDef(cbTS.lastCommitString))
             if PhraseData.phrase.isInCharDef(cbTS.lastCommitString):
                 if len(phrasecandidates) == 0:
                     phrasecandidates = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
@@ -2138,6 +2138,7 @@ class CinBase:
                         for pstr in plist:
                             if not pstr in phrasecandidates:
                                 phrasecandidates.append(pstr)
+            phrasecandidates = self.filterExcludedPhrases(cbTS, cbTS.lastCommitString, phrasecandidates)
 
             if phrasecandidates:
                 candCursor = cbTS.candidateCursor  # 目前的游標位置
@@ -2974,6 +2975,14 @@ class CinBase:
             cbTS.setCompositionCursor(len(cbTS.compositionString))
         return True
 
+    def filterExcludedPhrases(self, cbTS, leadChar, phraselist):
+        """過濾使用者排除的聯想字詞；一律回傳新清單，避免污染詞庫內部資料。"""
+        exclude = getattr(cbTS, 'excludephrase', None)
+        excluded = set()
+        if phraselist and exclude is not None and exclude.isInCharDef(leadChar):
+            excluded = set(exclude.getCharDef(leadChar))
+        return [p for p in phraselist if p not in excluded]
+
     def sortByPhrase(self, cbTS, candidates):
         sortbyphraselist = []
         if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
@@ -2988,6 +2997,7 @@ class CinBase:
                         sortbyphraselist.append(pstr)
                         seen.add(pstr)
 
+        sortbyphraselist = self.filterExcludedPhrases(cbTS, cbTS.lastCommitString, sortbyphraselist)
         if not sortbyphraselist:
             return candidates
 
@@ -3326,6 +3336,14 @@ class CinBase:
         userphrasePath = cfg.findFile(datadirs, "userphrase.dat")
         with io.open(userphrasePath, 'r', encoding='utf-8') as fs:
             cbTS.userphrase = userphrase(fs)
+
+        # 排除聯想字詞（內建詞庫裡不想看到的詞，如人名）；語法與詞庫相同
+        try:
+            excludephrasePath = cfg.findFile(datadirs, "excludephrase.dat")
+            with io.open(excludephrasePath, 'r', encoding='utf-8') as fs:
+                cbTS.excludephrase = userphrase(fs)
+        except Exception:
+            cbTS.excludephrase = userphrase([])
 
         msymbolsPath = cfg.findFile(datadirs, "msymbols.json")
         with io.open(msymbolsPath, 'r', encoding='utf-8') as fs:

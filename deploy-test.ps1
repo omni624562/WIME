@@ -396,6 +396,8 @@ try {
         "cinbase\pager.py",
         "cinbase\selkeys.py",
         "cinbase\config.py",
+        "cinbase\configtool.py",
+        "cinbase\data\excludephrase.dat",
         "cinbase\config\config.htm",
         "cinbase\config\css\config.css",
         "cinbase\config\js\config.js",
