@@ -2586,6 +2586,11 @@ class CinBase:
     # 切換到其他應用程式或其他原因，導致我們的輸入法被強制關閉，此時
     # forced 參數會是 True，在這種狀況下，要清除一些 buffer
     def onCompositionTerminated(self, cbTS, forced):
+        if forced:
+            # 焦點離開或組字被外部中斷：游標多半已移動，
+            # 「前一字上下文」不再可靠，避免加權到不相干的位置
+            cbTS.lastCommitString = ""
+
         if not cbTS.showmenu and not cbTS.keepComposition:
             self.resetComposition(cbTS)
 

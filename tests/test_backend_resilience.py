@@ -117,6 +117,10 @@ class CinCountTests(unittest.TestCase):
 
             self.assertEqual(cin.cincount["abc"]["A"]["count"], 1)
             self.assertEqual(cin.cincount["abc"]["A"]["prev"], {})
+            # 單次選擇不足以打亂碼表預設排序
+            self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["B", "A"])
+            # 選滿兩次才參與重排
+            cin.addCount("abc", "A")
             self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["A", "B"])
             self.assertEqual(cin.sortByCount("missing", ["B", "A"]), ["B", "A"])
 
@@ -162,6 +166,37 @@ class CinCountTests(unittest.TestCase):
                 ordered = cin.sortByCount("abc", ["慣", "偶"])
 
             self.assertEqual(ordered, ["慣", "偶"])
+
+    def test_single_pick_keeps_table_order_against_untouched(self):
+        # 誤選一次（count=1、無上下文）不可超越從未選過的字，
+        # 否則空白鍵的預設輸出（candidates[0]）會被偷換
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            now = 1000000.0
+            cin.cincount = {"abc": {
+                "偶": {"count": 1, "last": now - 60.0, "prev": {}},
+            }}
+
+            with mock.patch("time.time", return_value=now):
+                ordered = cin.sortByCount("abc", ["土", "士", "偶"])
+
+            self.assertEqual(ordered, ["土", "士", "偶"])
+
+    def test_single_pick_with_matching_context_reorders(self):
+        # 同樣 count=1，但在相同前一字的上下文中選過 → 精準訊號，參與重排
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            now = 1000000.0
+            cin.cincount = {"abc": {
+                "偶": {"count": 1, "last": now - 60.0, "prev": {"前": 1}},
+            }}
+
+            with mock.patch("time.time", return_value=now):
+                with_context = cin.sortByCount("abc", ["土", "偶"], previousChar="前")
+                without_context = cin.sortByCount("abc", ["土", "偶"])
+
+            self.assertEqual(with_context, ["偶", "土"])
+            self.assertEqual(without_context, ["土", "偶"])
 
     def test_save_count_file_is_throttled(self):
         with tempfile.TemporaryDirectory() as temp_dir:
