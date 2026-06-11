@@ -581,19 +581,209 @@ select[disabled] {
 }
 
 
-/* Bootstrap */
+/* 設定頁外殼重新設計：固定側欄 + 卡片內容 + 動作列 */
 /* ================================================================== */
-.navbar-brand {
-    padding: 8px;
-}
-.navbar-brand>img {
-    height: 100%;
-    width: auto;
-    -webkit-box-shadow: 0 3px 5px 3px rgba(0,0,0,0.75);
-    -moz-box-shadow: 0 3px 5px 3px rgba(0,0,0,0.75);
-    box-shadow: 0 3px 5px 3px rgba(0,0,0,0.75);
+body {
+    background: #f3f5f9;
+    color: #1f2533;
+    padding-bottom: 76px;
+    padding-left: 216px;
+    padding-top: 6px;
 }
 
+.settings-sidebar {
+    background: #1d2330;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    position: fixed;
+    top: 0;
+    width: 216px;
+    z-index: 1030;
+}
+
+.settings-brand {
+    align-items: center;
+    border-bottom: 1px solid #2b3344;
+    color: #e8ecf4;
+    display: flex;
+    font-size: 15px;
+    font-weight: 600;
+    gap: 10px;
+    padding: 14px 18px;
+}
+
+.settings-brand img {
+    border-radius: 6px;
+    height: 26px;
+    width: 26px;
+}
+
+.settings-nav-list {
+    list-style: none;
+    margin: 8px 0 18px;
+    padding: 0;
+}
+
+.settings-nav-group {
+    color: #7b8598;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-top: 10px;
+    padding: 8px 18px 4px;
+}
+
+.settings-nav-list > li > a {
+    border-radius: 8px;
+    color: #b6bfd0;
+    display: block;
+    margin: 1px 10px;
+    padding: 7px 12px;
+    text-decoration: none;
+    transition: background-color .12s ease, color .12s ease;
+}
+
+.settings-nav-list > li > a:hover,
+.settings-nav-list > li > a:focus {
+    background: #2a3243;
+    color: #e8ecf4;
+}
+
+.settings-nav-list > li.active > a,
+.settings-nav-list > li.active > a:hover,
+.settings-nav-list > li.active > a:focus {
+    background: #3a66d8;
+    color: #ffffff;
+}
+
+/* 內容區：覆寫 Bootstrap container 的固定寬度 */
+.container {
+    margin: 0;
+    max-width: 1120px;
+    padding: 0 26px;
+    width: auto;
+}
+
+.panel.panel-default {
+    background: #ffffff;
+    border: 1px solid #e2e7f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+
+.panel-default > .panel-heading {
+    background: #ffffff;
+    border-bottom: 1px solid #eef1f6;
+    padding: 13px 18px 11px;
+}
+
+.panel-title {
+    color: #1d2433;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.panel-body {
+    line-height: 2.1;
+    padding: 14px 18px 16px;
+}
+
+.panel-body input[type="checkbox"] {
+    accent-color: #3a66d8;
+    height: 15px;
+    margin-right: 7px;
+    vertical-align: -2px;
+    width: 15px;
+}
+
+.panel-body select,
+select.form-control {
+    background: #ffffff;
+    border: 1px solid #cfd6e4;
+    border-radius: 8px;
+    padding: 3px 8px;
+}
+
+textarea.form-control {
+    border: 1px solid #cfd6e4;
+    border-radius: 10px;
+}
+
+.settings-actionbar {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.94);
+    border-top: 1px solid #e2e7f0;
+    bottom: 0;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    left: 216px;
+    padding: 12px 26px;
+    position: fixed;
+    right: 0;
+    z-index: 1020;
+}
+
+.settings-actionbar-hint {
+    color: #76809a;
+    font-size: 12.5px;
+}
+
+.btn.settings-apply {
+    background: #3a66d8;
+    border: 1px solid #2f55b8;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 7px 26px;
+}
+
+.btn.settings-apply:hover,
+.btn.settings-apply:focus {
+    background: #2f55b8;
+    color: #ffffff;
+}
+
+/* 窄視窗：側欄改為頂部橫向導覽，不再使用漢堡選單 */
+@media (max-width: 860px) {
+    body {
+        padding-left: 0;
+    }
+
+    .settings-sidebar {
+        bottom: auto;
+        position: static;
+        width: auto;
+    }
+
+    .settings-nav-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        margin: 6px 8px 10px;
+    }
+
+    .settings-nav-group {
+        flex-basis: 100%;
+        margin-top: 2px;
+        padding: 6px 10px 2px;
+    }
+
+    .settings-nav-list > li > a {
+        margin: 1px 2px;
+        padding: 6px 10px;
+    }
+
+    .settings-actionbar {
+        left: 0;
+    }
+}
+
+/* Bootstrap 殘留元件 */
+/* ================================================================== */
 .navbar-center {
     width: 100%;
     text-align: center;
