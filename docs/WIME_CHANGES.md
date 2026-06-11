@@ -139,6 +139,9 @@
 - 修正候選字型更換時 HFONT 被刪除兩次的潛在問題（TextService 與視窗共持同一 handle）。
 - `sortByPhrase()` 改用 set 過濾重排（原為 O(n×m) 的 remove/insert），呼叫端以淺拷貝取代 `copy.deepcopy`（每鍵約 20µs → 0.4µs）。
 - 大易萬用字元查詢：排序後的字根鍵列表加入快取（表格內容變更時失效）、低頻字去重改用 set、regex 預編譯。
+- 修正 8 個碼表系輸入法在等待碼表載入時的 busy-wait 自旋鎖（`while CinTable.loading: continue`）：自旋會佔滿一顆 CPU 核心，且 GIL 競爭反而拖慢載入執行緒；改為 `time.sleep(0.01)` 讓出 GIL。
+- 傳統（非 modern）候選 UI 的 `itemRect()` 也改用 `recalculateSize()` 快取的 header 高度，不再每次取 window DC 重量。
+- `deploy-test.ps1` 部署清單補上 8 個碼表系 `*_ime.py`。
 
 ## 設定工具可靠性
 

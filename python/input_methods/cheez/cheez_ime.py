@@ -18,6 +18,7 @@ from textService import *
 import io
 import os.path
 import copy
+import time
 
 from cinbase import CinBase
 from cinbase import LoadCinTable
@@ -62,7 +63,8 @@ class CheEZTextService(TextService):
             loadCinFile.start()
         else:
             while CinTable.loading:
-                continue
+                # 讓出 GIL：忙等會佔滿一顆核心並拖慢正在載入碼表的執行緒
+                time.sleep(0.01)
             self.cin = CinTable.cin
 
 
