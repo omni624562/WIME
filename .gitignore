@@ -10,6 +10,7 @@ cleanup_x64.ps1
 replace_x64_dll.ps1
 
 # Local test/deploy artifacts
+__pycache__/
 $tmp/
 deploy-test-*.log
 candidate-message-*-mockup.svg
