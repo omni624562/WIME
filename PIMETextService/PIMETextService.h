@@ -182,6 +182,7 @@ public:
 			return;
 		candidateStableWidth_ = enabled;
 		candidateMinWidth_ = minWidth;
+		candidateStableWidthPx_ = 0;
 		applyCandidateWindowStyle();
 	}
 
@@ -190,6 +191,7 @@ public:
 			return;
 		candidateWrapToMaxWidth_ = wrapToMaxWidth;
 		candidateMaxWidth_ = maxWidth;
+		candidateStableWidthPx_ = 0;
 		applyCandidateWindowStyle();
 	}
 
@@ -269,6 +271,7 @@ private:
 	int candidateMessageDisplayStyle_;
 	bool candidateStableWidth_;
 	int candidateMinWidth_;
+	int candidateStableWidthPx_; // grown width carried across candidate window recreation
 	bool candidateWrapToMaxWidth_;
 	int candidateMaxWidth_;
 

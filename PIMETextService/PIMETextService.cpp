@@ -64,6 +64,7 @@ TextService::TextService(ImeModule* module):
 	candidateMessageDisplayStyle_(Ime::CandidateWindow::MessageStyleBadge),
 	candidateStableWidth_(false),
 	candidateMinWidth_(0),
+	candidateStableWidthPx_(0),
 	candidateWrapToMaxWidth_(false),
 	candidateMaxWidth_(0) {
 
@@ -128,6 +129,11 @@ void TextService::onKillFocus() {
 	if (showingCandidates())
 		hideCandidates();
 	hideMessage();
+	// drop the remembered width when leaving the field so a wide window from
+	// one app doesn't carry over to the next
+	candidateStableWidthPx_ = 0;
+	if (candidateWindow_)
+		candidateWindow_->resetStableWidth();
 }
 
 // virtual
@@ -392,6 +398,7 @@ void TextService::applyCandidateWindowStyle() {
 	candidateWindow_->setMessageStyle(candidateMessageDisplayStyle_);
 	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
 	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
+	candidateWindow_->seedStableWidth(candidateStableWidthPx_);
 }
 
 void TextService::moveCandidateWindow(Ime::EditSession* session) {
@@ -461,7 +468,9 @@ void TextService::showCandidates(Ime::EditSession* session) {
 // hide candidate list window
 void TextService::hideCandidates() {
 	if (candidateWindow_) {
-		candidateWindow_->resetStableWidth();
+		// remember the grown stable width so the next window keeps the same
+		// size while the user keeps typing in the same field
+		candidateStableWidthPx_ = candidateWindow_->stableWidthPx();
 		candidateWindow_->Show(FALSE);
 	}
 	if (validCandidateListElementId_) {

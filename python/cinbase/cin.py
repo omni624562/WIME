@@ -1,5 +1,6 @@
 from __future__ import print_function
 from __future__ import unicode_literals
+import math
 import os
 import re
 import json
@@ -408,12 +409,16 @@ class Cin(object):
 
         def score(candidate):
             count, last, prevCount = self._countEntryScoreParts(counts.get(candidate, 0), previousChar)
-            value = float(count)
+            # Log scaling keeps long-term frequency from drowning out the
+            # context/recency signals: an entry picked hundreds of times can
+            # still be overtaken after a few recent picks, while a single
+            # accidental pick is not enough to jump over an established habit.
+            value = math.log2(1.0 + count)
             if useContext and isinstance(previousChar, str) and previousChar:
-                value += prevCount * 2.0
+                value += math.log2(1.0 + prevCount) * 3.0
             if useRecent and last > 0:
                 age_days = max(0.0, (now - last) / 86400.0)
-                value += 3.0 / (1.0 + age_days / 7.0)
+                value += 2.0 / (1.0 + age_days / 7.0)
             return value
 
         return [candidate for _, candidate in sorted(

@@ -123,6 +123,38 @@ class CinCountTests(unittest.TestCase):
             self.assertEqual(len(prev), cin.MAX_CONTEXT_ENTRIES)
             self.assertIn("prev39", prev)
 
+    def test_recent_context_picks_overtake_old_heavy_counts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            now = 1000000.0
+            old = now - 90 * 86400.0
+            cin.cincount = {"abc": {
+                "舊": {"count": 200, "last": old, "prev": {}},
+                "新": {"count": 3, "last": now - 60.0, "prev": {"前": 2}},
+            }}
+
+            with mock.patch("time.time", return_value=now):
+                with_context = cin.sortByCount("abc", ["舊", "新"], previousChar="前")
+                without_context = cin.sortByCount("abc", ["舊", "新"])
+
+            self.assertEqual(with_context, ["新", "舊"])
+            # without a matching context the long-term habit stays first
+            self.assertEqual(without_context, ["舊", "新"])
+
+    def test_single_pick_does_not_jump_over_established_habit(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            now = 1000000.0
+            cin.cincount = {"abc": {
+                "慣": {"count": 30, "last": now - 86400.0, "prev": {}},
+                "偶": {"count": 1, "last": now - 60.0, "prev": {}},
+            }}
+
+            with mock.patch("time.time", return_value=now):
+                ordered = cin.sortByCount("abc", ["慣", "偶"])
+
+            self.assertEqual(ordered, ["慣", "偶"])
+
     def test_save_count_file_is_throttled(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             cin = self.make_cin(temp_dir, {})
