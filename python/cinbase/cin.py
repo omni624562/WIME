@@ -424,17 +424,15 @@ class Cin(object):
         def score(candidate):
             count, last, prevCount = self._countEntryScoreParts(counts.get(candidate, 0), previousChar)
             contextCount = prevCount if (useContext and isinstance(previousChar, str) and previousChar) else 0
-            # 單次選擇不足以打亂碼表的預設排序（空白鍵的預設輸出也跟著
-            # candidates[0] 走）：需要選過兩次以上、或在相同前一字的
-            # 上下文中選過，才參與重排。誤選一次不再永久改變候選順序。
-            if count < 2 and contextCount < 1:
+            # 智慧選字 = 上下文預測，不是頻率重排：沒有「前一字上下文」
+            # 訊號時一律維持碼表順序，保護選字鍵的肌肉記憶與空白鍵的
+            # 預設輸出。只有在相同前一字之後選過這個字（例如常打
+            # 「詹智丞」，打完「詹」再組「智」的字碼），它才會被提前。
+            if contextCount < 1:
                 return 0.0
-            # Log scaling keeps long-term frequency from drowning out the
-            # context/recency signals: an entry picked hundreds of times can
-            # still be overtaken after a few recent picks.
-            value = math.log2(1.0 + count)
-            if contextCount:
-                value += math.log2(1.0 + contextCount) * 3.0
+            value = math.log2(1.0 + contextCount) * 3.0
+            # 同一個上下文有多個後續字時，全域次數與新近度當次要訊號
+            value += math.log2(1.0 + count)
             if useRecent and last > 0:
                 age_days = max(0.0, (now - last) / 86400.0)
                 value += 2.0 / (1.0 + age_days / 7.0)

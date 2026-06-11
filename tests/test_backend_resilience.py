@@ -117,11 +117,13 @@ class CinCountTests(unittest.TestCase):
 
             self.assertEqual(cin.cincount["abc"]["A"]["count"], 1)
             self.assertEqual(cin.cincount["abc"]["A"]["prev"], {})
-            # 單次選擇不足以打亂碼表預設排序
+            # 沒有上下文訊號就維持碼表順序（不論選過幾次）
             self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["B", "A"])
-            # 選滿兩次才參與重排
             cin.addCount("abc", "A")
-            self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["A", "B"])
+            self.assertEqual(cin.sortByCount("abc", ["B", "A"]), ["B", "A"])
+            # 有上下文紀錄時才提前
+            cin.addCount("abc", "A", "前")
+            self.assertEqual(cin.sortByCount("abc", ["B", "A"], previousChar="前"), ["A", "B"])
             self.assertEqual(cin.sortByCount("missing", ["B", "A"]), ["B", "A"])
 
     def test_context_counts_are_capped(self):
@@ -150,8 +152,40 @@ class CinCountTests(unittest.TestCase):
                 without_context = cin.sortByCount("abc", ["舊", "新"])
 
             self.assertEqual(with_context, ["新", "舊"])
-            # without a matching context the long-term habit stays first
+            # 沒有上下文訊號時維持碼表順序
             self.assertEqual(without_context, ["舊", "新"])
+
+    def test_global_frequency_never_reorders_without_context(self):
+        # 肌肉記憶保證：不論全域選了多少次，沒有前一字上下文就不重排
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            now = 1000000.0
+            cin.cincount = {"abc": {
+                "魚": {"count": 500, "last": now - 60.0, "prev": {"前": 9}},
+            }}
+
+            with mock.patch("time.time", return_value=now):
+                ordered = cin.sortByCount("abc", ["夕", "刀", "角", "魚"])
+
+            self.assertEqual(ordered, ["夕", "刀", "角", "魚"])
+
+    def test_context_prediction_follows_previous_char(self):
+        # 常打「詹智丞」：打完「詹」再組「智」的字碼時，「智」提前
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cin = self.make_cin(temp_dir, {})
+            for _ in range(3):
+                cin.addCount("keyZ", "智", "詹")
+
+            self.assertEqual(
+                cin.sortByCount("keyZ", ["知", "智", "蜘"], previousChar="詹"),
+                ["智", "知", "蜘"])
+            # 前一字不是「詹」時維持碼表順序
+            self.assertEqual(
+                cin.sortByCount("keyZ", ["知", "智", "蜘"], previousChar="無"),
+                ["知", "智", "蜘"])
+            self.assertEqual(
+                cin.sortByCount("keyZ", ["知", "智", "蜘"]),
+                ["知", "智", "蜘"])
 
     def test_single_pick_does_not_jump_over_established_habit(self):
         with tempfile.TemporaryDirectory() as temp_dir:
