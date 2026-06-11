@@ -74,6 +74,33 @@ func TestParseRequestAcceptsBooleanKeyStates(t *testing.T) {
 	}
 }
 
+func TestParseRequestAcceptsSparseKeyStates(t *testing.T) {
+	req, err := ParseRequest([]byte(`{
+		"method": "onKeyDown",
+		"seqNum": 1,
+		"keyStates": {"16": 129, "20": 1, "300": 9, "bad": 9}
+	}`))
+	if err != nil {
+		t.Fatalf("ParseRequest returned error: %v", err)
+	}
+
+	if len(req.KeyStates) != 256 {
+		t.Fatalf("expected 256 key states, got %d", len(req.KeyStates))
+	}
+	if !req.KeyStates.IsKeyDown(16) {
+		t.Fatalf("expected vk 16 to be down, got %d", req.KeyStates[16])
+	}
+	if !req.KeyStates.IsKeyToggled(16) {
+		t.Fatalf("expected vk 16 to be toggled, got %d", req.KeyStates[16])
+	}
+	if !req.KeyStates.IsKeyToggled(20) {
+		t.Fatalf("expected vk 20 to be toggled, got %d", req.KeyStates[20])
+	}
+	if req.KeyStates.IsKeyDown(65) {
+		t.Fatalf("expected vk 65 to stay up, got %d", req.KeyStates[65])
+	}
+}
+
 func TestParseRequestAcceptsStringAndNumericID(t *testing.T) {
 	stringReq, err := ParseRequest([]byte(`{"method":"init","seqNum":1,"id":"{guid}"}`))
 	if err != nil {
