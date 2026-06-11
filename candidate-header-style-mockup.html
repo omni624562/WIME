@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>候選窗「大易」名稱標籤樣式 mockup</title>
+<style>
+body {
+    background: #14151a;
+    color: #d7dbe4;
+    font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+    margin: 24px;
+}
+h1 { font-size: 18px; }
+p.note { color: #8b919e; font-size: 13px; max-width: 720px; }
+.gallery { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 18px; }
+.case { width: 320px; }
+.case h2 { color: #aab1bf; font-size: 13px; font-weight: 600; margin: 0 0 8px 2px; }
+.case h2 small { color: #6e7480; font-weight: 400; margin-left: 6px; }
+
+.cand {
+    background: #1b1c20;
+    border: 1px solid #4a4d57;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
+    font-size: 15px;
+    overflow: hidden;
+}
+.cand .header {
+    align-items: center;
+    border-bottom: 1px solid #30323a;
+    display: flex;
+    gap: 10px;
+    padding: 6px 10px;
+}
+.cand .name { color: #a9afba; }
+.cand .root { color: #b8c7e8; font-weight: 600; }
+.cand .page { color: #a9afba; margin-left: auto; }
+.cand .body { display: flex; gap: 10px; padding: 8px 10px 10px; }
+.cand .item { align-items: center; display: flex; gap: 5px; padding: 3px 6px; }
+.cand .item.sel {
+    background: #2a3950;
+    border: 1px solid #44587a;
+    border-radius: 8px;
+}
+.cand .key { color: #8d94a2; font-size: 12px; }
+.cand .word { color: #e5e8ee; }
+.cand .item.sel .word { color: #eef4ff; }
+
+/* 1. plain（現況） */
+.style-plain .name { color: #a9afba; }
+
+/* 2. badge：強調色膠囊（新預設） */
+.style-badge .name {
+    background: rgba(64, 95, 138, 0.45);
+    border: 1px solid rgba(94, 126, 167, 0.55);
+    border-radius: 9px;
+    color: #eef4ff;
+    padding: 1px 8px;
+}
+
+/* 3. accent：強調色文字 */
+.style-accent .name { color: #b8c7e8; font-weight: 600; }
+
+/* 4. tag：描邊標籤 */
+.style-tag .name {
+    border: 1px solid #565b66;
+    border-radius: 9px;
+    padding: 1px 8px;
+}
+
+/* 5. bar：左側色條 */
+.style-bar .name {
+    border-left: 2px solid #b8c7e8;
+    padding-left: 7px;
+}
+
+/* 6. underline：底線 */
+.style-underline .name {
+    text-decoration: underline;
+    text-decoration-color: #b8c7e8;
+    text-underline-offset: 4px;
+}
+</style>
+</head>
+<body>
+<h1>候選窗「大易」名稱標籤樣式</h1>
+<p class="note">
+對應 C++ <code>HeaderLabelStyle</code> 與設定欄位 <code>candidateHeaderStyle</code>。
+配色全部由目前候選窗主題推導（badge 底色 = panelBg 混 26% highlightBg、描邊 = highlightBorder 混 35%），
+換主題時自動跟著走，不需要另外調色。預設為 <b>badge</b>。
+</p>
+<div class="gallery">
+<div class="case"><h2>plain<small>素色（原本樣子）</small></h2>
+<div class="cand style-plain"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+
+<div class="case"><h2>badge<small>強調色膠囊（新預設）</small></h2>
+<div class="cand style-badge"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+
+<div class="case"><h2>accent<small>強調色文字</small></h2>
+<div class="cand style-accent"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+
+<div class="case"><h2>tag<small>描邊標籤</small></h2>
+<div class="cand style-tag"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+
+<div class="case"><h2>bar<small>左側色條</small></h2>
+<div class="cand style-bar"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+
+<div class="case"><h2>underline<small>底線</small></h2>
+<div class="cand style-underline"><div class="header"><span class="name">大易</span><span class="root">土</span><span class="page">1/1</span></div>
+<div class="body"><span class="item sel"><span class="word">土</span><span class="key">␣</span></span><span class="item"><span class="word">士</span><span class="key">'</span></span><span class="item"><span class="word">王</span><span class="key">[</span></span><span class="item"><span class="word">老</span><span class="key">]</span></span><span class="item"><span class="word">圭</span><span class="key">-</span></span></div></div></div>
+</div>
+</body>
+</html>

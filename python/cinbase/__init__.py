@@ -3416,6 +3416,7 @@ class CinBase:
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
             "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
             "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateHeaderStyle": getattr(cfg, 'candidateHeaderStyle', 'badge'),
             "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),

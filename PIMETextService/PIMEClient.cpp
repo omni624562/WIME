@@ -139,6 +139,21 @@ static int candidateMessageStyleValue(const std::string& style) {
 	return Ime::CandidateWindow::MessageStyleBadge;
 }
 
+static int candidateHeaderStyleValue(const std::string& style) {
+	const std::string name = normalizedThemeName(style);
+	if (name == "badge" || name == "chip")
+		return Ime::CandidateWindow::HeaderLabelBadge;
+	if (name == "accent")
+		return Ime::CandidateWindow::HeaderLabelAccent;
+	if (name == "tag" || name == "outline")
+		return Ime::CandidateWindow::HeaderLabelTag;
+	if (name == "bar" || name == "accentbar")
+		return Ime::CandidateWindow::HeaderLabelBar;
+	if (name == "underline")
+		return Ime::CandidateWindow::HeaderLabelUnderline;
+	return Ime::CandidateWindow::HeaderLabelPlain;
+}
+
 static void candidateThemeColors(const std::string& theme,
 	COLORREF& panelBackground,
 	COLORREF& panelBorder,
@@ -299,6 +314,7 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
 		textService_->setCandidateMaxWidth(true, 300);
+		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelBadge);
 		textService_->setCandidateModernStyle(true);
 	}
 }
@@ -384,6 +400,9 @@ void Client::updateUI(json& data) {
 		}
 		else if (value.is_string() && name == "candidateMessageStyle") {
 			textService_->setCandidateMessageStyle(candidateMessageStyleValue(value.get<string>()));
+		}
+		else if (value.is_string() && name == "candidateHeaderStyle") {
+			textService_->setCandidateHeaderStyle(candidateHeaderStyleValue(value.get<string>()));
 		}
 	}
 

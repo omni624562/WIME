@@ -62,6 +62,7 @@ TextService::TextService(ImeModule* module):
 	candidateKeyStyle_(Ime::CandidateWindow::KeyStyleKeycap),
 	candidateMessageStyle_(Ime::CandidateWindow::MessageStyleBadge),
 	candidateMessageDisplayStyle_(Ime::CandidateWindow::MessageStyleBadge),
+	candidateHeaderStyle_(Ime::CandidateWindow::HeaderLabelPlain),
 	candidateStableWidth_(false),
 	candidateMinWidth_(0),
 	candidateStableWidthPx_(0),
@@ -407,6 +408,7 @@ void TextService::applyCandidateWindowStyle() {
 	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
 	candidateWindow_->setKeyStyle(candidateKeyStyle_);
 	candidateWindow_->setMessageStyle(candidateMessageDisplayStyle_);
+	candidateWindow_->setHeaderLabelStyle(candidateHeaderStyle_);
 	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
 	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
 	candidateWindow_->seedStableWidth(candidateStableWidthPx_);

@@ -90,6 +90,7 @@ class CinBaseConfig:
         self.candidateEdgeAvoidance = True
         self.candidateTheme = "Night Comfort"
         self.candidateKeyStyle = "keycap"
+        self.candidateHeaderStyle = "badge"
         self.candidateMessageStyle = "badge"
         self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = False

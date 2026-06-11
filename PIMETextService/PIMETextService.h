@@ -177,6 +177,14 @@ public:
 		setCandidateMessageDisplayStyle(candidateMessageStyle_);
 	}
 
+	void setCandidateHeaderStyle(int headerStyle) {
+		if (candidateHeaderStyle_ == headerStyle)
+			return;
+		candidateHeaderStyle_ = headerStyle;
+		if (candidateWindow_)
+			candidateWindow_->setHeaderLabelStyle(candidateHeaderStyle_);
+	}
+
 	void setCandidateStableWidth(bool enabled, int minWidth) {
 		if (candidateStableWidth_ == enabled && candidateMinWidth_ == minWidth)
 			return;
@@ -269,6 +277,7 @@ private:
 	int candidateKeyStyle_;
 	int candidateMessageStyle_;
 	int candidateMessageDisplayStyle_;
+	int candidateHeaderStyle_;
 	bool candidateStableWidth_;
 	int candidateMinWidth_;
 	int candidateStableWidthPx_; // grown width carried across candidate window recreation

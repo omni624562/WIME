@@ -204,6 +204,39 @@
     color: #a9afba;
 }
 
+/* 輸入法名稱標籤樣式（與 C++ HeaderLabelStyle 對應） */
+.candidate-preview.header-style-badge .candidate-preview-name {
+    background: rgba(64, 95, 138, 0.45);
+    border: 1px solid rgba(94, 126, 167, 0.55);
+    border-radius: 9px;
+    color: #eef4ff;
+    line-height: 1.4;
+    padding: 0 7px;
+}
+
+.candidate-preview.header-style-accent .candidate-preview-name {
+    color: #b8c7e8;
+    font-weight: 600;
+}
+
+.candidate-preview.header-style-tag .candidate-preview-name {
+    border: 1px solid #565b66;
+    border-radius: 9px;
+    line-height: 1.4;
+    padding: 0 7px;
+}
+
+.candidate-preview.header-style-bar .candidate-preview-name {
+    border-left: 2px solid #b8c7e8;
+    padding-left: 6px;
+}
+
+.candidate-preview.header-style-underline .candidate-preview-name {
+    text-decoration: underline;
+    text-decoration-color: #b8c7e8;
+    text-underline-offset: 3px;
+}
+
 .candidate-preview-root {
     color: #b8c7e8;
     font-weight: 600;

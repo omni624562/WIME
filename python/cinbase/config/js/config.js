@@ -204,6 +204,20 @@ function applyCandidateDefaults() {
     if (!validCandidateMessageBehaviors[checjConfig.candidateMessageBehavior]) {
         checjConfig.candidateMessageBehavior = "progressive";
     }
+    if (typeof checjConfig.candidateHeaderStyle === "undefined") {
+        checjConfig.candidateHeaderStyle = "badge";
+    }
+    var validCandidateHeaderStyles = {
+        plain: true,
+        badge: true,
+        accent: true,
+        tag: true,
+        bar: true,
+        underline: true
+    };
+    if (!validCandidateHeaderStyles[checjConfig.candidateHeaderStyle]) {
+        checjConfig.candidateHeaderStyle = "badge";
+    }
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;
@@ -284,6 +298,15 @@ var candidateMessageStyleOptions = {
     badge: "A Badge Alert",
     bar: "B Bar Notice",
     dot: "D Dot Signal"
+};
+
+var candidateHeaderStyleOptions = {
+    plain: "Plain Name",
+    badge: "Badge Chip",
+    accent: "Accent Name",
+    tag: "Outline Tag",
+    bar: "Accent Bar",
+    underline: "Underline"
 };
 
 var candidateMessageBehaviorOptions = {
@@ -457,8 +480,10 @@ function candidatePreviewFontSize() {
     return Math.max(6, Math.min(fontSize, 48));
 }
 
-function createCandidatePreview(sample, keyStyle) {
+function createCandidatePreview(sample, keyStyle, headerStyle) {
     var preview = $("<div>").addClass("candidate-preview");
+    headerStyle = headerStyle || $("#candidateHeaderStyle").val() || "badge";
+    preview.addClass("header-style-" + headerStyle);
     var header = $("<div>").addClass("candidate-preview-header");
     header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
     header.append($("<span>").addClass("candidate-preview-root").text(sample.root));
@@ -555,6 +580,26 @@ function renderCandidateKeyStyleGallery() {
         header.append($("<span>").addClass("candidate-style-card-state"));
         card.append(header);
         card.append(createCandidatePreview(sample, styleValue));
+        grid.append(card);
+    });
+}
+
+function renderCandidateHeaderStyleGallery() {
+    var grid = $("#candidateHeaderStyleGrid");
+    if (!grid.length) {
+        return;
+    }
+
+    var sample = getCandidatePreviewSample();
+    var keyStyle = $("#candidateKeyStyle").val() || "keycap";
+    grid.empty();
+    $.each(candidateHeaderStyleOptions, function(styleValue, styleName) {
+        var card = $("<button>").attr("type", "button").addClass("candidate-style-card candidate-header-style-card").data("style", styleValue);
+        var header = $("<div>").addClass("candidate-style-card-header");
+        header.append($("<span>").addClass("candidate-style-card-name").text(styleName));
+        header.append($("<span>").addClass("candidate-style-card-state"));
+        card.append(header);
+        card.append(createCandidatePreview(sample, keyStyle, styleValue));
         grid.append(card);
     });
 }
@@ -718,9 +763,36 @@ function updateCandidateMessageBehaviorGallery() {
     });
 }
 
+function updateCandidateHeaderStyleGallery() {
+    var grid = $("#candidateHeaderStyleGrid");
+    if (!grid.length) {
+        return;
+    }
+
+    var selectedStyle = $("#candidateHeaderStyle").val() || "badge";
+    var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+    var modern = $("#candidateModernStyle").prop("checked");
+    var sample = getCandidatePreviewSample();
+    $("#candidateHeaderStyleCurrent").text(candidateHeaderStyleOptions[selectedStyle] || "");
+
+    grid.find(".candidate-header-style-card").each(function() {
+        var card = $(this);
+        var styleValue = card.data("style");
+        var selected = styleValue == selectedStyle;
+        var preview = card.find(".candidate-preview");
+        card.toggleClass("selected", selected);
+        preview.css("font-size", candidatePreviewFontSize() + "pt");
+        card.find(".candidate-style-card-state").text(selected ? "已選" : "");
+        preview.find(".candidate-preview-name").text(sample.name);
+        preview.find(".candidate-preview-root").text(sample.root);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+    });
+}
+
 function updateCandidateAppearanceGalleries() {
     updateCandidateThemeGallery();
     updateCandidateKeyStyleGallery();
+    updateCandidateHeaderStyleGallery();
     updateCandidateMessageStyleGallery();
     updateCandidateMessageBehaviorGallery();
 }
@@ -1093,6 +1165,7 @@ function pageReady() {
     candidateTheme.val(checjConfig.candidateTheme || "Night Comfort");
 
     $("#candidateKeyStyle").val(checjConfig.candidateKeyStyle || "keycap");
+    $("#candidateHeaderStyle").val(checjConfig.candidateHeaderStyle || "badge");
     $("#candidateMessageStyle").val(checjConfig.candidateMessageStyle || "badge");
     $("#candidateMessageBehavior").val(checjConfig.candidateMessageBehavior || "progressive");
 
@@ -1272,7 +1345,7 @@ function pageReady() {
             updateCandidateAppearanceGalleries();
         }
     });
-    $("#candidateTheme, #candidateKeyStyle, #candidateMessageStyle, #candidateMessageBehavior").on("change", updateCandidateAppearanceGalleries);
+    $("#candidateTheme, #candidateKeyStyle, #candidateHeaderStyle, #candidateMessageStyle, #candidateMessageBehavior").on("change", updateCandidateAppearanceGalleries);
     $("#candidateThemeGrid").on("click", ".candidate-theme-card", function() {
         $("#candidateTheme").val($(this).data("theme"));
         updateCandidateAppearanceGalleries();
@@ -1285,12 +1358,17 @@ function pageReady() {
         $("#candidateMessageStyle").val($(this).data("style"));
         updateCandidateAppearanceGalleries();
     });
+    $("#candidateHeaderStyleGrid").on("click", ".candidate-header-style-card", function() {
+        $("#candidateHeaderStyle").val($(this).data("style"));
+        updateCandidateAppearanceGalleries();
+    });
     $("#candidateMessageBehaviorGrid").on("click", ".candidate-message-behavior-card", function() {
         $("#candidateMessageBehavior").val($(this).data("behavior"));
         updateCandidateAppearanceGalleries();
     });
     renderCandidateMessageBehaviorGallery();
     renderCandidateMessageStyleGallery();
+    renderCandidateHeaderStyleGallery();
     renderCandidateKeyStyleGallery();
     renderCandidateThemeGallery();
     updateCandidateAppearanceGalleries();
