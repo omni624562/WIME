@@ -326,9 +326,19 @@ void Client::addKeyEventToRpcRequest(json& request, Ime::KeyEvent& keyEvent) {
 }
 
 bool Client::handleRpcResponse(json& msg, Ime::EditSession* session) {
+	// Callers invoke this even when the RPC failed and msg is still null.
+	// value() throws on non-object json and the exception would escape the
+	// TSF COM boundary and terminate the host process, so guard it here.
+	if (!msg.is_object())
+		return false;
 	bool success = msg.value("success", false);
 	if (success) {
-		updateStatus(msg, session);
+		try {
+			updateStatus(msg, session);
+		}
+		catch (...) {
+			// a malformed backend reply must never take down the host app
+		}
 	}
 	return success;
 }

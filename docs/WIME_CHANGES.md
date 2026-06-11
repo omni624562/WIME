@@ -124,6 +124,7 @@
 - 大易/碼表系與新酷音的候選窗 UI 設定加入快取，設定未改變時不再每次候選字更新都重送 `customizeUI`。
 - 修正 RPC pipe I/O 逾時後 `CancelIo()` 未等待取消完成就返回，kernel 可能寫入已釋放的堆疊 `OVERLAPPED` 造成宿主應用程式隨機損毀（2026-06-11）。
 - 修正 `getPipeName()` 失敗路徑以空指標建構 `std::wstring` 的崩潰風險（2026-06-11）。
+- 修正 backend/launcher 不可用時宿主應用程式直接崩潰的問題：RPC 失敗後 `handleRpcResponse()` 仍被呼叫，對 null json 取值會拋出例外並穿過 TSF COM 邊界終止宿主（實測 explorer/conhost 以 ucrtbase 0xc0000409 崩潰）；現在改為 null 防護，且 `updateStatus()` 例外不再外洩（2026-06-11）。
 - 候選窗穩定寬度改為跨候選窗重建保留：打字過程收窗再開不會縮回最小寬度造成「時大時小」，焦點離開欄位或寬度設定改變時才重設（2026-06-11）。
 
 ## 設定工具可靠性
