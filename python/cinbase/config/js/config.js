@@ -960,6 +960,20 @@ function updateConfig() {
 }
 
 
+function showSaveToast(message) {
+    var toast = $("#settingsSaveToast");
+    if (!toast.length) {
+        toast = $("<div>").attr("id", "settingsSaveToast").addClass("settings-toast");
+        $("body").append(toast);
+    }
+    toast.text(message);
+    toast.addClass("show");
+    clearTimeout(showSaveToast._timer);
+    showSaveToast._timer = setTimeout(function() {
+        toast.removeClass("show");
+    }, 2200);
+}
+
 function checkDataFormat(checkData, checkType, elementId, dataDesc) {
     var data_array = checkData.split("\n");
     var errorState = false;
@@ -1264,17 +1278,8 @@ function pageReady() {
     $("#ok").on('click', function () {
         updateConfig(); // update the config based on the state of UI elements
         saveConfig(function() {
-            $.jAlert({
-            'title': '好耶！',
-            'content': '設定成功儲存！',
-            'theme': 'blue',
-            'size': 'md',
-            'blurBackground': true,
-            'closeOnClick': true,
-            'showAnimation': 'zoomIn',
-            'hideAnimation': 'zoomOutDown',
-            'btns': {'text': '關閉', 'theme': 'blue'}
-            });
+            // 成功提示用自動消失的 toast，不打斷操作；錯誤仍用對話框
+            showSaveToast("設定已套用");
         });
         updateCinCountElements();
         return false;

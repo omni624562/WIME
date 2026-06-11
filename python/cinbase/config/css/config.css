@@ -747,6 +747,35 @@ textarea.form-control {
     color: #ffffff;
 }
 
+/* 套用成功的自動消失提示 */
+.settings-toast {
+    background: #1f2533;
+    border-radius: 999px;
+    bottom: 76px;
+    box-shadow: 0 6px 20px rgba(16, 24, 40, 0.28);
+    color: #eef2f9;
+    font-size: 13.5px;
+    opacity: 0;
+    padding: 9px 20px 9px 16px;
+    pointer-events: none;
+    position: fixed;
+    right: 26px;
+    transform: translateY(8px);
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 1040;
+}
+
+.settings-toast::before {
+    color: #4ade80;
+    content: "✓ ";
+    font-weight: 700;
+}
+
+.settings-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* 窄視窗：側欄改為頂部橫向導覽，不再使用漢堡選單 */
 @media (max-width: 860px) {
     body {
