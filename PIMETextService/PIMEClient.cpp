@@ -1076,7 +1076,11 @@ bool Client::callPipeIO(bool isRead, void *buffer, DWORD size, DWORD *rlen, int 
 	}
 	else {
 		// timeout or error
+		// CancelIo() only requests cancellation; the kernel may still write to
+		// the stack OVERLAPPED and signal ioEvent_ after this function returns.
+		// Block until the I/O actually completes so the OVERLAPPED stays valid.
 		CancelIo(pipe_);
+		GetOverlappedResult(pipe_, &overlapped, rlen, TRUE);
 		ok = FALSE;
 	}
 
@@ -1307,11 +1311,11 @@ wstring Client::getPipeName(const wchar_t* base_name) {
 	DWORD len = 0;
 	::GetUserNameW(NULL, &len); // get the required size of the buffer
 	if (len <= 0)
-		return false;
+		return wstring();
 	// add username to the pipe path so it won't clash with the other users' pipes
 	unique_ptr<wchar_t[]> username(new wchar_t[len]);
 	if (!::GetUserNameW(username.get(), &len))
-		return false;
+		return wstring();
 	pipeName += username.get();
 	pipeName += L"\\PIME\\";
 	pipeName += base_name;
