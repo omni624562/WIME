@@ -260,6 +260,48 @@ class DayiMenuE2ETests(unittest.TestCase):
 
 
 @unittest.skipUnless(pipe_available(), "PIMELauncher pipe not available")
+class SmartSelectSpecE2ETests(unittest.TestCase):
+    """規格：無前一字（新連線）時，候選順序必須等於碼表順序——
+    不論學習資料裡的全域次數多高（全域重排判定的實機版）。"""
+
+    def test_no_context_order_is_table_order(self):
+        c = PipeClient(CHEDAYI_GUID)
+        try:
+            self.assertTrue(c.init().get("success"))
+            self.assertTrue(c.activate().get("success"))
+            # 等碼表載入（借用選單測試的 ready 探測）
+            DayiMenuE2ETests.wait_table_ready(DayiMenuE2ETests(), c)
+
+            # 新 client、未送出任何字 → 無前一字上下文。
+            # 注意 directShowCand=True 時候選隨字根即時顯示，空白鍵會直接
+            # 送出第一候選並帶出「聯想字詞」清單——候選必須取自組字回覆。
+            page = None
+            for ch, code in (("a", 0x41), ("e", 0x45), ("x", 0x58)):
+                for reply in c.press(ch, code):
+                    if isinstance(reply.get("candidateList"), list) and reply["candidateList"]:
+                        page = reply["candidateList"]
+            if not page:
+                # directShowCand 關閉時需按空白叫出候選；取尚未送出字前的清單
+                for reply in c.press(" ", 0x20):
+                    if "commitString" in reply:
+                        break
+                    if isinstance(reply.get("candidateList"), list) and reply["candidateList"]:
+                        page = reply["candidateList"]
+            c.press("\x1b", 0x1B)
+
+            if not page:
+                self.skipTest("aex has no candidates on the configured table")
+            # dayi3 碼表順序：使 便 仗；dayi4：使 便
+            self.assertEqual(page[0], "使",
+                             "無上下文時第一候選必須是碼表第一字，實際: %r" % page)
+            if "便" in page:
+                self.assertGreater(page.index("便"), 0,
+                                   "「便」不得在無上下文時排第一: %r" % page)
+        finally:
+            c.close()
+
+
+@unittest.skipUnless(pipe_available(), "PIMELauncher pipe not available")
 class RecoveryE2ETests(unittest.TestCase):
     def test_new_connection_after_idle_backend_exit(self):
         # Repeated fresh connections must always succeed: the launcher
