@@ -78,35 +78,39 @@
     <div class="container">
         <div class="row">
             <div class="col-12">
-                <ul class="nav nav-tabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#typing_tab" aria-controls="typing_tab" role="tab" data-toggle="tab"
-                            onclick="return switchChewingConfigTab(this, event)">✍️打字行為</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#ui_tab" aria-controls="ui_tab" role="tab" data-toggle="tab"
-                            onclick="return switchChewingConfigTab(this, event)">🏘️選字視窗外觀</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#keyboard_tab" aria-controls="keyboard_tab" role="tab" data-toggle="tab"
-                            onclick="return switchChewingConfigTab(this, event)">⌨️鍵盤配置</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#symbols_tab" aria-controls="symbols_tab" role="tab" data-toggle="tab"
-                            onclick="return switchChewingConfigTab(this, event)">💡特殊符號</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#ez_symbols_tab" aria-controls="ez_symbols_tab" role="tab" data-toggle="tab"
-                            onclick="return switchChewingConfigTab(this, event)">📜簡易符號輸入</a>
-                    </li>
-                    <li class="nav-item ml-auto">
-                        <a class="nav-link" href="#test_input" aria-controls="test_input" role="tab" data-toggle="modal" data-target="#test_input">🛠️測試輸入法</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#about_modal" aria-controls="about_modal" role="tab" data-toggle="modal"
-                            data-target="#about_modal">ℹ️關於新酷音</a>
-                    </li>
-                </ul>
+                <nav id="chewingSidebar">
+                    <div class="sidebar-brand">設定新酷音</div>
+                    <ul class="nav nav-pills flex-column" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#typing_tab" aria-controls="typing_tab" role="tab" data-toggle="tab"
+                                onclick="return switchChewingConfigTab(this, event)">✍️ 打字行為</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#ui_tab" aria-controls="ui_tab" role="tab" data-toggle="tab"
+                                onclick="return switchChewingConfigTab(this, event)">🏘️ 選字視窗外觀</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#keyboard_tab" aria-controls="keyboard_tab" role="tab" data-toggle="tab"
+                                onclick="return switchChewingConfigTab(this, event)">⌨️ 鍵盤配置</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#symbols_tab" aria-controls="symbols_tab" role="tab" data-toggle="tab"
+                                onclick="return switchChewingConfigTab(this, event)">💡 特殊符號</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#ez_symbols_tab" aria-controls="ez_symbols_tab" role="tab" data-toggle="tab"
+                                onclick="return switchChewingConfigTab(this, event)">📜 簡易符號輸入</a>
+                        </li>
+                        <li class="sidebar-divider"></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#test_input" aria-controls="test_input" role="tab" data-toggle="modal" data-target="#test_input">🛠️ 測試輸入法</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#about_modal" aria-controls="about_modal" role="tab" data-toggle="modal"
+                                data-target="#about_modal">ℹ️ 關於新酷音</a>
+                        </li>
+                    </ul>
+                </nav>
 
                 <div class="modal fade" id="test_input" tabindex="-1" role="dialog" aria-labelledby="test_input" aria-hidden="true">
                     <div class="modal-dialog" role="document">
@@ -173,8 +177,8 @@
                             <h1>中英文切換</h1>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="switchLangWithShift" name="switchLangWithShift">
-                                <label class="custom-control-label" for="switchLangWithShift" data-content="不建議同時勾選「<b>使用左 Shift、 右 Shift 在打字時移動游標</b>」設定"
-                                    data-html="true" data-toggle="popover" data-placement="bottom" data-trigger="hover">使用<kbd>Shift</kbd>切換中英文模式 🛈</label>
+                                <label class="custom-control-label" for="switchLangWithShift">使用<kbd>Shift</kbd>切換中英文模式</label>
+                                <div class="setting-hint">不建議與下方「使用左/右 Shift 在打字時移動游標」同時勾選。</div>
                             </div>
                             <div class="custom-control position-static">
                                 使用哪一邊的<kbd>Shift</kbd>來切換中英文模式：
@@ -205,8 +209,8 @@
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="phraseChoiceRearward" name="phraseChoiceRearward">
-                                <label class="custom-control-label" for="phraseChoiceRearward" data-content="類似自然輸入法，在詞彙的最後一字按下選字鍵會叫出選字視窗" data-toggle="popover"
-                                    data-html="true" data-placement="bottom" data-trigger="hover">啟用向後詞彙選詞模式 🛈</label>
+                                <label class="custom-control-label" for="phraseChoiceRearward">啟用向後詞彙選詞模式</label>
+                                <div class="setting-hint">類似自然輸入法,在詞彙的最後一字按下選字鍵會叫出選字視窗。</div>
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="escCleanAllBuf" name="escCleanAllBuf">
@@ -218,9 +222,9 @@
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="shiftMoveCursor" name="shiftMoveCursor">
-                                <label class="custom-control-label" for="shiftMoveCursor" data-content="不建議同時勾選「<b>使用Shift切換中英文模式</b>」設定" data-toggle="popover"
-                                    data-html="true" data-placement="bottom" data-trigger="hover">使用<kbd>左 Shift</kbd>、<kbd>右 Shift</kbd>
-                                    在打字時移動游標 🛈</label>
+                                <label class="custom-control-label" for="shiftMoveCursor">使用<kbd>左 Shift</kbd>、<kbd>右 Shift</kbd>
+                                    在打字時移動游標</label>
+                                <div class="setting-hint">不建議與上方「使用 Shift 切換中英文模式」同時勾選。</div>
                             </div>
                             使用<kbd>Ctrl</kbd>+<kbd>數字鍵 2 ~ 9</kbd>加入游標
                             <select name="addPhraseForward" id="addPhraseForward"></select>
@@ -262,8 +266,8 @@
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="autoLearn" name="autoLearn">
-                                <label class="custom-control-label" for="autoLearn" data-content="此功能會自動將所有輸入過的字詞新增至使用者辭庫中" data-toggle="popover"
-                                    data-html="true" data-placement="bottom" data-trigger="hover">啟用自動學習功能 🛈</label><br>
+                                <label class="custom-control-label" for="autoLearn">啟用自動學習功能</label>
+                                <div class="setting-hint">會自動將所有輸入過的字詞新增至使用者辭庫中。</div>
                             </div>
                         </div>
                     </div>
@@ -367,9 +371,8 @@
 
                         <div class="custom-control custom-checkbox">
                             <input type="checkbox" class="custom-control-input" id="easySymbolsWithCtrl" name="easySymbolsWithCtrl">
-                            <label class="custom-control-label" for="easySymbolsWithCtrl" data-content="<span class='text-warning'>容易產生熱鍵衝突，不建議使用</span></br>
-                                例如常用的複製貼上熱鍵Ctrl + C，Ctrl + V，會和這個功能衝突，需要切回英文模式才能使用" data-html="true" data-toggle="popover" data-placement="bottom"
-                                data-trigger="hover">中文模式下按住<kbd>Ctrl</kbd> 快速輸入符號 🛈</label>
+                            <label class="custom-control-label" for="easySymbolsWithCtrl">中文模式下按住<kbd>Ctrl</kbd> 快速輸入符號</label>
+                            <div class="setting-hint setting-hint-warn">容易與複製貼上等熱鍵(Ctrl+C、Ctrl+V)衝突,不建議使用,需切回英文模式才能用這些熱鍵。</div>
                         </div>
                         <p class="well">
                             以下是使用<kbd>Ctrl</kbd>或<kbd>Shift</kbd>快速輸入符號的設定，每一行表示一個鍵所對應的字串，格式為<strong>「英文大寫」+「半形空白」+「字串」</strong><br>例如「M
@@ -380,8 +383,9 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center">
+        <div class="row justify-content-center align-items-center">
             <button class="col-md-4 btn btn-primary" id="ok">套用設定</button>
+            <span id="unsavedHint" class="ml-3" style="display:none; color:#d39e00; font-weight:600;">● 尚未儲存變更</span>
         </div>
     </div>
 

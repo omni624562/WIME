@@ -148,8 +148,6 @@ loadConfig();
 
 function applyCandidateDefaults() {
     var currentIme = typeof imeFolderName !== "undefined" ? imeFolderName : "";
-    checjConfig.outputSimpChinese = false;
-    checjConfig.enableSwitchTCSC = false;
     if (typeof checjConfig.autoCommitSingleCandidate === "undefined") {
         checjConfig.autoCommitSingleCandidate = false;
     }
@@ -967,8 +965,6 @@ function updateConfig() {
     if (checjConfig.candidateTheme) {
         checjConfig.candidateColors = {};
     }
-    checjConfig.outputSimpChinese = false;
-    checjConfig.enableSwitchTCSC = false;
 }
 
 
@@ -1296,6 +1292,7 @@ function pageReady() {
         updateConfig(); // update the config based on the state of UI elements
         saveConfig(function() {
             // 成功提示用自動消失的 toast，不打斷操作；錯誤仍用對話框
+            $("#unsavedHint").hide();
             showSaveToast("設定已套用");
         });
         updateCinCountElements();
@@ -1322,6 +1319,66 @@ function pageReady() {
     // when switchLangWithShift changes, update switchLangWithWhichShift disabled property
     $("#switchLangWithShift").on("click", function() {
         $("#switchLangWithWhichShift").prop("disabled", !this.checked);
+    });
+
+    // Phase 0: 父項關閉時，自動停用（並變灰）相依的子選項與下拉
+    function bindDependentEnable(parentId, dependents) {
+        var $parent = $("#" + parentId);
+        if (!$parent.length) {
+            return;
+        }
+        function apply() {
+            var on = $parent.prop("checked");
+            dependents.forEach(function(dep) {
+                $("#" + dep.field).prop("disabled", !on);
+                if (dep.item) {
+                    $("#" + dep.item).toggleClass("is-disabled", !on);
+                }
+            });
+        }
+        apply();
+        $parent.on("click", apply);
+    }
+
+    // 注意：selWildcardType / selRCinType / selHCinType 的啟用狀態由
+    // disableControlItem() 依碼表類型管理（大易 selWildcardType 恆為停用），
+    // 此處不另行連動以免覆蓋；其「關閉時無作用」已於說明文字註明。
+    bindDependentEnable("intelligentSelect", [
+        { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" },
+        { field: "intelligentSelectContext", item: "intelligentSelectContext_item" }
+    ]);
+
+    // Phase 0: 未儲存變更提示。configReady 在初始化完成後才設為 true，
+    // 避免載入階段程式設定值時誤觸發。
+    var configReady = false;
+    function markUnsaved() {
+        if (configReady) {
+            $("#unsavedHint").show();
+        }
+    }
+    $("body").on("change", "input:not(#settingsSearch), select, textarea", markUnsaved);
+
+    // Phase 2: 側欄分區搜尋。以 class 切換顯示，保留 intelligent/keyboard
+    // 等項目原本的條件隱藏（inline display:none）不被搜尋誤開啟。
+    $("#settingsSearch").on("input", function() {
+        var q = $.trim($(this).val()).toLowerCase();
+        $(".sidebar-nav > li").not(".sidebar-heading").each(function() {
+            var li = $(this);
+            var match = (q === "") || (li.text().toLowerCase().indexOf(q) !== -1);
+            li.toggleClass("search-hidden", !match);
+        });
+        $(".sidebar-nav > li.sidebar-heading").each(function() {
+            var heading = $(this);
+            var anyVisible = false;
+            heading.nextUntil(".sidebar-heading").each(function() {
+                var it = $(this);
+                if (!it.hasClass("search-hidden") && it.css("display") !== "none") {
+                    anyVisible = true;
+                    return false;
+                }
+            });
+            heading.toggleClass("search-hidden", !((q === "") || anyVisible));
+        });
     });
 
     // use for select example
@@ -1488,4 +1545,7 @@ function pageReady() {
             url: KEEP_ALIVE_URL + '?' + Date.now()
         });
     }, 20 * 1000);
+
+    // 初始化完成，之後使用者的變更才會觸發「尚未儲存」提示
+    configReady = true;
 }

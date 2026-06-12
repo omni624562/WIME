@@ -345,12 +345,9 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 
 void TextService::updateCandidatesWindow(Ime::EditSession* session) {
     if (candidateWindow_) {
-        RECT textRect;
-        // get the position of composition area from TSF
-        if (selectionRect(session, &textRect)) {
-            // FIXME: where should we put the candidate window?
-            candidateWindow_->move(textRect.left, textRect.bottom);
-        }
+        // reuse the edge-avoidance logic so the candidate window does not get
+        // clamped on top of the composition line when near the screen bottom
+        moveCandidateWindow(session);
     }
 }
 

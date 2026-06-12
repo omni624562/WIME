@@ -24,7 +24,6 @@ _MAIN_MENU_IDS = {label: itemId for itemId, label in MAIN_MENU}
 TOGGLE_DEFS = [
     ("fullShapeSymbols", "Shift 輸入全形標點"),
     ("easySymbolsWithShift", "Shift 快速輸入符號"),
-    ("autoClearCompositionChar", "拆錯字碼時自動清除輸入字串"),
     ("playSoundWhenNonCand", "拆錯字碼時發出警告嗶聲提示"),
     ("showPhrase", "輸出字串後顯示聯想字詞"),
     ("sortByPhrase", "優先以聯想字詞排序候選清單"),
@@ -40,16 +39,16 @@ _ALL_TOGGLES = [attr for attr, _ in TOGGLE_DEFS]
 
 # 各輸入法提供的開關（沿用原本的清單）
 TOGGLES_BY_IME = {
-    "chephonetic": ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar",
+    "chephonetic": ["fullShapeSymbols", "easySymbolsWithShift",
                     "playSoundWhenNonCand", "showPhrase", "sortByPhrase",
                     "imeReverseLookup", "homophoneQuery"],
-    "cheez": ["autoClearCompositionChar", "playSoundWhenNonCand", "showPhrase",
+    "cheez": ["playSoundWhenNonCand", "showPhrase",
               "sortByPhrase", "supportWildcard", "imeReverseLookup"],
     "chearray": _ALL_TOGGLES,
     "chedayi": _ALL_TOGGLES,
 }
 
-_DEFAULT_TOGGLES = ["fullShapeSymbols", "easySymbolsWithShift", "autoClearCompositionChar",
+_DEFAULT_TOGGLES = ["fullShapeSymbols", "easySymbolsWithShift",
                     "playSoundWhenNonCand", "showPhrase", "sortByPhrase",
                     "supportWildcard", "imeReverseLookup", "homophoneQuery"]
 

@@ -23,14 +23,15 @@ $(function () {
                 $("#symbols").val(data.symbols);
                 $("#ez_symbols").val(data.swkb);
                 initializeUI();
+                // 填值完成後才開始追蹤「未儲存」，避免初始化（含 selectpicker
+                // 重整）觸發的 change 被誤判為使用者變更。
+                setTimeout(function () { chewingConfigReady = true; }, 0);
             },
             "json"
         );
     }
 
     function applyCandidateDefaults() {
-        chewingConfig.outputSimpChinese = false;
-        chewingConfig.enableSwitchTCSC = false;
         if (typeof chewingConfig.candidateModernStyle === "undefined") {
             chewingConfig.candidateModernStyle = true;
         }
@@ -756,8 +757,6 @@ $(function () {
         if (chewingConfig.candidateTheme) {
             chewingConfig.candidateColors = {};
         }
-        chewingConfig.outputSimpChinese = false;
-        chewingConfig.enableSwitchTCSC = false;
     }
 
     // Initialize UI
@@ -1001,10 +1000,20 @@ $(function () {
         swkbChanged = true;
     });
 
+    // 未儲存變更提示（chewingConfigReady 於初始化填值後才設為 true）
+    var chewingConfigReady = false;
+    function chewingMarkUnsaved() {
+        if (chewingConfigReady) {
+            $("#unsavedHint").show();
+        }
+    }
+    $("body").on("change", "input:not(#test_input_text), select, textarea", chewingMarkUnsaved);
+
     // OK button
     $("#ok").on("click", function () {
         updateConfig(); // update the config based on the state of UI elements
         saveConfig(function () {
+            $("#unsavedHint").hide();
             swal.fire("好耶！", "設定成功儲存！", "success");
         });
         return false;

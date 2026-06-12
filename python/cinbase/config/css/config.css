@@ -580,89 +580,173 @@ select[disabled] {
     cursor: not-allowed;
 }
 
+/* Phase 0: 設定項就地說明與相依狀態 */
+.setting-hint {
+    color: #6b7483;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 2px 0 10px 20px;
+}
 
-/* 設定頁外殼重新設計：固定側欄 + 卡片內容 + 動作列 */
+.setting-subitem {
+    margin-left: 22px;
+}
+
+.setting-subitem > .setting-hint {
+    margin-left: 20px;
+}
+
+.setting-subitem.is-disabled {
+    opacity: 0.45;
+}
+
+select:disabled,
+input[type="text"]:disabled {
+    opacity: 0.55;
+}
+
+
+/* ===== Phase 1–3：側欄式設定畫面 ===== */
+#navbar_top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    background: #1f2733;
+    overflow-y: auto;
+    z-index: 1030;
+}
+
+#sidebar {
+    padding: 0 0 16px;
+}
+
+.sidebar-brand {
+    align-items: center;
+    color: #f1f4f9;
+    display: flex;
+    font-size: 16px;
+    font-weight: 700;
+    gap: 10px;
+    padding: 16px 16px 12px;
+}
+
+.sidebar-brand img {
+    border-radius: 6px;
+    height: 28px;
+    width: 28px;
+}
+
+.sidebar-search {
+    background: #2b3543;
+    border: 1px solid #3a4658;
+    border-radius: 6px;
+    color: #e7ecf3;
+    display: block;
+    font-size: 13px;
+    margin: 0 12px 10px;
+    padding: 7px 10px;
+    width: calc(100% - 24px);
+}
+
+.sidebar-search::placeholder {
+    color: #8893a4;
+}
+
+.sidebar-search:focus {
+    border-color: #5a8cff;
+    outline: none;
+}
+
+.sidebar-nav {
+    margin: 0;
+    padding: 0 8px;
+}
+
+.sidebar-heading {
+    color: #7d8a9c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 12px 0 2px;
+    padding: 0 12px;
+}
+
+.sidebar-nav > li > a {
+    border-radius: 6px;
+    color: #c7d0dc;
+    font-size: 14px;
+    padding: 8px 12px;
+}
+
+.sidebar-nav > li > a:hover,
+.sidebar-nav > li > a:focus {
+    background: #2b3543;
+    color: #ffffff;
+}
+
+.sidebar-nav > li.active > a,
+.sidebar-nav > li.active > a:hover,
+.sidebar-nav > li.active > a:focus {
+    background: #3f6fe8;
+    color: #ffffff;
+}
+
+.search-hidden {
+    display: none !important;
+}
+
+/* 主內容區右移，避開固定側欄與底部套用列（只鎖定 body 直屬 container） */
+body > .container {
+    margin-left: 220px;
+    margin-right: 0;
+    padding-bottom: 72px;
+    padding-left: 24px;
+    padding-right: 24px;
+    width: auto;
+}
+
+#navbar_bottom .navbar-fixed-bottom {
+    left: 220px;
+}
+
+@media (max-width: 768px) {
+    #navbar_top {
+        bottom: auto;
+        position: static;
+        width: 100%;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .sidebar-nav > li.sidebar-heading {
+        width: 100%;
+    }
+
+    body > .container {
+        margin-left: 0;
+    }
+
+    #navbar_bottom .navbar-fixed-bottom {
+        left: 0;
+    }
+}
+
+
+/* 卡片化內容區與動作列（側欄/版面由前段 #sidebar 區塊負責） */
 /* ================================================================== */
 body {
     background: #f3f5f9;
     color: #1f2533;
-    padding-bottom: 76px;
-    padding-left: 216px;
-    padding-top: 6px;
 }
 
-.settings-sidebar {
-    background: #1d2330;
-    bottom: 0;
-    left: 0;
-    overflow-y: auto;
-    position: fixed;
-    top: 0;
-    width: 216px;
-    z-index: 1030;
-}
-
-.settings-brand {
-    align-items: center;
-    border-bottom: 1px solid #2b3344;
-    color: #e8ecf4;
-    display: flex;
-    font-size: 15px;
-    font-weight: 600;
-    gap: 10px;
-    padding: 14px 18px;
-}
-
-.settings-brand img {
-    border-radius: 6px;
-    height: 26px;
-    width: 26px;
-}
-
-.settings-nav-list {
-    list-style: none;
-    margin: 8px 0 18px;
-    padding: 0;
-}
-
-.settings-nav-group {
-    color: #7b8598;
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    margin-top: 10px;
-    padding: 8px 18px 4px;
-}
-
-.settings-nav-list > li > a {
-    border-radius: 8px;
-    color: #b6bfd0;
-    display: block;
-    margin: 1px 10px;
-    padding: 7px 12px;
-    text-decoration: none;
-    transition: background-color .12s ease, color .12s ease;
-}
-
-.settings-nav-list > li > a:hover,
-.settings-nav-list > li > a:focus {
-    background: #2a3243;
-    color: #e8ecf4;
-}
-
-.settings-nav-list > li.active > a,
-.settings-nav-list > li.active > a:hover,
-.settings-nav-list > li.active > a:focus {
-    background: #3a66d8;
-    color: #ffffff;
-}
-
-/* 內容區：覆寫 Bootstrap container 的固定寬度 */
-.container {
-    margin: 0;
+body > .container {
     max-width: 1120px;
-    padding: 0 26px;
-    width: auto;
 }
 
 .panel.panel-default {
@@ -720,7 +804,7 @@ textarea.form-control {
     display: flex;
     gap: 16px;
     justify-content: flex-end;
-    left: 216px;
+    left: 220px;
     padding: 12px 26px;
     position: fixed;
     right: 0;
@@ -776,36 +860,8 @@ textarea.form-control {
     transform: translateY(0);
 }
 
-/* 窄視窗：側欄改為頂部橫向導覽，不再使用漢堡選單 */
-@media (max-width: 860px) {
-    body {
-        padding-left: 0;
-    }
-
-    .settings-sidebar {
-        bottom: auto;
-        position: static;
-        width: auto;
-    }
-
-    .settings-nav-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
-        margin: 6px 8px 10px;
-    }
-
-    .settings-nav-group {
-        flex-basis: 100%;
-        margin-top: 2px;
-        padding: 6px 10px 2px;
-    }
-
-    .settings-nav-list > li > a {
-        margin: 1px 2px;
-        padding: 6px 10px;
-    }
-
+/* 窄視窗：動作列跟著側欄轉為頂部導覽（側欄響應式在前段 768px 區塊） */
+@media (max-width: 768px) {
     .settings-actionbar {
         left: 0;
     }

@@ -8,38 +8,37 @@
     <body>
 
         <div id="navbar_top">
-            <aside class="settings-sidebar">
-                <div class="settings-brand">
-                    <img src="icon.ico" alt="">
+            <nav id="sidebar">
+                <div class="sidebar-brand">
+                    <img src="icon.ico" alt="" />
                     <span>輸入法設定</span>
                 </div>
-                <nav id="navbars" class="settings-nav">
-                    <ul class="nav settings-nav-list">
-                        <li class="settings-nav-group">一般設定</li>
-                        <li class="active"><a data-toggle="tab" href="#typing_page">打字行為</a></li>
-                        <li id="intelligent_ddmenu" style="display:none;"><a data-toggle="tab" href="#intelligent_page">智能輸入</a></li>
-                        <li><a data-toggle="tab" href="#ui_page">介面外觀</a></li>
-                        <li id="keyboard_ddmenu" style="display:none;"><a data-toggle="tab" href="#keyboard_page">鍵盤設定</a></li>
+                <input type="text" id="settingsSearch" class="sidebar-search" placeholder="搜尋設定分區…" autocomplete="off" />
+                <ul class="nav nav-pills nav-stacked sidebar-nav">
+                    <li class="sidebar-heading">一般</li>
+                    <li class="active"><a data-toggle="tab" href="#typing_page">打字行為</a></li>
+                    <li id="intelligent_ddmenu" style="display:none;"><a data-toggle="tab" href="#intelligent_page">智能輸入</a></li>
+                    <li><a data-toggle="tab" href="#ui_page">介面外觀</a></li>
+                    <li id="keyboard_ddmenu" style="display:none;"><a data-toggle="tab" href="#keyboard_page">鍵盤設定</a></li>
 
-                        <li class="settings-nav-group">碼表設定</li>
-                        <li><a data-toggle="tab" href="#cin_page">輸入法碼表</a></li>
-                        <li><a data-toggle="tab" href="#extendtable_page">擴展碼表</a></li>
+                    <li class="sidebar-heading">碼表</li>
+                    <li><a data-toggle="tab" href="#cin_page">輸入法碼表</a></li>
+                    <li><a data-toggle="tab" href="#extendtable_page">擴展碼表</a></li>
 
-                        <li class="settings-nav-group">符號設定</li>
-                        <li><a data-toggle="tab" href="#symbols_page">特殊符號</a></li>
-                        <li><a data-toggle="tab" href="#fs_symbols_page">全形標點</a></li>
-                        <li><a data-toggle="tab" href="#ez_symbols_page">簡易符號</a></li>
+                    <li class="sidebar-heading">符號</li>
+                    <li><a data-toggle="tab" href="#symbols_page">特殊符號</a></li>
+                    <li><a data-toggle="tab" href="#fs_symbols_page">全形標點</a></li>
+                    <li><a data-toggle="tab" href="#ez_symbols_page">簡易符號</a></li>
 
-                        <li class="settings-nav-group">其它設定</li>
-                        <li><a data-toggle="tab" href="#phrase_page">聯想字詞</a></li>
-                        <li><a data-toggle="tab" href="#flangs_page">外語文字</a></li>
+                    <li class="sidebar-heading">其它</li>
+                    <li><a data-toggle="tab" href="#phrase_page">聯想字詞</a></li>
+                    <li><a data-toggle="tab" href="#flangs_page">外語文字</a></li>
 
-                        <li class="settings-nav-group">說明</li>
-                        <li><a data-toggle="tab" href="#help_page">使用說明</a></li>
-                        <li><a data-toggle="tab" href="#about_page">關於</a></li>
-                    </ul>
-                </nav>
-            </aside>
+                    <li class="sidebar-heading">說明</li>
+                    <li><a data-toggle="tab" href="#help_page">使用說明</a></li>
+                    <li><a data-toggle="tab" href="#about_page">關於</a></li>
+                </ul>
+            </nav>
         </div>
 
         <div id="typing_page">
@@ -51,13 +50,16 @@
                         </div>
                         <div class="panel-body">
                             <input type="checkbox" id="defaultFullSpace" name="defaultFullSpace" />
-                            <label for="defaultFullSpace">預設以全形模式啟動</label><br />
+                            <label for="defaultFullSpace">預設以全形模式啟動</label>
+                            <div class="setting-hint">啟動後一進入即為全形,輸入的英數與符號會佔兩個中文字寬。</div>
 
                             <input type="checkbox" id="defaultEnglish" name="defaultEnglish" />
-                            <label for="defaultEnglish">預設以英文模式啟動</label><br />
+                            <label for="defaultEnglish">預設以英文模式啟動</label>
+                            <div class="setting-hint">啟動後一進入即為英文模式,不需先按 Shift 切換。</div>
 
                             <input type="checkbox" id="disableOnStartup" name="disableOnStartup" />
-                            <label for="disableOnStartup">預設以停用輸入法模式啟動 (Windows 8 以上適用)</label><br />
+                            <label for="disableOnStartup">預設以停用輸入法模式啟動 (Windows 8 以上適用)</label>
+                            <div class="setting-hint">啟動時先不啟用中文輸入,需要時再手動開啟。</div>
                         </div>
                     </div>
                     <div class="panel panel-default">
@@ -66,17 +68,16 @@
                         </div>
                         <div class="panel-body">
                             <input type="checkbox" id="switchLangWithShift" name="switchLangWithShift" />
-                            <label for="switchLangWithShift">使用 Shift 快速切換中英文</label><br />
+                            <label for="switchLangWithShift">使用 Shift 快速切換中英文</label>
+                            <div class="setting-hint">直接按 Shift 鍵即可在中文與英文模式間切換。</div>
 
                             <label for="switchLangWithWhichShift">使用哪一邊的 Shift 來切換中英文模式: </label>
                             <select name="switchLangWithWhichShift" id="switchLangWithWhichShift"></select>
-                            <br />
-
-                            <input type="checkbox" id="autoClearCompositionChar" name="autoClearCompositionChar" />
-                            <label for="autoClearCompositionChar">拆錯字碼時自動清除輸入字串</label><br />
+                            <div class="setting-hint">選擇用左、右或任一邊的 Shift 切換;關閉上方選項時此項無作用。</div>
 
                             <input type="checkbox" id="playSoundWhenNonCand" name="playSoundWhenNonCand" />
-                            <label for="playSoundWhenNonCand">拆錯字碼時發出警告嗶聲提示</label><br />
+                            <label for="playSoundWhenNonCand">拆錯字碼時發出警告嗶聲提示</label>
+                            <div class="setting-hint">輸入的字根查無組字時,發出提示音提醒。</div>
                          </div>
                     </div>
                     <div class="panel panel-default">
@@ -84,26 +85,37 @@
                             <h3 class="panel-title">候選清單</h3>
                         </div>
                         <div class="panel-body">
-                            <input type="checkbox" id="switchPageWithSpace" name="switchPageWithSpace" />
-                            <label for="switchPageWithSpace">使用空白鍵作為候選清單換頁鍵</label><br />
-
-                            <input type="checkbox" id="sortByPhrase" name="sortByPhrase" />
-                            <label for="sortByPhrase">優先以聯想字詞排序候選清單</label><br />
-
-                            <input type="checkbox" id="intelligentSelect" name="intelligentSelect" />
-                            <label for="intelligentSelect">智慧選字</label><br />
-
-                            <input type="checkbox" id="intelligentSelectRecent" name="intelligentSelectRecent" />
-                            <label for="intelligentSelectRecent">智慧選字：近期選字優先</label><br />
-
-                            <input type="checkbox" id="intelligentSelectContext" name="intelligentSelectContext" />
-                            <label for="intelligentSelectContext">智慧選字：前一字上下文加權</label><br />
-
                             <input type="checkbox" id="directShowCand" name="directShowCand" />
-                            <label for="directShowCand">直接顯示候選字清單 (不須按空白鍵)</label><br />
+                            <label for="directShowCand">直接顯示候選字清單 (不須按空白鍵)</label>
+                            <div class="setting-hint">輸入字根後立即列出候選字,不必先按空白鍵。</div>
+
+                            <input type="checkbox" id="switchPageWithSpace" name="switchPageWithSpace" />
+                            <label for="switchPageWithSpace">使用空白鍵作為候選清單換頁鍵</label>
+                            <div class="setting-hint">候選字超過一頁時,用空白鍵翻到下一頁。</div>
 
                             <input type="checkbox" id="autoCommitSingleCandidate" name="autoCommitSingleCandidate" />
-                            <label for="autoCommitSingleCandidate">只有一個候選字時自動送出</label><br />
+                            <label for="autoCommitSingleCandidate">只有一個候選字時自動送出</label>
+                            <div class="setting-hint">當候選字只剩一個時直接輸出,不需再按鍵選字。</div>
+
+                            <input type="checkbox" id="sortByPhrase" name="sortByPhrase" />
+                            <label for="sortByPhrase">優先以聯想字詞排序候選清單</label>
+                            <div class="setting-hint">把聯想詞庫中較常用的字詞排到候選清單前面。</div>
+
+                            <input type="checkbox" id="intelligentSelect" name="intelligentSelect" />
+                            <label for="intelligentSelect">智慧選字</label>
+                            <div class="setting-hint">依你的使用習慣,自動把常用字排到候選清單前面。</div>
+
+                            <div class="setting-subitem" id="intelligentSelectRecent_item">
+                                <input type="checkbox" id="intelligentSelectRecent" name="intelligentSelectRecent" />
+                                <label for="intelligentSelectRecent">近期選字優先</label>
+                                <div class="setting-hint">最近選過的字會優先出現在候選清單。</div>
+                            </div>
+
+                            <div class="setting-subitem" id="intelligentSelectContext_item">
+                                <input type="checkbox" id="intelligentSelectContext" name="intelligentSelectContext" />
+                                <label for="intelligentSelectContext">前一字上下文加權</label>
+                                <div class="setting-hint">參考前一個字,推測這次較合適的字。</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -118,21 +130,24 @@
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="押住 Shift 輸出英文時依 Caps 燈號切換大小寫"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以讓押住 Shift 輸出英文時依 Caps 燈號切換大小寫。<br /><br />例如：<br />Caps 燈號點亮時輸出英文大寫。<br />Caps 燈號關閉時輸出英文小寫。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">按住 Shift 打英文時,依鍵盤 Caps Lock 燈號決定輸出大寫或小寫。</div>
 
                             <input type="checkbox" id="directCommitSymbol" name="directCommitSymbol" />
                             <label for="directCommitSymbol">標點符號自動確認輸入</label>
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="標點符號自動確認輸入"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以便利符號輸入。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元為輸入法的字根鍵，即會自動輸出符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。<br /><br />若使用輸入法碼表中所定義的符號編碼輸出全形符號，則只支援「，」、「。」、「、」、「；」、「？」、「！」這幾個全形符號。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">以內建方式輸入標點後,接著打字根會自動送出該標點。</div>
 
                             <input type="checkbox" id="directOutMSymbols" name="directOutMSymbols" />
                             <label for="directOutMSymbols">允許內建符號輸入方式連續輸入</label>
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="允許內建符號輸入方式連續輸入"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以連續輸入符號。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元一樣是標點符號，即會自動輸出之前所輸入的符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">連續以內建方式輸入多個標點時,自動送出前一個標點。</div>
                         </div>
                     </div>
                     <div class="panel panel-default">
@@ -145,14 +160,16 @@
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="提示訊息顯示時間"
                                 data-content="在打字行為功能頁面裡，您可以變更這個選項以設定提示訊息的顯示時間。<br /><br />0 為不顯示、1 ~ 5 為顯示秒數。<br /><br />此顯示時間設定會套用到所有的提示訊息。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">0 為不顯示,1~5 為提示訊息顯示的秒數。</div>
 
                             <input type="checkbox" id="hidePromptMessages" name="hidePromptMessages" />
                             <label for="hidePromptMessages">隱藏不必要的提示訊息</label>
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="隱藏不必要的提示訊息"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以隱藏不必要的提示訊息。<br /><br />啟用後將隱藏一些不必要的提示訊息，以避免輸入時造成干擾。<br /><br />此設定會套用到「多功能前導字元」、「中英文模式」及「半全形模式」的提示訊息。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">隱藏中英文、半全形切換等不必要的提示訊息,減少干擾。</div>
 
                             <input type="checkbox" id="supportWildcard" name="supportWildcard" />
                             <label for="supportWildcard">萬用字元查詢, 按鍵: </label>
@@ -160,7 +177,8 @@
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="萬用字元查詢"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以所設定的萬用字元鍵來查詢不會拼的字。<br /><br />啟用後您可以在輸入時以萬用字元鍵取代不確定的字根；一般情況下每一個萬用字元僅能取代單一字根。大易使用 * 且輸入格式為「前字根*後字根」時，* 可代表中間 0 到多個字根，用來查詢忘記中間字根的字。<br /><br />並且在萬用字元查詢清單選擇所要的字並輸出後，會提示該字的字根，以方便用戶記憶字根。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">忘記字根時,用萬用鍵代替不確定的字根來查字;關閉時右側按鍵無作用。</div>
 
                             <input type="checkbox" id="imeReverseLookup" name="imeReverseLookup" />
                             <label for="imeReverseLookup">反查輸入字根: </label>
@@ -168,7 +186,8 @@
                             <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="反查輸入字根"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以查詢其它輸入法碼表的字根。<br /><br />啟用後您可以利用此輸入法的輸入方式，來輸入其它輸入法所不會拼的字。<br /><br />並且在候選清單選擇所要的字並輸出後，會提示該字在其它輸入法碼表的字根，以方便用戶記憶字根。"
-                            ></span><br />
+                            ></span>
+                            <div class="setting-hint">用本輸入法查出某個字在其他輸入法的字根;關閉時右側碼表無作用。</div>
 
                             <input type="checkbox" id="homophoneQuery" name="homophoneQuery" />
                             <label for="homophoneQuery">同音字查詢: </label>
@@ -177,6 +196,7 @@
                                 data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="同音字查詢"
                                 data-content="在打字行為功能頁面裡，您可以啟用這個選項以讀音相同的字來查詢不會拼的字。<br /><br />啟用後您可以在輸入讀音相同的字後，於候選清單顯示時按下「`」鍵，候選清單即會列出所有的同音字。<br /><br />並且在同音字查詢清單選擇所要的字並輸出後，會提示該同音字的字根，以方便用戶記憶字根。"
                             ></span>
+                            <div class="setting-hint">候選清單顯示時按「`」鍵,列出讀音相同的字;關閉時右側碼表無作用。</div>
                         </div>
                     </div>
                 </div>
@@ -295,10 +315,6 @@
                     </div>
                 </div>
             </div>
-            <!--
-            <input type="checkbox" id="colorCandWnd" name="colorCandWnd" />
-            <label for="colorCandWnd">用不同顏色顯示選字鍵和候選字: <label><br />
-            -->
         </div>
 
 
@@ -550,7 +566,7 @@
 
         <div id="navbar_bottom">
             <div class="settings-actionbar">
-                <span class="settings-actionbar-hint">變更會在套用後立即生效</span>
+                <span id="unsavedHint" class="settings-actionbar-hint" style="display:none;">● 尚未儲存變更</span>
                 <button id="ok" type="button" class="btn settings-apply">套用設定</button>
             </div>
         </div>

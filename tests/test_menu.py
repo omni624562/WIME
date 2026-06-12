@@ -54,10 +54,11 @@ class ToggleMenuTests(unittest.TestCase):
         self.assertTrue(labels[j].startswith("☐"))
 
     def test_per_ime_lists(self):
-        self.assertEqual(len(menu.toggleAttrsFor("chedayi")), 12)
-        self.assertEqual(len(menu.toggleAttrsFor("chephonetic")), 8)
-        self.assertEqual(len(menu.toggleAttrsFor("cheez")), 6)
-        self.assertEqual(len(menu.toggleAttrsFor("checj")), 9)
+        # autoClearCompositionChar 已隨「查無組字保留碼」行為移除
+        self.assertEqual(len(menu.toggleAttrsFor("chedayi")), 11)
+        self.assertEqual(len(menu.toggleAttrsFor("chephonetic")), 7)
+        self.assertEqual(len(menu.toggleAttrsFor("cheez")), 5)
+        self.assertEqual(len(menu.toggleAttrsFor("checj")), 8)
 
     def test_toggle_then_rebuild_updates_mark(self):
         ts = self.make_ts("checj")
