@@ -24,6 +24,13 @@ jobs:
         run: |
           cd PIMELauncher
           cargo test --verbose
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Python backend tests
+        run: |
+          python -m unittest discover -s tests -p "*.py" -v
       - name: Use Install NSIS
         uses: repolevedavaj/install-nsis@v1.2.0
         with:
