@@ -110,8 +110,8 @@ class CinBaseConfig:
         self.selCinFile = ""
         self.imeDirName = ""
 
-        # version: last modified time of (config.json, symbols.dat, swkb.dat, fsymbols.dat, flangs.dat, userphrase.dat)
-        self._version = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        # version: last modified time of (config.json, symbols.dat, swkb.dat, fsymbols.dat, flangs.dat, userphrase.dat, excludephrase.dat)
+        self._version = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self._lastUpdateTime = 0.0
 
     def getConfigDir(self):
@@ -262,8 +262,16 @@ class CinBaseConfig:
             except Exception:
                 pass
 
+        excludephraseTime = 0.0
+        excludephraseFile = self.findFile(datadirs, "excludephrase.dat")
+        if excludephraseFile:
+            try:
+                excludephraseTime = os.path.getmtime(excludephraseFile)
+            except Exception:
+                pass
+
         lastConfigTime = self._version[0]
-        self._version = (configTime, symbolsTime, ezSymbolsTime, fsymbolsTime, flangsTime, userphraseTime)
+        self._version = (configTime, symbolsTime, ezSymbolsTime, fsymbolsTime, flangsTime, userphraseTime, excludephraseTime)
 
         # the main config file is changed, reload it
         if lastConfigTime != configTime:
