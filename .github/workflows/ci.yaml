@@ -12,10 +12,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
-      - name: Use Node.js 21.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 21.x
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -40,9 +36,9 @@ jobs:
           Rust_COMPILER: ${{ env.CARGO_HOME }}\bin\rustc.exe
         run: |
           .\build.bat
-      - name: Build the installer
+      - name: Build the installer (dayi/chewing/checj only)
         run: |
-          cmd /C "C:\Program Files (x86)\NSIS\Bin\makensis.exe" ".\installer\installer.nsi"
+          cmd /C "C:\Program Files (x86)\NSIS\Bin\makensis.exe" "/DONLY_DAYI_CHEWING_CHECJ" ".\installer\installer.nsi"
       - uses: actions/upload-artifact@v4
         with:
           name: Installer

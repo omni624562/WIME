@@ -170,6 +170,13 @@ cinbase 神模組開始以 strangler 模式拆分，先抽出兩塊已有測試�
   - 主選單項目與功能開關改以穩定 id 辨識（不再以顯示字串的 index 判斷行為），選單樹、開關清單建構、路徑堆疊集中於 menu 模組。
 - 測試總數 74 項（單元）+ 5 項（實機 E2E，含選單麵包屑/返回項回歸）。
 
+## 技術棧汰舊（2026-06-12）
+
+- 設定頁前端升級：jQuery 1.12.4（2016, 有已知 XSS CVE）→ **3.7.1**；Bootstrap 3.3.7（EOL）→ **3.4.1**（BS3 安全修補終版，tooltip/popover XSS 已修，官方支援 jQuery 3）。八個碼表系外殼 `config.html` 同步更新；config.js 與 jAlert/TouchSpin 3.1.2 經相容性掃描無使用已移除 API。3.3.7 的未壓縮檔與 sourcemap 一併移除。
+- CI 補上 Python 後端測試（83 項；實機 E2E 在無 PIME 的 runner 自動跳過），並退役與 GitHub Actions 重複的 AppVeyor 設定。
+- 裁撤未使用的後端建置：`build.bat` 不再建置 McBopomofo(node)，CI 移除 Node 安裝步驟，安裝包改用既有的 `ONLY_DAYI_CHEWING_CHECJ` 精簡模式（只含大易/酷倉/新酷音）。node/go 源碼保留於 repo，需要時可手動建置完整版。
+- 評估結論：核心技術不需更換——TSF C++ 前端無替代品、Rust launcher 與 bundled Python 3.12.1、tornado 6.4 皆現代。Bootstrap 5 全面改寫（需重寫 ~1500 行 config.js 與全部頁面標記）評估後不做，3.4.1+jQuery 3.7 已達成安全與維護目標。GDI→Direct2D（彩色 emoji）列為獨立後續項目。
+
 ## 設定頁重新設計（2026-06-12）
 
 - 大易/碼表系設定頁捨棄頂部黑色下拉導覽列，改為**固定左側欄**：五個分組（一般設定、碼表設定、符號設定、其它設定、說明）的所有頁面一眼可見、一鍵直達，不再需要展開下拉選單尋找。
