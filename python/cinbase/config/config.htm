@@ -14,41 +14,41 @@
                     <span>輸入法設定</span>
                 </div>
                 <input type="text" id="settingsSearch" class="sidebar-search" placeholder="搜尋設定分區…" autocomplete="off" />
-                <ul class="nav nav-pills nav-stacked sidebar-nav">
+                <ul class="nav flex-column sidebar-nav">
                     <li class="sidebar-heading">一般</li>
-                    <li class="active"><a data-toggle="tab" href="#typing_page">打字行為</a></li>
-                    <li id="intelligent_ddmenu" style="display:none;"><a data-toggle="tab" href="#intelligent_page">智能輸入</a></li>
-                    <li><a data-toggle="tab" href="#ui_page">介面外觀</a></li>
-                    <li id="keyboard_ddmenu" style="display:none;"><a data-toggle="tab" href="#keyboard_page">鍵盤設定</a></li>
+                    <li><a class="active" data-bs-toggle="tab" href="#typing_page">打字行為</a></li>
+                    <li id="intelligent_ddmenu" style="display:none;"><a data-bs-toggle="tab" href="#intelligent_page">智能輸入</a></li>
+                    <li><a data-bs-toggle="tab" href="#ui_page">介面外觀</a></li>
+                    <li id="keyboard_ddmenu" style="display:none;"><a data-bs-toggle="tab" href="#keyboard_page">鍵盤設定</a></li>
 
                     <li class="sidebar-heading">碼表</li>
-                    <li><a data-toggle="tab" href="#cin_page">輸入法碼表</a></li>
-                    <li><a data-toggle="tab" href="#extendtable_page">擴展碼表</a></li>
+                    <li><a data-bs-toggle="tab" href="#cin_page">輸入法碼表</a></li>
+                    <li><a data-bs-toggle="tab" href="#extendtable_page">擴展碼表</a></li>
 
                     <li class="sidebar-heading">符號</li>
-                    <li><a data-toggle="tab" href="#symbols_page">特殊符號</a></li>
-                    <li><a data-toggle="tab" href="#fs_symbols_page">全形標點</a></li>
-                    <li><a data-toggle="tab" href="#ez_symbols_page">簡易符號</a></li>
+                    <li><a data-bs-toggle="tab" href="#symbols_page">特殊符號</a></li>
+                    <li><a data-bs-toggle="tab" href="#fs_symbols_page">全形標點</a></li>
+                    <li><a data-bs-toggle="tab" href="#ez_symbols_page">簡易符號</a></li>
 
                     <li class="sidebar-heading">其它</li>
-                    <li><a data-toggle="tab" href="#phrase_page">聯想字詞</a></li>
-                    <li><a data-toggle="tab" href="#flangs_page">外語文字</a></li>
+                    <li><a data-bs-toggle="tab" href="#phrase_page">聯想字詞</a></li>
+                    <li><a data-bs-toggle="tab" href="#flangs_page">外語文字</a></li>
 
                     <li class="sidebar-heading">說明</li>
-                    <li><a data-toggle="tab" href="#help_page">使用說明</a></li>
-                    <li><a data-toggle="tab" href="#about_page">關於</a></li>
+                    <li><a data-bs-toggle="tab" href="#help_page">使用說明</a></li>
+                    <li><a data-bs-toggle="tab" href="#about_page">關於</a></li>
                 </ul>
             </nav>
         </div>
 
         <div id="typing_page">
             <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">預設狀態</h3>
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">預設狀態</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <input type="checkbox" id="defaultFullSpace" name="defaultFullSpace" />
                             <label for="defaultFullSpace">預設以全形模式啟動</label>
                             <div class="setting-hint">啟動後一進入即為全形,輸入的英數與符號會佔兩個中文字寬。</div>
@@ -62,11 +62,11 @@
                             <div class="setting-hint">啟動時先不啟用中文輸入,需要時再手動開啟。</div>
                         </div>
                     </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">行為設定</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">行為設定</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <input type="checkbox" id="switchLangWithShift" name="switchLangWithShift" />
                             <label for="switchLangWithShift">使用 Shift 快速切換中英文</label>
                             <div class="setting-hint">直接按 Shift 鍵即可在中文與英文模式間切換。</div>
@@ -80,11 +80,11 @@
                             <div class="setting-hint">輸入的字根查無組字時,發出提示音提醒。</div>
                          </div>
                     </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">候選清單</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">候選清單</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <input type="checkbox" id="directShowCand" name="directShowCand" />
                             <label for="directShowCand">直接顯示候選字清單 (不須按空白鍵)</label>
                             <div class="setting-hint">輸入字根後立即列出候選字,不必先按空白鍵。</div>
@@ -119,82 +119,82 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">輸出設定</h3>
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">輸出設定</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <input type="checkbox" id="outputSmallLetterWithShift" name="outputSmallLetterWithShift" />
                             <label for="outputSmallLetterWithShift">押住 Shift 輸出英文時依 Caps 燈號切換大小寫</label>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="押住 Shift 輸出英文時依 Caps 燈號切換大小寫"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以讓押住 Shift 輸出英文時依 Caps 燈號切換大小寫。<br /><br />例如：<br />Caps 燈號點亮時輸出英文大寫。<br />Caps 燈號關閉時輸出英文小寫。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="押住 Shift 輸出英文時依 Caps 燈號切換大小寫"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以讓押住 Shift 輸出英文時依 Caps 燈號切換大小寫。<br /><br />例如：<br />Caps 燈號點亮時輸出英文大寫。<br />Caps 燈號關閉時輸出英文小寫。"
                             ></span>
                             <div class="setting-hint">按住 Shift 打英文時,依鍵盤 Caps Lock 燈號決定輸出大寫或小寫。</div>
 
                             <input type="checkbox" id="directCommitSymbol" name="directCommitSymbol" />
                             <label for="directCommitSymbol">標點符號自動確認輸入</label>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="標點符號自動確認輸入"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以便利符號輸入。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元為輸入法的字根鍵，即會自動輸出符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。<br /><br />若使用輸入法碼表中所定義的符號編碼輸出全形符號，則只支援「，」、「。」、「、」、「；」、「？」、「！」這幾個全形符號。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="標點符號自動確認輸入"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以便利符號輸入。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元為輸入法的字根鍵，即會自動輸出符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。<br /><br />若使用輸入法碼表中所定義的符號編碼輸出全形符號，則只支援「，」、「。」、「、」、「；」、「？」、「！」這幾個全形符號。"
                             ></span>
                             <div class="setting-hint">以內建方式輸入標點後,接著打字根會自動送出該標點。</div>
 
                             <input type="checkbox" id="directOutMSymbols" name="directOutMSymbols" />
                             <label for="directOutMSymbols">允許內建符號輸入方式連續輸入</label>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="允許內建符號輸入方式連續輸入"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以連續輸入符號。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元一樣是標點符號，即會自動輸出之前所輸入的符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="允許內建符號輸入方式連續輸入"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以連續輸入符號。<br /><br />啟用後只要您以內建的符號輸入方式鍵入標點符號，如果下一個輸入的字元一樣是標點符號，即會自動輸出之前所輸入的符號。<br /><br />本輸入法有以下兩種內建的符號方式：<br /><br />1.「Ctrl」鍵須押住，且僅可以搭配『 <font color='red'>[ ] ; ' \ , . /</font> 』按鍵輸入符號：<br />您也可以押住「Ctrl」鍵及「SHIFT」鍵搭配以上符號鍵使用。<br /><br />2. 先輸入前導字元「`」鍵後，再按下符號鍵或數字鍵，即可輸入全形標點符號。<br />您也可以在輸入前導字元「`」鍵後，押住「SHIFT」鍵，再按下符號鍵來輸入符號。"
                             ></span>
                             <div class="setting-hint">連續以內建方式輸入多個標點時,自動送出前一個標點。</div>
                         </div>
                     </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">其它設定</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">其它設定</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <label>提示訊息顯示時間: </label>
                             <select name="messageDurationTime" id="messageDurationTime"></select>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="提示訊息顯示時間"
-                                data-content="在打字行為功能頁面裡，您可以變更這個選項以設定提示訊息的顯示時間。<br /><br />0 為不顯示、1 ~ 5 為顯示秒數。<br /><br />此顯示時間設定會套用到所有的提示訊息。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="提示訊息顯示時間"
+                                data-bs-content="在打字行為功能頁面裡，您可以變更這個選項以設定提示訊息的顯示時間。<br /><br />0 為不顯示、1 ~ 5 為顯示秒數。<br /><br />此顯示時間設定會套用到所有的提示訊息。"
                             ></span>
                             <div class="setting-hint">0 為不顯示,1~5 為提示訊息顯示的秒數。</div>
 
                             <input type="checkbox" id="hidePromptMessages" name="hidePromptMessages" />
                             <label for="hidePromptMessages">隱藏不必要的提示訊息</label>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="隱藏不必要的提示訊息"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以隱藏不必要的提示訊息。<br /><br />啟用後將隱藏一些不必要的提示訊息，以避免輸入時造成干擾。<br /><br />此設定會套用到「多功能前導字元」、「中英文模式」及「半全形模式」的提示訊息。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="隱藏不必要的提示訊息"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以隱藏不必要的提示訊息。<br /><br />啟用後將隱藏一些不必要的提示訊息，以避免輸入時造成干擾。<br /><br />此設定會套用到「多功能前導字元」、「中英文模式」及「半全形模式」的提示訊息。"
                             ></span>
                             <div class="setting-hint">隱藏中英文、半全形切換等不必要的提示訊息,減少干擾。</div>
 
                             <input type="checkbox" id="supportWildcard" name="supportWildcard" />
                             <label for="supportWildcard">萬用字元查詢, 按鍵: </label>
                             <select name="selWildcardType" id="selWildcardType"></select>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="萬用字元查詢"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以所設定的萬用字元鍵來查詢不會拼的字。<br /><br />啟用後您可以在輸入時以萬用字元鍵取代不確定的字根；一般情況下每一個萬用字元僅能取代單一字根。大易使用 * 且輸入格式為「前字根*後字根」時，* 可代表中間 0 到多個字根，用來查詢忘記中間字根的字。<br /><br />並且在萬用字元查詢清單選擇所要的字並輸出後，會提示該字的字根，以方便用戶記憶字根。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="萬用字元查詢"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以所設定的萬用字元鍵來查詢不會拼的字。<br /><br />啟用後您可以在輸入時以萬用字元鍵取代不確定的字根；一般情況下每一個萬用字元僅能取代單一字根。大易使用 * 且輸入格式為「前字根*後字根」時，* 可代表中間 0 到多個字根，用來查詢忘記中間字根的字。<br /><br />並且在萬用字元查詢清單選擇所要的字並輸出後，會提示該字的字根，以方便用戶記憶字根。"
                             ></span>
                             <div class="setting-hint">忘記字根時,用萬用鍵代替不確定的字根來查字;關閉時右側按鍵無作用。</div>
 
                             <input type="checkbox" id="imeReverseLookup" name="imeReverseLookup" />
                             <label for="imeReverseLookup">反查輸入字根: </label>
                             <select name="selRCinType" id="selRCinType"></select>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="反查輸入字根"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以查詢其它輸入法碼表的字根。<br /><br />啟用後您可以利用此輸入法的輸入方式，來輸入其它輸入法所不會拼的字。<br /><br />並且在候選清單選擇所要的字並輸出後，會提示該字在其它輸入法碼表的字根，以方便用戶記憶字根。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="反查輸入字根"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以查詢其它輸入法碼表的字根。<br /><br />啟用後您可以利用此輸入法的輸入方式，來輸入其它輸入法所不會拼的字。<br /><br />並且在候選清單選擇所要的字並輸出後，會提示該字在其它輸入法碼表的字根，以方便用戶記憶字根。"
                             ></span>
                             <div class="setting-hint">用本輸入法查出某個字在其他輸入法的字根;關閉時右側碼表無作用。</div>
 
                             <input type="checkbox" id="homophoneQuery" name="homophoneQuery" />
                             <label for="homophoneQuery">同音字查詢: </label>
                             <select name="selHCinType" id="selHCinType"></select>
-                            <span class="glyphicon glyphicon-question-sign glyphicon-size18 text-info pointerCursor"
-                                data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto bottom" title="同音字查詢"
-                                data-content="在打字行為功能頁面裡，您可以啟用這個選項以讀音相同的字來查詢不會拼的字。<br /><br />啟用後您可以在輸入讀音相同的字後，於候選清單顯示時按下「`」鍵，候選清單即會列出所有的同音字。<br /><br />並且在同音字查詢清單選擇所要的字並輸出後，會提示該同音字的字根，以方便用戶記憶字根。"
+                            <span class="hint-icon pointerCursor"
+                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="同音字查詢"
+                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以讀音相同的字來查詢不會拼的字。<br /><br />啟用後您可以在輸入讀音相同的字後，於候選清單顯示時按下「`」鍵，候選清單即會列出所有的同音字。<br /><br />並且在同音字查詢清單選擇所要的字並輸出後，會提示該同音字的字根，以方便用戶記憶字根。"
                             ></span>
                             <div class="setting-hint">候選清單顯示時按「`」鍵,列出讀音相同的字;關閉時右側碼表無作用。</div>
                         </div>
@@ -206,12 +206,12 @@
 
         <div id="intelligent_page">
             <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">智能輸入</h3>
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">智能輸入</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                             <input type="checkbox" id="compositionBufferMode" name="compositionBufferMode" />
                             <label for="compositionBufferMode">啟用組字編輯模式</label><br />
 
@@ -220,12 +220,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">WIP...</h3>
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">WIP...</h3>
                         </div>
-                        <div class="panel-body">
+                        <div class="card-body">
                         </div>
                     </div>
                 </div>
@@ -235,12 +235,12 @@
 
         <div id="ui_page">
             <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">候選窗外觀</h3>
+                <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">候選窗外觀</h3>
                         </div>
-                        <div class="panel-body candidate-window-settings">
+                        <div class="card-body candidate-window-settings">
                             <div class="candidate-appearance-shell">
                                 <select name="candidateTheme" id="candidateTheme" class="candidate-theme-select" data-value-type="string"></select>
                                 <div class="candidate-toolbar">
@@ -321,22 +321,22 @@
         <div id="keyboard_page">
             <div class="row">
                 <div class="col-sm-12 col-sm-12 col-md-12 col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">鍵盤對應</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">鍵盤對應</h3>
                         </div>
-                        <div id="keyboard_layout" class="panel-body">
+                        <div id="keyboard_layout" class="card-body">
                         </div>
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="hidden-xs hidden-sm col-md-12 col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">鍵盤預覽</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">鍵盤預覽</h3>
                         </div>
-                        <div id="keyboard_preview" class="panel-body">
+                        <div id="keyboard_preview" class="card-body">
                         </div>
                     </div>
                 </div>
@@ -346,83 +346,83 @@
 
         <div id="cin_count">
             <div class="row">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="totalchardefs">總計: </label><font color="Blue">
                     <label id="totalchardefs" name="totalchardefs" /></font>
                 </div>
             </div>
             <div class="row">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="big5F">Big5 常用字: </label><font color="Blue">
                     <label id="big5F" name="big5F" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="big5LF">Big5 次常用字: </label><font color="Blue">
                     <label id="big5LF" name="big5LF" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="big5S">Big5 符號: </label><font color="Blue">
                     <label id="big5S" name="big5S" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="big5Other">Big5 其它漢字: </label><font color="Blue">
                     <label id="big5Other" name="big5Other" /></font>
                 </div>
             </div>
             <div class="row">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjk">CJK 統一漢字: </label><font color="Blue">
                     <label id="cjk" name="cjk" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtA">CJK 擴展 A 區: </label><font color="Blue">
                     <label id="cjkExtA" name="cjkExtA" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtB">CJK 擴展 B 區: </label><font color="Blue">
                     <label id="cjkExtB" name="cjkExtB" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtC">CJK 擴展 C 區: </label><font color="Blue">
                     <label id="cjkExtC" name="cjkExtC" /></font>
                 </div>
             </div>
             <div class="row">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtD">CJK 擴展 D 區: </label><font color="Blue">
                     <label id="cjkExtD" name="cjkExtD" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtE">CJK 擴展 E 區: </label><font color="Blue">
                     <label id="cjkExtE" name="cjkExtE" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkExtF">CJK 擴展 F 區: </label><font color="Blue">
                     <label id="cjkExtF" name="cjkExtF" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="bopomofo">注音符號: </label><font color="Blue">
                     <label id="bopomofo" name="bopomofo" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkOther">其它字集: </label><font color="Blue">
                     <label id="cjkOther" name="cjkOther" /></font>
                 </div>
             </div>
             <div class="row">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="phrases">詞彙: </label><font color="Blue">
                     <label id="phrases" name="phrases" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkCI">CJK 相容區: </label><font color="Blue">
                     <label id="cjkCI" name="cjkCI" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="cjkCIS">CJK 相容補充區: </label><font color="Blue">
                     <label id="cjkCIS" name="cjkCIS" /></font>
                 </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
                     <label for="privateuse">Unicode 私用區: </label><font color="Blue">
                     <label id="privateuse" name="privateuse" /></font>
                 </div>
@@ -437,11 +437,11 @@
 
 
         <div id="extendtable_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">擴展碼表</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">擴展碼表</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <input type="checkbox" id="userExtendTable" name="userExtendTable" />
                     <label for="userExtendTable">自訂擴展碼表</label><br />
                     <input type="checkbox" id="reLoadTable" name="reLoadTable" />
@@ -460,11 +460,11 @@
 
 
         <div id="symbols_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">特殊符號</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">特殊符號</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     本輸入法模組提供符號表，裡面的符號可以自訂。
                     以上是符號表的設定檔，語法相當簡單。<br />
                     每一行的內容都是： 「分類名稱」=「此分類下的所有符號」。<br />
@@ -477,11 +477,11 @@
 
 
         <div id="fs_symbols_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">全形標點</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">全形標點</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <input type="checkbox" id="fullShapeSymbols" name="fullShapeSymbols" />
                     <label for="fullShapeSymbols">中文模式下按住 Shift 輸入全形標點符號</label><br />
 
@@ -498,11 +498,11 @@
         </div>
 
         <div id="ez_symbols_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">簡易符號</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">簡易符號</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <input type="checkbox" id="easySymbolsWithShift" name="easySymbolsWithShift" />
                     <label for="easySymbolsWithShift">中文模式下按住 Shift 快速輸入符號</label><br />
                     <p>
@@ -517,11 +517,11 @@
         </div>
 
         <div id="phrase_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">聯想字詞</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">聯想字詞</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <input type="checkbox" id="showPhrase" name="showPhrase" />
                     <label for="showPhrase">中文模式下輸出字串後顯示聯想字詞</label><br />
                     <p>
@@ -533,11 +533,11 @@
                     <textarea id="phrase" class="form-control" rows="20"></textarea>
                 </div>
             </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">排除聯想字詞</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">排除聯想字詞</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <p>
                     不想看到的聯想字詞（例如內建詞庫中的人名）寫在這裡，顯示與排序時會被略過。<br />
                     語法與聯想字詞表相同：「中字」=「要排除的聯想字詞」，多個以「,」號區隔。<br />
@@ -549,11 +549,11 @@
         </div>
 
         <div id="flangs_page">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">外語文字</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">外語文字</h3>
                 </div>
-                <div class="panel-body">
+                <div class="card-body">
                     本輸入法模組提供外語文字表，裡面的外語文字可以自訂。
                     以上是外語文字表的設定檔，語法相當簡單。<br />
                     每一行的內容都是： 「分類名稱」=「此分類下的所有符號」。<br />

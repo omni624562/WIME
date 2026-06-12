@@ -401,7 +401,6 @@ try {
         "cinbase\config\config.htm",
         "cinbase\config\css\config.css",
         "cinbase\config\css\bootstrap.min.css",
-        "cinbase\config\css\bootstrap-theme.min.css",
         "cinbase\config\js\config.js",
         "cinbase\config\js\bootstrap.min.js",
         "cinbase\config\js\jquery-3.7.1.min.js",

@@ -170,6 +170,16 @@ cinbase 神模組開始以 strangler 模式拆分，先抽出兩塊已有測試�
   - 主選單項目與功能開關改以穩定 id 辨識（不再以顯示字串的 index 判斷行為），選單樹、開關清單建構、路徑堆疊集中於 menu 模組。
 - 測試總數 74 項（單元）+ 5 項（實機 E2E，含選單麵包屑/返回項回歸）。
 
+## Bootstrap 5 全面改寫（2026-06-12）
+
+- 設定頁由 Bootstrap 3.4.1 全面升級至 **Bootstrap 5.3.3**（bundle 含 Popper）：
+  - 標記轉換：`data-toggle` → `data-bs-toggle`（tab/popover 全屬性）、`panel` → `card` 系列、`col-xs-*` → `col-*`、`tab-pane fade in active` → `fade show active`、`embed-responsive` → `ratio`，共用片段與八個輸入法外殼一次到位。
+  - 側欄 active 狀態隨 BS5 規則移到連結本身（`a.active`），CSS 選擇器同步調整。
+  - glyphicon 字型已從 BS5 移除：🛈 問號圖示改為 CSS `?` 徽章（`.hint-icon`）。
+  - popover 初始化改用原生 `new bootstrap.Popover()`；TouchSpin 3.x 產生的 BS3 按鈕類別補上樣式墊片；jAlert 不依賴 Bootstrap、照常運作。
+  - 移除 IE<9 shim（respond/html5shiv）與已無對應元件的死程式碼。
+- 完整鏈路預覽驗證（含模擬 /config API 讓 `pageReady()` 全程執行）：分頁切換、12 配色卡／13 選字符卡／6 名稱標籤卡畫廊、側欄搜尋過濾、TouchSpin、jAlert 錯誤對話框、? 提示徽章全部正常。
+
 ## 技術棧汰舊（2026-06-12）
 
 - 設定頁前端升級：jQuery 1.12.4（2016, 有已知 XSS CVE）→ **3.7.1**；Bootstrap 3.3.7（EOL）→ **3.4.1**（BS3 安全修補終版，tooltip/popover XSS 已修，官方支援 jQuery 3）。八個碼表系外殼 `config.html` 同步更新；config.js 與 jAlert/TouchSpin 3.1.2 經相容性掃描無使用已移除 API。3.3.7 的未壓縮檔與 sourcemap 一併移除。

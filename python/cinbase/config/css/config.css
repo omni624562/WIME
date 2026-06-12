@@ -686,9 +686,9 @@ input[type="text"]:disabled {
     color: #ffffff;
 }
 
-.sidebar-nav > li.active > a,
-.sidebar-nav > li.active > a:hover,
-.sidebar-nav > li.active > a:focus {
+.sidebar-nav > li > a.active,
+.sidebar-nav > li > a.active:hover,
+.sidebar-nav > li > a.active:focus {
     background: #3f6fe8;
     color: #ffffff;
 }
@@ -749,7 +749,7 @@ body > .container {
     max-width: 1120px;
 }
 
-.panel.panel-default {
+.card {
     background: #ffffff;
     border: 1px solid #e2e7f0;
     border-radius: 12px;
@@ -758,24 +758,25 @@ body > .container {
     overflow: hidden;
 }
 
-.panel-default > .panel-heading {
+.card > .card-header {
     background: #ffffff;
     border-bottom: 1px solid #eef1f6;
     padding: 13px 18px 11px;
 }
 
-.panel-title {
+.card-title {
+    margin: 0;
     color: #1d2433;
     font-size: 15px;
     font-weight: 600;
 }
 
-.panel-body {
+.card-body {
     line-height: 2.1;
     padding: 14px 18px 16px;
 }
 
-.panel-body input[type="checkbox"] {
+.card-body input[type="checkbox"] {
     accent-color: #3a66d8;
     height: 15px;
     margin-right: 7px;
@@ -783,7 +784,7 @@ body > .container {
     width: 15px;
 }
 
-.panel-body select,
+.card-body select,
 select.form-control {
     background: #ffffff;
     border: 1px solid #cfd6e4;
@@ -880,9 +881,43 @@ textarea.form-control {
     visibility: hidden;
 }
 
-.glyphicon-size18 {
-    top: 4px; 
-    font-size: 18px;
+/* 🛈 提示徽章（BS5 無 glyphicon 字型） */
+.hint-icon {
+    background: #e7ecf6;
+    border-radius: 50%;
+    color: #3a66d8;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    height: 16px;
+    line-height: 16px;
+    margin-left: 4px;
+    text-align: center;
+    vertical-align: 1px;
+    width: 16px;
+}
+
+.hint-icon::before {
+    content: "?";
+}
+
+/* TouchSpin 3.x 產生 BS3 類別，於 BS5 下補樣式 */
+.bootstrap-touchspin .btn-default {
+    background: #ffffff;
+    border: 1px solid #cfd6e4;
+    color: #3b4252;
+}
+
+.bootstrap-touchspin .btn-default:hover {
+    background: #eef1f7;
+}
+
+.bootstrap-touchspin .input-group-addon {
+    align-items: center;
+    background: #f3f5f9;
+    border: 1px solid #cfd6e4;
+    display: flex;
+    padding: 0 8px;
 }
 
 .popover {

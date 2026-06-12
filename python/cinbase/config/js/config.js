@@ -1126,7 +1126,12 @@ function pageWait() {
 
 function pageReady() {
     updateCinCountElements();
-    $('[data-toggle="popover"]').popover()
+    // Bootstrap 5：popover 改用原生 API 初始化
+    if (window.bootstrap && bootstrap.Popover) {
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function(el) {
+            new bootstrap.Popover(el);
+        });
+    }
 
     $("#symbols").val(symbolsData);
     $("#ez_symbols").val(swkbData);
@@ -1493,13 +1498,6 @@ function pageReady() {
     }
 
     disableControlItem();
-
-    // trigger event
-    $('#navbars ul li a').click(function(){
-        if($('.navbar-toggle').css('display') != 'none' && $(this).attr('href') != '#') {
-            $('.navbar-toggle').click();
-        }
-    });
 
     $('#compositionBufferMode').click(function() {
         if ($('#compositionBufferMode')[0].checked == false) {
