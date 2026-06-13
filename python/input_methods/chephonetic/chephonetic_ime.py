@@ -18,7 +18,6 @@ from textService import *
 import io
 import os.path
 import copy
-import time
 
 from cinbase import CinBase
 from cinbase import LoadCinTable
@@ -77,10 +76,9 @@ class ChePhoneticTextService(TextService):
             loadCinFile = LoadCinTable(self, CinTable)
             loadCinFile.start()
         else:
-            while CinTable.loading:
-                # 讓出 GIL：忙等會佔滿一顆核心並拖慢正在載入碼表的執行緒
-                time.sleep(0.01)
-            self.cin = CinTable.cin
+            if not CinTable.loading:
+                self.cin = CinTable.cin
+            # if still loading, cbTS.cin is set by checkConfigChange after loading completes
 
         self.useEndKey = True
         self.autoShowCandWhenMaxChar = True

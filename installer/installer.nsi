@@ -103,7 +103,9 @@ RequestExecutionLevel admin
 
 !insertmacro LANG_LOAD "TradChinese" ; Traditional Chinese
 !ifndef ONLY_DAYI_CHEWING_CHECJ
+!ifndef NO_SIMP_CHINESE
 !insertmacro LANG_LOAD "SimpChinese" ; Simplified Chinese
+!endif
 !endif
 !insertmacro LANG_LOAD "English" ; English
 
@@ -286,8 +288,10 @@ Function .onInit
 		Push ${LANG_TRADCHINESE}
 		Push "繁體中文"
 !ifndef ONLY_DAYI_CHEWING_CHECJ
+!ifndef NO_SIMP_CHINESE
 		Push ${LANG_SIMPCHINESE}
 		Push "简体中文"
+!endif
 !endif
 		Push ${LANG_ENGLISH}
 		Push "English"

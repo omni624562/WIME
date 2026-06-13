@@ -538,12 +538,23 @@
                     <h3 class="card-title">排除聯想字詞</h3>
                 </div>
                 <div class="card-body">
-                    <p>
-                    不想看到的聯想字詞（例如內建詞庫中的人名）寫在這裡，顯示與排序時會被略過。<br />
-                    語法與聯想字詞表相同：「中字」=「要排除的聯想字詞」，多個以「,」號區隔。<br />
-                    例：<code>毛=澤東</code>
-                    </p>
-                    <textarea id="excludePhrase" class="form-control" rows="8"></textarea>
+                    <p>輸入一個字，系統會列出它所有的聯想詞。<strong>打勾</strong>表示排除（不顯示），取消勾選則恢復顯示。</p>
+                    <textarea id="excludePhrase" class="form-control" rows="8" style="display:none;"></textarea>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="text" id="epSearchChar" class="form-control" style="width:3.5em; font-size:1.2em; text-align:center;" maxlength="1" placeholder="字" />
+                        <button type="button" id="epSearchBtn" class="btn btn-primary">查詢聯想詞</button>
+                        <span id="epSearchStatus" class="text-muted small"></span>
+                    </div>
+                    <div id="epResults" style="display:none;">
+                        <div id="epResultsInfo" class="small text-muted mb-2"></div>
+                        <div id="epCheckboxes" class="d-flex flex-wrap gap-2 mb-3"></div>
+                        <button type="button" id="epApplyBtn" class="btn btn-sm btn-success">套用排除設定</button>
+                        <span id="epApplyMsg" class="small ms-2" style="display:none;"></span>
+                    </div>
+                    <div id="epExistingOther" class="mt-3" style="display:none;">
+                        <div class="small text-muted mb-1">其他已排除的字（非此次查詢）：</div>
+                        <div id="epExistingOtherList" class="d-flex flex-wrap gap-1"></div>
+                    </div>
                 </div>
             </div>
         </div>

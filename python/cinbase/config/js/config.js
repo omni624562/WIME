@@ -1062,6 +1062,121 @@ function checkDataFormat(checkData, checkType, elementId, dataDesc) {
     return true;
 }
 
+// ── 排除聯想字詞：查詢 + 勾選 ────────────────────────────────────
+var epPhraseData = null;  // 快取 phrase.json
+
+function epParseExcluded() {
+    var map = {};
+    $("#excludePhrase").val().split("\n").forEach(function(line) {
+        line = line.trim();
+        if (!line) return;
+        var eq = line.indexOf("=");
+        if (eq < 1) return;
+        var ch = line.substring(0, eq).trim();
+        var phrases = line.substring(eq + 1).split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+        if (ch && phrases.length) map[ch] = phrases;
+    });
+    return map;
+}
+
+function epSaveExcluded(map) {
+    var lines = [];
+    Object.keys(map).forEach(function(ch) {
+        if (map[ch] && map[ch].length) lines.push(ch + "=" + map[ch].join(","));
+    });
+    $("#excludePhrase").val(lines.join("\n")).trigger("change");
+}
+
+function epLoadPhraseJson(callback) {
+    if (epPhraseData) { callback(epPhraseData); return; }
+    $("#epSearchStatus").text("載入詞庫中…");
+    $.getJSON("data/phrase.json", function(data) {
+        epPhraseData = data;
+        $("#epSearchStatus").text("");
+        callback(data);
+    }).fail(function() {
+        $("#epSearchStatus").text("詞庫載入失敗");
+    });
+}
+
+function epSearch() {
+    var ch = $("#epSearchChar").val().trim();
+    if (!ch) return;
+    epLoadPhraseJson(function(data) {
+        var candidates = (data.chardefs && data.chardefs[ch]) || [];
+        if (!candidates.length) {
+            $("#epSearchStatus").text("「" + ch + "」沒有內建聯想詞");
+            $("#epResults").hide();
+            epShowOtherExclusions(ch);
+            return;
+        }
+        $("#epSearchStatus").text("");
+        var excluded = epParseExcluded();
+        var currentExcluded = excluded[ch] || [];
+        epRenderCheckboxes(ch, candidates, currentExcluded);
+        epShowOtherExclusions(ch);
+    });
+}
+
+function epRenderCheckboxes(ch, candidates, currentExcluded) {
+    var $box = $("#epCheckboxes").empty();
+    candidates.forEach(function(p) {
+        var isExcluded = currentExcluded.indexOf(p) !== -1;
+        var id = "ep_cb_" + p;
+        var $label = $("<label>")
+            .addClass("ep-cb-label d-flex align-items-center gap-1 px-2 py-1 rounded user-select-none")
+            .css({ cursor: "pointer", border: "1px solid", borderColor: isExcluded ? "var(--bs-danger)" : "var(--bs-secondary)", background: isExcluded ? "rgba(220,53,69,.12)" : "" });
+        var $cb = $("<input>").attr({ type: "checkbox", id: id }).addClass("ep-cb").prop("checked", isExcluded);
+        var $txt = $("<span>").text(p);
+        $label.append($cb).append($txt);
+        $label.on("click", function() {
+            var checked = $cb.prop("checked");
+            $label.css({ borderColor: checked ? "var(--bs-danger)" : "var(--bs-secondary)", background: checked ? "rgba(220,53,69,.12)" : "" });
+        });
+        $box.append($label);
+    });
+    $("#epResultsInfo").text("「" + ch + "」共有 " + candidates.length + " 個聯想詞，勾選的項目將被排除：");
+    $("#epResults").show();
+}
+
+function epShowOtherExclusions(currentChar) {
+    var excluded = epParseExcluded();
+    var others = Object.keys(excluded).filter(function(c){ return c !== currentChar; });
+    if (!others.length) { $("#epExistingOther").hide(); return; }
+    var $list = $("#epExistingOtherList").empty();
+    others.forEach(function(c) {
+        var $chip = $("<span>")
+            .addClass("badge text-bg-secondary me-1 mb-1")
+            .css("cursor","pointer")
+            .attr("title", "點擊查詢「" + c + "」")
+            .text(c + "（" + excluded[c].length + "）")
+            .on("click", function() {
+                $("#epSearchChar").val(c);
+                epSearch();
+                document.getElementById("epResults").scrollIntoView({block:"nearest"});
+            });
+        $list.append($chip);
+    });
+    $("#epExistingOther").show();
+}
+
+function epApply() {
+    var ch = $("#epSearchChar").val().trim();
+    if (!ch) return;
+    var excluded = epParseExcluded();
+    var checked = [];
+    $("#epCheckboxes .ep-cb:checked").each(function() {
+        var phrase = $(this).closest("label").find("span").text();
+        checked.push(phrase);
+    });
+    if (checked.length) excluded[ch] = checked;
+    else delete excluded[ch];
+    epSaveExcluded(excluded);
+    var msg = checked.length ? "已排除 " + checked.length + " 個詞" : "已清除「" + ch + "」的排除設定";
+    $("#epApplyMsg").text(msg).show().delay(2000).fadeOut();
+    epShowOtherExclusions(ch);
+}
+// ─────────────────────────────────────────────────────────────────
 
 function updateKeyboardLayout() {
     var radios = $('input[type=radio][name=keyboardLayout]');
@@ -1138,6 +1253,7 @@ function pageReady() {
     $("#fs_symbols").val(fsymbolsData);
     $("#phrase").val(phraseData);
     $("#excludePhrase").val(excludePhraseData);
+    epShowOtherExclusions("");
     $("#flangs").val(flangsData);
     $("#extendtable").val(extendtableData);
 
@@ -1282,6 +1398,11 @@ function pageReady() {
     $("#excludePhrase").change(function(){
         excludePhraseChanged = true;
     });
+
+    // 排除聯想字詞：查詢 + 勾選事件
+    $("#epSearchBtn").on("click", epSearch);
+    $("#epSearchChar").on("keydown", function(e) { if (e.key === "Enter") epSearch(); });
+    $("#epApplyBtn").on("click", epApply);
 
     $("#flangs").change(function(){
         flangsChanged = true;

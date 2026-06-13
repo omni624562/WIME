@@ -230,6 +230,7 @@ class ConfigApp(tornado.web.Application):
             (r"/(.*\.html|config.js)", NoCacheStaticFileHandler, {"path": current_ime_config_dir}),
             (r"/(.*\.htm)", NoCacheStaticFileHandler, {"path": os.path.join(current_dir, "config")}),
             (r"/((css|fonts|images|js)/.*)", NoCacheStaticFileHandler, {"path": os.path.join(current_dir, "config")}),
+            (r"/(data/.*\.json)", NoCacheStaticFileHandler, {"path": current_dir}),
             (r"/(icon.ico)", NoCacheStaticFileHandler, {"path": current_ime_dir}),
             (r"/(version.txt)", NoCacheStaticFileHandler, {"path": os.path.join(current_dir, "../../")}),
             (r"/config", ConfigHandler),  # main configuration handler

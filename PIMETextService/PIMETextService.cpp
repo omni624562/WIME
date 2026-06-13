@@ -424,9 +424,9 @@ void TextService::moveCandidateWindow(Ime::EditSession* session) {
 	candidateWindow_->size(&width, &height);
 
 	int x = textRect.left;
-	int y = textRect.bottom;
+	int y = textRect.bottom + 4;
 	if (candidateEdgeAvoidance_) {
-		RECT desired = { textRect.left, textRect.bottom, textRect.left + width, textRect.bottom + height };
+		RECT desired = { textRect.left, y, textRect.left + width, y + height };
 		HMONITOR monitor = ::MonitorFromRect(&desired, MONITOR_DEFAULTTONEAREST);
 		MONITORINFO mi;
 		mi.cbSize = sizeof(mi);
@@ -437,8 +437,8 @@ void TextService::moveCandidateWindow(Ime::EditSession* session) {
 			if (x < work.left)
 				x = work.left;
 
-			if (y + height > work.bottom && textRect.top - height >= work.top)
-				y = textRect.top - height;
+			if (y + height > work.bottom && textRect.top - height - 4 >= work.top)
+				y = textRect.top - height - 4;
 			else if (y + height > work.bottom)
 				y = work.bottom - height;
 			if (y < work.top)
@@ -478,9 +478,13 @@ void TextService::showCandidates(Ime::EditSession* session) {
 // hide candidate list window
 void TextService::hideCandidates() {
 	if (candidateWindow_) {
-		// remember the grown stable width so the next window keeps the same
-		// size while the user keeps typing in the same field
-		candidateStableWidthPx_ = candidateWindow_->stableWidthPx();
+		// carry over the stable width, but cap it at the configured minimum so
+		// width grown during one character's candidate list doesn't persist into
+		// the next character (it would otherwise only ever grow, never shrink)
+		int grown = candidateWindow_->stableWidthPx();
+		candidateStableWidthPx_ = (candidateMinWidth_ > 0)
+			? min(grown, candidateMinWidth_)
+			: grown;
 		candidateWindow_->Show(FALSE);
 	}
 	if (validCandidateListElementId_) {
