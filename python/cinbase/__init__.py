@@ -2229,14 +2229,14 @@ class CinBase:
                             currentCandPage = 0
                             candCursor = 0
                 else: # 按下其它鍵，先將候選字游標位址及目前頁數歸零
-                    if cbTS.canSetPhraseCommitString or cbTS.multifunctionmode:
+                    if cbTS.canSetPhraseCommitString or cbTS.multifunctionmode or keyCode == VK_ESCAPE:
                         cbTS.phrasemode = False
                         cbTS.isShowPhraseCandidates = False
                         self.resetComposition(cbTS)
                         candCursor = 0
                         currentCandPage = 0
 
-                        if cbTS.cin.isInKeyName(charStrLow) and not keyEvent.isKeyDown(VK_SHIFT):
+                        if keyCode != VK_ESCAPE and cbTS.cin.isInKeyName(charStrLow) and not keyEvent.isKeyDown(VK_SHIFT):
                             cbTS.compositionChar = charStrLow
                             keyname = cbTS.cin.getKeyName(charStrLow)
 
