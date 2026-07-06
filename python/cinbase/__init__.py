@@ -499,6 +499,26 @@ class CinBase:
             cbTS.hideMessageOnKeyUp = True
         return False
 
+    def _fillMSymbolsBufferChar(self, cbTS, commitStrList, compositionCharOffset=0):
+        """Resolve commitStr from the buffer, then fill compositionBufferChar entries.
+
+        Used by msymbols and ctrlsymbols paths that need to backfill char→key
+        mappings after committing a one- or two-character symbol string.
+        Uses enumerate so duplicate characters in commitStr get the correct index.
+        """
+        cur = cbTS.compositionBufferCursor
+        buf = cbTS.compositionBufferString
+        if buf[cur - 1] in commitStrList:
+            commitStr = buf[cur - 1]
+        elif buf[cur - 2] + buf[cur - 1] in commitStrList:
+            commitStr = buf[cur - 2] + buf[cur - 1]
+        else:
+            return
+        base = cur - len(commitStr)
+        for i, _ in enumerate(commitStr):
+            cChar = cbTS.compositionChar[i + compositionCharOffset]
+            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, base + i + 1)
+
     def onKeyDown(self, cbTS, keyEvent, CinTable, RCinTable, HCinTable):
         charCode = keyEvent.charCode
         keyCode = keyEvent.keyCode
@@ -551,6 +571,9 @@ class CinBase:
                 charIndex = cbTS.kbtypelist[cbTS.keyboardLayout].index(charStr.lower())
                 charStr = cbTS.kbtypelist[0][charIndex]
                 charStrLow = charStr.lower()
+
+        # charStrLow is final after keyboard remapping; cache isInKeyName for this event
+        cin_has_charStrLow = cbTS.cin.isInKeyName(charStrLow)
 
         # 檢查選字鍵
         if not cbTS.imeDirName == "chedayi":
@@ -677,17 +700,8 @@ class CinBase:
                 if cbTS.compositionBufferMode:
                     if charStr == '`' and cbTS.menusymbolsmode == True:
                         cbTS.compositionBufferType = "msymbols"
-                        commitStr = ""
-                        if cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in candidates:
-                            commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                        elif cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in candidates:
-                            commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                        strLength = len(commitStr)
-                        if strLength >= 1:
-                            for cStr in commitStr:
-                                strLength -= 1
-                                cChar = cbTS.compositionChar[commitStr.index(cStr)] if cbTS.compositionChar[0] != "`" else cbTS.compositionChar[commitStr.index(cStr) + 1]
-                                self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, cbTS.compositionBufferCursor - strLength)
+                        compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
+                        self._fillMSymbolsBufferChar(cbTS, candidates, compositionCharOffset)
                         self.resetComposition(cbTS)
                         cbTS.menusymbolsmode = False
                         cbTS.multifunctionmode = True
@@ -724,7 +738,7 @@ class CinBase:
             if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]):
                 cbTS.menusymbolsmode = True
         elif cbTS.multifunctionmode and cbTS.menusymbolsmode and cbTS.directCommitSymbol and keyEvent.isPrintableChar():
-            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:] + charStr) and cbTS.cin.isInKeyName(charStrLow):
+            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:] + charStr) and cin_has_charStrLow:
                 if not cbTS.compositionBufferMode:
                     cbTS.setCommitString(cbTS.compositionString)
                     self.resetComposition(cbTS)
@@ -732,17 +746,8 @@ class CinBase:
                 else:
                     cbTS.compositionBufferType = "msymbols"
                     commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar[1:])
-                    commitStr = ""
-                    if cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                        commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                    elif cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                        commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                    strLength = len(commitStr)
-                    if strLength >= 1:
-                        for cStr in commitStr:
-                            strLength -= 1
-                            cChar = cbTS.compositionChar[commitStr.index(cStr)] if cbTS.compositionChar[0] != "`" else cbTS.compositionChar[commitStr.index(cStr) + 1]
-                            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, cbTS.compositionBufferCursor - strLength)
+                    compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
+                    self._fillMSymbolsBufferChar(cbTS, commitStrList, compositionCharOffset)
                     self.resetComposition(cbTS)
                     cbTS.menusymbolsmode = False
         elif cbTS.multifunctionmode and not cbTS.menusymbolsmode and not cbTS.directCommitSymbol:
@@ -1088,17 +1093,7 @@ class CinBase:
                             RemoveStringLength = self.calcRemoveStringLength(cbTS) if cbTS.directShowCand and not cbTS.directOutMSymbols else 0
                             cbTS.compositionBufferType = "msymbols"
                             commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            commitStr = ""
-                            if cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                                commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                            elif cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                                commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                            strLength = len(commitStr)
-                            if strLength >= 1:
-                                for cStr in commitStr:
-                                    strLength -= 1
-                                    cChar = cbTS.compositionChar[commitStr.index(cStr)]
-                                    self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, cbTS.compositionBufferCursor - strLength)
+                            self._fillMSymbolsBufferChar(cbTS, commitStrList)
                             cbTS.compositionChar = charStr
                             candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
                             self.setCompositionBufferString(cbTS, candidates[0], RemoveStringLength)
@@ -1112,7 +1107,7 @@ class CinBase:
             self.resetCompositionBuffer(cbTS)
 
         if cbTS.ctrlsymbolsmode and cbTS.directCommitSymbol and not keyEvent.isKeyDown(VK_CONTROL) and keyEvent.isPrintableChar():
-            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr) and cbTS.cin.isInKeyName(charStrLow):
+            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr) and cin_has_charStrLow:
                 if not cbTS.compositionBufferMode:
                     cbTS.setCommitString(cbTS.compositionString)
                     self.resetComposition(cbTS)
@@ -1120,17 +1115,7 @@ class CinBase:
                 else:
                     cbTS.compositionBufferType = "msymbols"
                     commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                    commitStr = ""
-                    if cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                        commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                    elif cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1] in commitStrList:
-                        commitStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                    strLength = len(commitStr)
-                    if strLength >= 1:
-                        for cStr in commitStr:
-                            strLength -= 1
-                            cChar = cbTS.compositionChar[commitStr.index(cStr)]
-                            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, cbTS.compositionBufferCursor - strLength)
+                    self._fillMSymbolsBufferChar(cbTS, commitStrList)
                     self.resetComposition(cbTS)
                 cbTS.ctrlsymbolsmode = False
 
@@ -1142,11 +1127,19 @@ class CinBase:
         if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
             self.resetComposition(cbTS)
 
+        # pre-compute shared guard used by the three-way input dispatch below
+        in_normal_input_mode = (
+            cbTS.closemenu and not cbTS.multifunctionmode
+            and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode
+            and not cbTS.dayisymbolsmode and not cbTS.selcandmode
+            and not cbTS.tempEnglishMode and not cbTS.phrasemode
+        )
+
         # 按下萬用字元鍵。大易常用 Shift+8 或數字鍵盤 * 輸入 *。
-        if self.isWildcardInputKey(cbTS, charStr, keyEvent) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
+        if self.isWildcardInputKey(cbTS, charStr, keyEvent) and in_normal_input_mode:
             self.appendWildcardComposition(cbTS)
         # 按下的鍵為 CIN 內有定義的字根
-        elif cbTS.cin.isInKeyName(charStrLow) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
+        elif cin_has_charStrLow and in_normal_input_mode:
             # 若按下 Shift 鍵
             if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE and not cbTS.imeDirName == "cheez":
                 CommitStr = charStr
@@ -1189,7 +1182,7 @@ class CinBase:
                         if cbTS.fsymbols.isInCharDef(charStr):
                             self.setOutputFSymbols(cbTS, charStr)
                         else:
-                            if cbTS.cin.isInKeyName(charStrLow): # 如果是 CIN 所定義的字根
+                            if cin_has_charStrLow: # 如果是 CIN 所定義的字根
                                 RemoveStringLength = 0
                                 if cbTS.compositionBufferMode:
                                     if not cbTS.compositionChar == '':
@@ -1235,7 +1228,7 @@ class CinBase:
                             cbTS.setCommitString(CommitStr)
                         self.resetComposition(cbTS)
                 else: # 如果未使用 SHIFT 輸入快速符號或全形標點
-                    if cbTS.cin.isInKeyName(charStrLow) and (self.isSymbolsChar(keyCode) or self.isNumberChar(keyCode)): # 如果是 CIN 所定義的字根
+                    if cin_has_charStrLow and (self.isSymbolsChar(keyCode) or self.isNumberChar(keyCode)): # 如果是 CIN 所定義的字根
                         cbTS.compositionChar = charStrLow
                         keyname = cbTS.cin.getKeyName(charStrLow)
                         if cbTS.compositionBufferMode:
@@ -1314,7 +1307,7 @@ class CinBase:
                             else:
                                 cbTS.menusymbolsmode = False
         # 按下的鍵不存在於 CIN 所定義的字根
-        elif not cbTS.cin.isInKeyName(charStrLow) and cbTS.closemenu and not cbTS.multifunctionmode and not keyEvent.isKeyDown(VK_CONTROL) and not cbTS.ctrlsymbolsmode and not cbTS.dayisymbolsmode and not cbTS.selcandmode and not cbTS.tempEnglishMode and not cbTS.phrasemode:
+        elif not cin_has_charStrLow and in_normal_input_mode:
             # 若按下 Shift 鍵
             if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE:
                 # 如果按鍵及萬用字元為*
@@ -2235,7 +2228,7 @@ class CinBase:
                         candCursor = 0
                         currentCandPage = 0
 
-                        if keyCode != VK_ESCAPE and cbTS.cin.isInKeyName(charStrLow) and not keyEvent.isKeyDown(VK_SHIFT):
+                        if keyCode != VK_ESCAPE and cin_has_charStrLow and not keyEvent.isKeyDown(VK_SHIFT):
                             cbTS.compositionChar = charStrLow
                             keyname = cbTS.cin.getKeyName(charStrLow)
 

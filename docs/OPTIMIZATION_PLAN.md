@@ -101,7 +101,7 @@
 - `python/textService.py:46-61`：keyStates 稀疏 dict 傳入時每事件配置 `[0]*256` 回填；一次實體按鍵建 4 個 KeyEvent。改 `isKeyDown`/`isKeyToggled` 用 `self.keyStates.get(code, 0)` 直查稀疏 dict。
 
 ### 14. onKeyDown 巨型方法持續分解
-- [ ] 未實作
+- [x] 完成（`_fillMSymbolsBufferChar` 輔助方法；`cin_has_charStrLow` 預計算；`in_normal_input_mode` 預計算；`.index()` 改 `enumerate`；msymbols/ctrlsymbols 4 重複塊消除）
 - `python/cinbase/__init__.py:502` 起約 1050+ 行。同組旗標判斷在 `1146`、`1149`、`1317` 幾乎逐字重複；`cin.isInKeyName(charStrLow)` 同路徑多次呼叫。
 - 做法：方法開頭把純函式結果算一次存區域變數；msymbols/ctrlsymbols 分支抽方法（延續已拆 menu/pager/selkeys 的方向）。另外 `687-690`、`736-745`、`1092-1101`、`1124-1133` 的「送出候選回填 compositionBufferChar」區塊重複 4+ 次，抽成單一輔助方法，迴圈用 `enumerate` 取代 `.index()`（重複字元會取錯位置）。
 

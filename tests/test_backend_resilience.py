@@ -324,12 +324,14 @@ class KeyEventTests(unittest.TestCase):
         self.assertFalse(event.isKeyDown(65))
 
     def test_sparse_object_ignores_bad_entries(self):
+        # out-of-range, non-integer, and non-integer-value entries are all dropped
         event = self.make_event({"abc": 0x80, "300": 0x80, "-1": 0x80, "16": "bad"})
-        self.assertEqual(event.keyStates, [0] * 256)
+        self.assertEqual(event.keyStates, {})
 
     def test_missing_keystates_defaults_to_all_zero(self):
+        # absent keyStates yields an empty sparse dict; all keys read as not-down
         event = self.make_event(None)
-        self.assertEqual(len(event.keyStates), 256)
+        self.assertEqual(event.keyStates, {})
         self.assertFalse(event.isKeyDown(16))
 
 

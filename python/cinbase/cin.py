@@ -14,6 +14,8 @@ class Cin(object):
     encoding = 'utf-8'
     MAX_CONTEXT_ENTRIES = 32
     COUNT_SAVE_INTERVAL_SECONDS = 60.0
+    # big5 encoding cache shared across all Cin instances (encoding is deterministic)
+    _big5_cache: dict = {}
 
     # Unicode range boundaries; computed once at class definition.
     # Two-element entries are [lo, hi) bounds; multi-element entries are
@@ -60,7 +62,6 @@ class Cin(object):
         self.chardefs = {}
         self.privateuse = {}
         self.dupchardefs = {}
-        self._big5_cache = {}
 
         try:
             import orjson
