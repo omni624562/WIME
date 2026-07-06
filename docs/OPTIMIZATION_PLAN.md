@@ -13,7 +13,7 @@
 - 風險：低（純 Python，可用既有測試驗證）。
 
 ### 2. C++：單一按鍵最多 3 次同步 RPC 往返
-- [ ] 未實作
+- [x] 完成（filterDown/UpCache_；OnKeyDown/Up 命中時省一次 filterKeyDown RPC）
 - 位置：`libIME2/src/TextService.cpp:717-756`（OnTestKeyDown/OnKeyDown 各打一次 `filterKeyDown` RPC）、`758-790`（KeyUp 同理）；RPC 底層 `PIMETextService/PIMEClient.cpp:859-869`
 - 問題：TSF 對同一實體按鍵先送 OnTestKeyDown 再送 OnKeyDown，filter 判斷 RPC 在 UI 執行緒被完整跑兩次；按鍵被吃掉再加一次 onKeyDown RPC，單鍵最多 3 次同步 pipe 來回。
 - 做法：以 (wParam, lParam) 或 keyStates 摘要快取上一筆 OnTestKeyDown 的 filter 結果，緊接的 OnKeyDown 重用。注意部分程式不觸發 OnTestKeyDown（程式碼註解已說明），快取 miss 時仍需照常發 RPC。
@@ -65,14 +65,14 @@
 - 風險：低（防禦性修正）。
 
 ### 8. 候選窗繪製每次重畫建立/銷毀數十個 GDI 物件
-- [ ] 未實作
+- [x] 完成（cachedBrush/cachedPen 以 COLORREF 為鍵快取；releaseThemeBrushes 釋放）
 - 位置：`libIME2/src/CandidateWindow.cpp:1002-1254`（paintItem）、`623-684`（訊息列）
 - 問題：每個 item、每次 WM_PAINT 都 CreateSolidBrush/CreatePen + DeleteObject（選取項 keycap 樣式一項就 4+ 個）。panel 背景刷/邊框筆/縮放字型已在 :277-308 快取（commit 98e3710），但選取/badge/rail/divider 的顏色物件沒有。
 - 做法：依顏色鍵值快取筆刷/筆，比照 panel 物件作法。
 - 風險：低。
 
 ### 9. 單次 updateStatus 觸發 3+ 次跨行程 GetTextExt
-- [ ] 未實作
+- [x] 完成（cachedSelectionRect_ + clearSelRectCache()；updateStatus 開頭清快取）
 - 位置：`PIMETextService/PIMEClient.cpp:665-697`（updateStatus 依序跑 updateCandidateList → updateCommitString → updateComposition）；`:511-516`、`:548-553` 各自呼叫 updateCandidatesWindow + updateMessageWindow；`moveCandidateWindow`（`PIMETextService.cpp:414-450`）與 `updateMessageWindow`（`:538-547`）各呼叫 `selectionRect()`（`libIME2/src/TextService.cpp:895-911`，跨行程 GetTextExt）。
 - 做法：單次 updateStatus pass 內快取一次 selection rect 共用。
 - 風險：低中。
