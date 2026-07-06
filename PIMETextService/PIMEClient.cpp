@@ -666,6 +666,9 @@ void Client::updateKeyboardStatus(json& msg) {
 }
 
 void Client::updateStatus(json& msg, Ime::EditSession* session) {
+	// Clear per-pass cache so moveCandidateWindow / updateMessageWindow share one GetTextExt call.
+	textService_->clearSelRectCache();
+
 	// We need to handle ordering of some types of the requests.
 	// For example, setCompositionCursor() should happen after setCompositionCursor().
 	// UI customization must be applied before candidateList creates or refreshes

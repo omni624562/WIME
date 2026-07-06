@@ -67,7 +67,9 @@ TextService::TextService(ImeModule* module):
 	candidateMinWidth_(0),
 	candidateStableWidthPx_(0),
 	candidateWrapToMaxWidth_(false),
-	candidateMaxWidth_(0) {
+	candidateMaxWidth_(0),
+	cachedSelRect_{},
+	cachedSelRectValid_(false) {
 
 	// font for candidate and mesasge windows
 	font_ = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
@@ -411,12 +413,26 @@ void TextService::applyCandidateWindowStyle() {
 	candidateWindow_->seedStableWidth(candidateStableWidthPx_);
 }
 
+bool TextService::cachedSelectionRect(Ime::EditSession* session, RECT* out) {
+	if (!cachedSelRectValid_) {
+		if (!selectionRect(session, &cachedSelRect_))
+			return false;
+		cachedSelRectValid_ = true;
+	}
+	*out = cachedSelRect_;
+	return true;
+}
+
+void TextService::clearSelRectCache() {
+	cachedSelRectValid_ = false;
+}
+
 void TextService::moveCandidateWindow(Ime::EditSession* session) {
 	if (!candidateWindow_)
 		return;
 
 	RECT textRect;
-	if (!selectionRect(session, &textRect))
+	if (!cachedSelectionRect(session, &textRect))
 		return;
 
 	int width = 0;
@@ -524,7 +540,7 @@ void TextService::showMessage(Ime::EditSession* session, std::wstring message, i
 	int x = 0, y = 0;
 	if(isComposing()) {
 		RECT rc;
-		if(selectionRect(session, &rc)) {
+		if(cachedSelectionRect(session, &rc)) {
 			x = rc.left;
 			y = rc.bottom;
 		}
@@ -538,9 +554,7 @@ void TextService::showMessage(Ime::EditSession* session, std::wstring message, i
 void TextService::updateMessageWindow(Ime::EditSession* session) {
     if (messageWindow_ && messageWindow_->isVisible()) {
         RECT textRect;
-        // get the position of composition area from TSF
-        if (selectionRect(session, &textRect)) {
-            // FIXME: where should we put the message window?
+        if (cachedSelectionRect(session, &textRect)) {
             messageWindow_->move(textRect.left, textRect.bottom);
         }
     }

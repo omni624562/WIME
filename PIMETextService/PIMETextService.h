@@ -244,6 +244,9 @@ private:
 
 	void closeClient();
 
+	bool cachedSelectionRect(Ime::EditSession* session, RECT* out);
+	void clearSelRectCache();
+
 private:
 	bool validCandidateListElementId_;
 	DWORD candidateListElementId_;
@@ -283,6 +286,10 @@ private:
 	int candidateStableWidthPx_; // grown width carried across candidate window recreation
 	bool candidateWrapToMaxWidth_;
 	int candidateMaxWidth_;
+
+	// Per-updateStatus-pass cache: avoids repeated cross-process GetTextExt calls.
+	RECT cachedSelRect_;
+	bool cachedSelRectValid_;
 
 	HMENU popupMenu_;
 
