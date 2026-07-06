@@ -519,6 +519,147 @@ class CinBase:
             cChar = cbTS.compositionChar[i + compositionCharOffset]
             self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cChar, base + i + 1)
 
+    def _handleMSymbolsInMultifunctionMode(self, cbTS, keyEvent, charStr, cin_has_charStrLow):
+        """Handle the msymbols display and directCommitSymbol logic for multifunctionmode.
+
+        Called from inside the ``if cbTS.multifunctionmode:`` block.
+        Returns ``(should_early_return, updated_candidates_or_None)``.
+        """
+        candidates = None
+
+        # Display / commit msymbols candidate while composing with backtick prefix
+        if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]) and cbTS.closemenu and len(cbTS.compositionChar) >= 2:
+            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar[1:])
+            if cbTS.compositionBufferMode:
+                if charStr == '`' and cbTS.menusymbolsmode:
+                    cbTS.compositionBufferType = "msymbols"
+                    compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
+                    self._fillMSymbolsBufferChar(cbTS, candidates, compositionCharOffset)
+                    self.resetComposition(cbTS)
+                    cbTS.menusymbolsmode = False
+                    cbTS.multifunctionmode = True
+                    cbTS.compositionChar = "`"
+                    self.setCompositionBufferString(cbTS, charStr, 1 if cbTS.directShowCand and not cbTS.directOutMSymbols else 0)
+                else:
+                    if len(cbTS.compositionBufferString) >= 2:
+                        prevStr = (cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2]
+                                   + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1])
+                        if prevStr == candidates[0]:
+                            self.removeCompositionBufferString(cbTS, 1, True)
+                    cbTS.compositionBufferType = "msymbols"
+                    self.setCompositionBufferString(cbTS, candidates[0], 1)
+            else:
+                if charStr == '`' and cbTS.menusymbolsmode:
+                    commitStr = cbTS.compositionString
+                    self.resetComposition(cbTS)
+                    if cbTS.directOutMSymbols:
+                        cbTS.setCommitString(commitStr)
+                        cbTS.keepComposition = True
+                        cbTS.keepType = "menusymbols"
+                    cbTS.menusymbolsmode = False
+                    cbTS.multifunctionmode = True
+                    cbTS.compositionChar = "`"
+                    cbTS.setCompositionString("`")
+                    if cbTS.directOutMSymbols:
+                        return True, None
+                else:
+                    cbTS.setCompositionString(candidates[0])
+                cbTS.setCompositionCursor(len(cbTS.compositionString))
+
+        # directCommitSymbol: update menusymbolsmode / auto-commit on next CIN key
+        # (cbTS.multifunctionmode is True at call site)
+        if not cbTS.menusymbolsmode and cbTS.directCommitSymbol:
+            if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]):
+                cbTS.menusymbolsmode = True
+        elif cbTS.menusymbolsmode and cbTS.directCommitSymbol and keyEvent.isPrintableChar():
+            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:] + charStr) and cin_has_charStrLow:
+                if not cbTS.compositionBufferMode:
+                    cbTS.setCommitString(cbTS.compositionString)
+                    self.resetComposition(cbTS)
+                    cbTS.keepComposition = True
+                else:
+                    cbTS.compositionBufferType = "msymbols"
+                    commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar[1:])
+                    compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
+                    self._fillMSymbolsBufferChar(cbTS, commitStrList, compositionCharOffset)
+                    self.resetComposition(cbTS)
+                    cbTS.menusymbolsmode = False
+        elif not cbTS.menusymbolsmode and not cbTS.directCommitSymbol:
+            if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]):
+                cbTS.menusymbolsmode = True
+
+        return False, candidates
+
+    def _handleCtrlSymbols(self, cbTS, keyEvent, charStr, keyCode, cin_has_charStrLow):
+        """Handle all ctrlsymbolsmode state transitions: entry on Ctrl+symbol,
+        commit on Enter, and auto-commit when the next CIN key arrives."""
+        # Ctrl+symbol key: enter / advance / wrap ctrlsymbolsmode
+        if cbTS.langMode == CHINESE_MODE and keyEvent.isKeyDown(VK_CONTROL):
+            if self.isCtrlSymbolsChar(keyCode):
+                if cbTS.msymbols.isInCharDef(charStr) and cbTS.closemenu and not cbTS.multifunctionmode:
+                    if cbTS.homophoneQuery and cbTS.homophonemode:
+                        self.resetHomophoneMode(cbTS)
+                    if not cbTS.compositionBufferMode:
+                        if not cbTS.ctrlsymbolsmode:
+                            cbTS.ctrlsymbolsmode = True
+                            cbTS.compositionChar = charStr
+                        elif cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr):
+                            cbTS.compositionChar += charStr
+                        elif cbTS.ctrlsymbolsmode and cbTS.compositionChar != '':
+                            commitStr = cbTS.compositionString
+                            self.resetComposition(cbTS)
+                            if cbTS.directOutMSymbols:
+                                cbTS.setCommitString(commitStr)
+                                cbTS.keepComposition = True
+                                cbTS.keepType = "ctrlsymbols"
+                                cbTS.ctrlsymbolsmode = True
+                            cbTS.compositionChar = charStr
+                        candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                        cbTS.setCompositionString(candidates[0])
+                    else:
+                        if not cbTS.ctrlsymbolsmode and cbTS.compositionChar == '':
+                            cbTS.ctrlsymbolsmode = True
+                            cbTS.compositionChar = charStr
+                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                            self.setCompositionBufferString(cbTS, candidates[0], 0)
+                        elif cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr):
+                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                            self.removeCompositionBufferString(cbTS, len(candidates[0]), True)
+                            cbTS.compositionChar += charStr
+                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                            self.setCompositionBufferString(cbTS, candidates[0], 0)
+                        elif cbTS.ctrlsymbolsmode and cbTS.compositionChar != '':
+                            RemoveStringLength = self.calcRemoveStringLength(cbTS) if cbTS.directShowCand and not cbTS.directOutMSymbols else 0
+                            cbTS.compositionBufferType = "msymbols"
+                            commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                            self._fillMSymbolsBufferChar(cbTS, commitStrList)
+                            cbTS.compositionChar = charStr
+                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                            self.setCompositionBufferString(cbTS, candidates[0], RemoveStringLength)
+                    if cbTS.imeDirName == "chedayi":
+                        if charStr in "'[]-\\":
+                            cbTS.canUseSelKey = False
+
+        # Enter commits current ctrlsymbols composition
+        if cbTS.ctrlsymbolsmode and keyCode == VK_RETURN and cbTS.isComposing() and not cbTS.showCandidates:
+            cbTS.setCommitString(cbTS.compositionString)
+            self.resetComposition(cbTS)
+            self.resetCompositionBuffer(cbTS)
+
+        # Non-Ctrl CIN key when directCommitSymbol: auto-commit and exit ctrlsymbolsmode
+        if cbTS.ctrlsymbolsmode and cbTS.directCommitSymbol and not keyEvent.isKeyDown(VK_CONTROL) and keyEvent.isPrintableChar():
+            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr) and cin_has_charStrLow:
+                if not cbTS.compositionBufferMode:
+                    cbTS.setCommitString(cbTS.compositionString)
+                    self.resetComposition(cbTS)
+                    cbTS.keepComposition = True
+                else:
+                    cbTS.compositionBufferType = "msymbols"
+                    commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
+                    self._fillMSymbolsBufferChar(cbTS, commitStrList)
+                    self.resetComposition(cbTS)
+                cbTS.ctrlsymbolsmode = False
+
     def onKeyDown(self, cbTS, keyEvent, CinTable, RCinTable, HCinTable):
         charCode = keyEvent.charCode
         keyCode = keyEvent.keyCode
@@ -695,64 +836,11 @@ class CinBase:
                     cbTS.setCompositionString(cbTS.compositionString[:-1])
                 cbTS.compositionChar = cbTS.compositionChar[:-1]
 
-            if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]) and cbTS.closemenu and len(cbTS.compositionChar) >= 2:
-                candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar[1:])
-                if cbTS.compositionBufferMode:
-                    if charStr == '`' and cbTS.menusymbolsmode == True:
-                        cbTS.compositionBufferType = "msymbols"
-                        compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
-                        self._fillMSymbolsBufferChar(cbTS, candidates, compositionCharOffset)
-                        self.resetComposition(cbTS)
-                        cbTS.menusymbolsmode = False
-                        cbTS.multifunctionmode = True
-                        cbTS.compositionChar = "`"
-                        self.setCompositionBufferString(cbTS, charStr, 1 if cbTS.directShowCand and not cbTS.directOutMSymbols else 0)
-                    else:
-                        if len(cbTS.compositionBufferString) >= 2:
-                            prevStr = cbTS.compositionBufferString[cbTS.compositionBufferCursor - 2] + cbTS.compositionBufferString[cbTS.compositionBufferCursor - 1]
-                            if prevStr == candidates[0]:
-                                self.removeCompositionBufferString(cbTS, 1, True)
-                        cbTS.compositionBufferType = "msymbols"
-                        self.setCompositionBufferString(cbTS, candidates[0], 1)
-                else:
-                    if charStr == '`' and cbTS.menusymbolsmode == True:
-                        commitStr = cbTS.compositionString
-                        self.resetComposition(cbTS)
-
-                        if cbTS.directOutMSymbols:
-                            cbTS.setCommitString(commitStr)
-                            cbTS.keepComposition = True
-                            cbTS.keepType = "menusymbols"
-
-                        cbTS.menusymbolsmode = False
-                        cbTS.multifunctionmode = True
-                        cbTS.compositionChar = "`"
-                        cbTS.setCompositionString("`")
-                        if cbTS.directOutMSymbols:
-                            return True
-                    else:
-                        cbTS.setCompositionString(candidates[0])
-                    cbTS.setCompositionCursor(len(cbTS.compositionString))
-
-        if cbTS.multifunctionmode and not cbTS.menusymbolsmode and cbTS.directCommitSymbol:
-            if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]):
-                cbTS.menusymbolsmode = True
-        elif cbTS.multifunctionmode and cbTS.menusymbolsmode and cbTS.directCommitSymbol and keyEvent.isPrintableChar():
-            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:] + charStr) and cin_has_charStrLow:
-                if not cbTS.compositionBufferMode:
-                    cbTS.setCommitString(cbTS.compositionString)
-                    self.resetComposition(cbTS)
-                    cbTS.keepComposition = True
-                else:
-                    cbTS.compositionBufferType = "msymbols"
-                    commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar[1:])
-                    compositionCharOffset = 1 if cbTS.compositionChar[0] == "`" else 0
-                    self._fillMSymbolsBufferChar(cbTS, commitStrList, compositionCharOffset)
-                    self.resetComposition(cbTS)
-                    cbTS.menusymbolsmode = False
-        elif cbTS.multifunctionmode and not cbTS.menusymbolsmode and not cbTS.directCommitSymbol:
-            if cbTS.msymbols.isInCharDef(cbTS.compositionChar[1:]):
-                cbTS.menusymbolsmode = True
+            early_ret, new_cands = self._handleMSymbolsInMultifunctionMode(cbTS, keyEvent, charStr, cin_has_charStrLow)
+            if early_ret:
+                return True
+            if new_cands is not None:
+                candidates = new_cands
 
         # 輕鬆輸入法進入選單模式
         if cbTS.langMode == CHINESE_MODE and cbTS.imeDirName == "cheez" and cbTS.compositionChar + charStrLow == 'menu':
@@ -1051,73 +1139,7 @@ class CinBase:
             return False
 
         # 若按下 Ctrl 鍵
-        if cbTS.langMode == CHINESE_MODE and keyEvent.isKeyDown(VK_CONTROL):
-            # 若按下的是指定的符號鍵，輸入法需要處理此按鍵
-            if self.isCtrlSymbolsChar(keyCode):
-                if cbTS.msymbols.isInCharDef(charStr) and cbTS.closemenu and not cbTS.multifunctionmode:
-                    if cbTS.homophoneQuery and cbTS.homophonemode:
-                        self.resetHomophoneMode(cbTS)
-
-                    if not cbTS.compositionBufferMode:
-                        if not cbTS.ctrlsymbolsmode:
-                            cbTS.ctrlsymbolsmode = True
-                            cbTS.compositionChar = charStr
-                        elif cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr):
-                            cbTS.compositionChar += charStr
-                        elif cbTS.ctrlsymbolsmode and cbTS.compositionChar != '':
-                            commitStr = cbTS.compositionString
-                            self.resetComposition(cbTS)
-
-                            if cbTS.directOutMSymbols:
-                                cbTS.setCommitString(commitStr)
-                                cbTS.keepComposition = True
-                                cbTS.keepType = "ctrlsymbols"
-                                cbTS.ctrlsymbolsmode = True
-
-                            cbTS.compositionChar = charStr
-                        candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                        cbTS.setCompositionString(candidates[0])
-                    else:
-                        if not cbTS.ctrlsymbolsmode and cbTS.compositionChar == '':
-                            cbTS.ctrlsymbolsmode = True
-                            cbTS.compositionChar = charStr
-                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            self.setCompositionBufferString(cbTS, candidates[0], 0)
-                        elif cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr):
-                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            self.removeCompositionBufferString(cbTS, len(candidates[0]), True)
-                            cbTS.compositionChar += charStr
-                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            self.setCompositionBufferString(cbTS, candidates[0], 0)
-                        elif cbTS.ctrlsymbolsmode and cbTS.compositionChar != '':
-                            RemoveStringLength = self.calcRemoveStringLength(cbTS) if cbTS.directShowCand and not cbTS.directOutMSymbols else 0
-                            cbTS.compositionBufferType = "msymbols"
-                            commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            self._fillMSymbolsBufferChar(cbTS, commitStrList)
-                            cbTS.compositionChar = charStr
-                            candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                            self.setCompositionBufferString(cbTS, candidates[0], RemoveStringLength)
-                    if cbTS.imeDirName == "chedayi":
-                        if charStr in "'[]-\\":
-                            cbTS.canUseSelKey = False
-
-        if cbTS.ctrlsymbolsmode and keyCode == VK_RETURN and cbTS.isComposing() and not cbTS.showCandidates:
-            cbTS.setCommitString(cbTS.compositionString)
-            self.resetComposition(cbTS)
-            self.resetCompositionBuffer(cbTS)
-
-        if cbTS.ctrlsymbolsmode and cbTS.directCommitSymbol and not keyEvent.isKeyDown(VK_CONTROL) and keyEvent.isPrintableChar():
-            if not cbTS.msymbols.isInCharDef(cbTS.compositionChar + charStr) and cin_has_charStrLow:
-                if not cbTS.compositionBufferMode:
-                    cbTS.setCommitString(cbTS.compositionString)
-                    self.resetComposition(cbTS)
-                    cbTS.keepComposition = True
-                else:
-                    cbTS.compositionBufferType = "msymbols"
-                    commitStrList = cbTS.msymbols.getCharDef(cbTS.compositionChar)
-                    self._fillMSymbolsBufferChar(cbTS, commitStrList)
-                    self.resetComposition(cbTS)
-                cbTS.ctrlsymbolsmode = False
+        self._handleCtrlSymbols(cbTS, keyEvent, charStr, keyCode, cin_has_charStrLow)
 
         # 大易須換回選字鍵
         if not cbTS.showmenu:
