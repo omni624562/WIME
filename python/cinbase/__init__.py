@@ -1799,15 +1799,14 @@ class CinBase:
 
                                     if cbTS.imeReverseLookup:
                                         if RCinTable.cin is not None:
-                                            if not RCinTable.cin.getCharEncode(commitStr) == "":
-                                                if not cbTS.client.isUiLess:
-                                                    cbTS.isShowMessage = True
-                                                    message = RCinTable.cin.getCharEncode(commitStr)
-                                                    if not cbTS.client.isMetroApp:
-                                                        cbTS.showMessageOnKeyUp = True
-                                                        cbTS.onKeyUpMessage = message
-                                                    else:
-                                                        cbTS.showMessage(message, cbTS.messageDurationTime)
+                                            message = RCinTable.cin.getCharEncode(commitStr)
+                                            if message != '查無字根...' and not cbTS.client.isUiLess:
+                                                cbTS.isShowMessage = True
+                                                if not cbTS.client.isMetroApp:
+                                                    cbTS.showMessageOnKeyUp = True
+                                                    cbTS.onKeyUpMessage = message
+                                                else:
+                                                    cbTS.showMessage(message, cbTS.messageDurationTime)
                                         else:
                                             if not cbTS.client.isUiLess:
                                                 cbTS.isShowMessage = True
@@ -3121,15 +3120,14 @@ class CinBase:
 
         if cbTS.imeReverseLookup:
             if RCinTable.cin is not None:
-                if not RCinTable.cin.getCharEncode(commitStr) == "":
-                    if not cbTS.client.isUiLess:
-                        cbTS.isShowMessage = True
-                        message = RCinTable.cin.getCharEncode(commitStr)
-                        if not cbTS.client.isMetroApp:
-                            cbTS.showMessageOnKeyUp = True
-                            cbTS.onKeyUpMessage = message
-                        else:
-                            cbTS.showMessage(message, cbTS.messageDurationTime)
+                message = RCinTable.cin.getCharEncode(commitStr)
+                if message != '查無字根...' and not cbTS.client.isUiLess:
+                    cbTS.isShowMessage = True
+                    if not cbTS.client.isMetroApp:
+                        cbTS.showMessageOnKeyUp = True
+                        cbTS.onKeyUpMessage = message
+                    else:
+                        cbTS.showMessage(message, cbTS.messageDurationTime)
             else:
                 if not cbTS.client.isUiLess:
                     cbTS.isShowMessage = True

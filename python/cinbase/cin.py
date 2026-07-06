@@ -79,9 +79,12 @@ class Cin(object):
 
         self._chardef_prefix_cache_count = None
         self._chardef_prefixes = set()
+        self._chardef_proper_prefixes = set()
+        self._char_to_keys = {}
         self._count_dirty = False
         self._last_count_save_time = 0.0
 
+        self._build_reverse_index()
         self.loadCountFile()
 
 
@@ -121,42 +124,48 @@ class Cin(object):
         return self.keynames[key]
 
 
-    def isHaveKey(self, val):
-        return True if [key for key, value in self.chardefs.items() if val in value] else False
+    def _build_reverse_index(self):
+        index = {}
+        for chardef, chars in self.chardefs.items():
+            for char in chars:
+                if char not in index:
+                    index[char] = []
+                index[char].append(chardef)
+        self._char_to_keys = index
 
+    def _rebuild_prefix_cache(self):
+        prefixes = set()
+        proper_prefixes = set()
+        for chardef in self.chardefs:
+            n = len(chardef)
+            for length in range(1, n + 1):
+                prefixes.add(chardef[:length])
+            for length in range(1, n):
+                proper_prefixes.add(chardef[:length])
+        self._chardef_prefixes = prefixes
+        self._chardef_proper_prefixes = proper_prefixes
+        self._chardef_prefix_cache_count = len(self.chardefs)
+
+    def isHaveKey(self, val):
+        return val in self._char_to_keys
 
     def getKey(self, val):
-        return [key for key, value in self.chardefs.items() if val in value][0]
-
+        return self._char_to_keys[val][0]
 
     def isInCharDef(self, key):
         return key in self.chardefs
 
-
     def getCharDef(self, key):
-        """ 
-        will return a list conaining all possible result
-        """
         return self.chardefs.get(key, [])
-
 
     def isCharDefPrefix(self, key):
         if not key:
             return False
         if key in self.chardefs:
             return True
-
-        chardef_count = len(self.chardefs)
-        if self._chardef_prefix_cache_count != chardef_count:
-            prefixes = set()
-            for chardef in self.chardefs:
-                for length in range(1, len(chardef) + 1):
-                    prefixes.add(chardef[:length])
-            self._chardef_prefixes = prefixes
-            self._chardef_prefix_cache_count = chardef_count
-
+        if self._chardef_prefix_cache_count != len(self.chardefs):
+            self._rebuild_prefix_cache()
         return key in self._chardef_prefixes
-
 
     def haveNextCharDef(self, key):
         chardefslist = []
@@ -167,15 +176,12 @@ class Cin(object):
                     break
         return chardefslist
 
-
     def hasLongerCharDefPrefix(self, key):
         if not key:
             return False
-        key_length = len(key)
-        for chardef in self.chardefs:
-            if len(chardef) > key_length and chardef.startswith(key):
-                return True
-        return False
+        if self._chardef_prefix_cache_count != len(self.chardefs):
+            self._rebuild_prefix_cache()
+        return key in self._chardef_proper_prefixes
 
 
     def sortedCharDefKeys(self):
@@ -244,20 +250,15 @@ class Cin(object):
 
 
     def getCharEncode(self, root):
-        nunbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
-        i = 0
+        keys = self._char_to_keys.get(root)
+        if not keys:
+            return '查無字根...'
+        numbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
         result = root + ':'
-        for chardef in self.chardefs:
-            for char in self.chardefs[chardef]:
-                if char == root:
-                    result += '　' + nunbers[i]
-                    if i < 9:
-                        i = i + 1
-                    for str in chardef:
-                        result += self.getKeyName(str)
-
-        if result == root + ':':
-            result = '查無字根...'
+        for i, chardef in enumerate(keys[:10]):
+            result += '　' + numbers[i]
+            for ch in chardef:
+                result += self.getKeyName(ch)
         return result
 
 
@@ -278,6 +279,8 @@ class Cin(object):
                             self.chardefs[key.lower()] = [root]
             self._chardef_prefix_cache_count = None
             self._chardef_prefixes = set()
+            self._chardef_proper_prefixes = set()
+            self._build_reverse_index()
 
 
     def loadCountFile(self):
