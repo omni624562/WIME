@@ -51,7 +51,7 @@
 ## 中影響
 
 ### 6. 九個 che* 輸入法檔近乎逐字複製貼上
-- [ ] 未實作
+- [x] 完成（CinBaseTextService 基底類別；順帶修 6 個檔缺失的 onKillFocus）
 - 檔案：`python/input_methods/{checj,cheliu,chesimplex,cheez,chearray,chepinyin,chedayi,chephonetic,cheeng}/*_ime.py`
 - 問題：checj 對 chesimplex/cheez 只差 12-13 行，差異僅 `imeDirName`、`maxCharLength`、`cinFileList` 三個常數；其餘約 130 行 wrapper + Table 類完全相同。已造成實際漏改：cheliu 缺 `onKillFocus`（checj:139-141 有）。
 - 做法：抽 `CinBaseTextService` 基底類別至 cinbase，che* 只宣告常數；chephonetic/chedayi override 專屬邏輯（updateCompositionChar、zhuintab 等）。順帶把 CinTable/RCinTable/HCinTable 單例移到共用模組，讓已載入碼表跨輸入法重用（見第 10 點）。
