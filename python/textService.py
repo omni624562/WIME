@@ -40,31 +40,31 @@ class KeyEvent:
         self.repeatCount = msg["repeatCount"]
         self.scanCode = msg["scanCode"]
         self.isExtended = msg["isExtended"]
-        # keyStates comes as either the legacy 256-element array or a sparse
-        # {"vk": state} object holding only the non-zero entries
+        # keyStates is stored as a sparse {int_vk: state} dict so isKeyDown /
+        # isKeyToggled can use .get(code, 0) instead of indexing a 256-element
+        # list that is rebuilt from scratch for every key event.
         states = msg.get("keyStates", None)
         if isinstance(states, dict):
-            full = [0] * 256
+            sparse = {}
             for key, value in states.items():
                 try:
                     index = int(key)
+                    v = int(value)
                 except (TypeError, ValueError):
                     continue
-                if 0 <= index < 256:
-                    try:
-                        full[index] = int(value)
-                    except (TypeError, ValueError):
-                        pass
-            states = full
-        elif not isinstance(states, list):
-            states = [0] * 256
-        self.keyStates = states
+                if 0 <= index < 256 and v:
+                    sparse[index] = v
+            self.keyStates = sparse
+        elif isinstance(states, list):
+            self.keyStates = {i: v for i, v in enumerate(states) if v}
+        else:
+            self.keyStates = {}
 
     def isKeyDown(self, code):
-        return (self.keyStates[code] & (1 << 7)) != 0
+        return (self.keyStates.get(code, 0) & (1 << 7)) != 0
 
     def isKeyToggled(self, code):
-        return (self.keyStates[code] & 1) != 0
+        return (self.keyStates.get(code, 0) & 1) != 0
 
     def isChar(self):
         return (self.charCode != 0)

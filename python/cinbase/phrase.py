@@ -31,7 +31,7 @@ class phrase(object):
         """ 
         will return a list conaining all possible result
         """
-        return self.chardefs[key]
+        return self.chardefs.get(key, [])
 
 
     def getKeyNames(self):

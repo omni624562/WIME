@@ -93,11 +93,11 @@
 - 工作目錄約 20 個 `deploy-test-*.log` 已被 ignore，直接刪除即可。
 
 ### 12. CMake 最低版本過舊
-- [ ] 未實作
+- [x] 完成（`CMakeLists.txt` VERSION 2.8.11 → 3.5；`build.bat` 移除 `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` workaround）
 - `CMakeLists.txt:1` 為 `cmake_minimum_required(VERSION 2.8.11)`（2013 年），導致 build.bat 每個 cmake 呼叫都塞 `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` workaround。提升最低版本後移除 hack。
 
 ### 13. KeyEvent 每事件重建 256 元素陣列
-- [ ] 未實作
+- [x] 完成（`keyStates` 改稀疏 dict；`isKeyDown`/`isKeyToggled` 改 `.get(code, 0)`）
 - `python/textService.py:46-61`：keyStates 稀疏 dict 傳入時每事件配置 `[0]*256` 回填；一次實體按鍵建 4 個 KeyEvent。改 `isKeyDown`/`isKeyToggled` 用 `self.keyStates.get(code, 0)` 直查稀疏 dict。
 
 ### 14. onKeyDown 巨型方法持續分解
@@ -106,7 +106,7 @@
 - 做法：方法開頭把純函式結果算一次存區域變數；msymbols/ctrlsymbols 分支抽方法（延續已拆 menu/pager/selkeys 的方向）。另外 `687-690`、`736-745`、`1092-1101`、`1124-1133` 的「送出候選回填 compositionBufferChar」區塊重複 4+ 次，抽成單一輔助方法，迴圈用 `enumerate` 取代 `.index()`（重複字元會取錯位置）。
 
 ### 15. 其他小項
-- [ ] 未實作
+- [x] 完成（`charsetRange` 升為 class 常數 + frozenset；`in range` 改比較；big5 _big5_cache；phrase.py KeyError；isInsertionAllowed return allowed；SetTimer clamp）
 - `cin.py:457-506` `getCharSet`：`charsetRange` 提升為 class 常數、`in range(...)` 改比較運算、big5 編碼結果快取（僅萬用字元查詢路徑）。
 - `phrase.py:34` `getCharDef` 用 `self.chardefs[key]`（KeyError）與 `cin.py:140` 的 `.get(key, [])` 語意不一致，統一。
 - `libIME2/src/TextService.cpp:146-168` `isInsertionAllowed` 算出 `allowed` 卻恆 `return false`——死碼/潛在 bug，目前無實害，處理時留意。

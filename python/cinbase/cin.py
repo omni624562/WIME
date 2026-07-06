@@ -15,6 +15,36 @@ class Cin(object):
     MAX_CONTEXT_ENTRIES = 32
     COUNT_SAVE_INTERVAL_SECONDS = 60.0
 
+    # Unicode range boundaries; computed once at class definition.
+    # Two-element entries are [lo, hi) bounds; multi-element entries are
+    # frozensets of individual codepoints for O(1) membership tests.
+    charsetRange = {
+        'bopomofo':    [0x3100, 0x3130],
+        'bopomofoTone': frozenset((0x02D9, 0x02CA, 0x02C7, 0x02CB)),
+        'cjk':         [0x4E00, 0x9FEB],
+        'big5F':       [0xA440, 0xC67F],
+        'big5LF':      [0xC940, 0xF9D6],
+        'big5S':       [0xA140, 0xA3C0],
+        'cjkExtA':     [0x3400, 0x4DB6],
+        'cjkExtB':     [0x20000, 0x2A6D7],
+        'cjkExtC':     [0x2A700, 0x2B735],
+        'cjkExtD':     [0x2B740, 0x2B81E],
+        'cjkExtE':     [0x2B820, 0x2CEA2],
+        'cjkExtF':     [0x2CEB0, 0x2EBE1],
+        'pua':         [0xE000, 0xF900],
+        'puaA':        [0xF0000, 0xFFFFE],
+        'puaB':        [0x100000, 0x10FFFE],
+        'cjkCIa':      [0xF900, 0xFA0E],
+        'cjkCIb':      frozenset((0xFA0E, 0xFA0F, 0xFA11, 0xFA13, 0xFA14, 0xFA1F,
+                                   0xFA21, 0xFA23, 0xFA24, 0xFA27, 0xFA28, 0xFA29)),
+        'cjkCIc':      frozenset((0xFA10, 0xFA12, 0xFA15, 0xFA16, 0xFA17, 0xFA18,
+                                   0xFA19, 0xFA1A, 0xFA1B, 0xFA1C, 0xFA1D, 0xFA1E,
+                                   0xFA20, 0xFA22, 0xFA25, 0xFA26, 0xFA2A, 0xFA2B,
+                                   0xFA2C, 0xFA2D)),
+        'cjkCId':      [0xFA2E, 0xFB00],
+        'cjkCIS':      [0x2F800, 0x2FA20],
+    }
+
     def __init__(self, fs, imeDirName, ignorePrivateUseArea):
         self.imeDirName = imeDirName
         self.ignorePrivateUseArea = ignorePrivateUseArea
@@ -30,28 +60,7 @@ class Cin(object):
         self.chardefs = {}
         self.privateuse = {}
         self.dupchardefs = {}
-
-        self.charsetRange = {}
-        self.charsetRange['bopomofo'] = [int('0x3100', 16), int('0x3130', 16)]
-        self.charsetRange['bopomofoTone'] = [int('0x02D9', 16), int('0x02CA', 16), int('0x02C7', 16), int('0x02CB', 16)]
-        self.charsetRange['cjk'] = [int('0x4E00', 16), int('0x9FEB', 16)]
-        self.charsetRange['big5F'] = [int('0xA440', 16), int('0xC67F', 16)]
-        self.charsetRange['big5LF'] = [int('0xC940', 16), int('0xF9D6', 16)]
-        self.charsetRange['big5S'] = [int('0xA140', 16), int('0xA3C0', 16)]
-        self.charsetRange['cjkExtA'] = [int('0x3400', 16), int('0x4DB6', 16)]
-        self.charsetRange['cjkExtB'] = [int('0x20000', 16), int('0x2A6D7', 16)]
-        self.charsetRange['cjkExtC'] = [int('0x2A700', 16), int('0x2B735', 16)]
-        self.charsetRange['cjkExtD'] = [int('0x2B740', 16), int('0x2B81E', 16)]
-        self.charsetRange['cjkExtE'] = [int('0x2B820', 16), int('0x2CEA2', 16)]
-        self.charsetRange['cjkExtF'] = [int('0x2CEB0', 16), int('0x2EBE1', 16)]
-        self.charsetRange['pua'] = [int('0xE000', 16), int('0xF900', 16)]
-        self.charsetRange['puaA'] = [int('0xF0000', 16), int('0xFFFFE', 16)]
-        self.charsetRange['puaB'] = [int('0x100000', 16), int('0x10FFFE', 16)]
-        self.charsetRange['cjkCIa'] = [int('0xF900', 16), int('0xFA0E', 16)]
-        self.charsetRange['cjkCIb'] = [int('0xFA0E', 16), int('0xFA0F', 16), int('0xFA11', 16), int('0xFA13', 16), int('0xFA14', 16), int('0xFA1F', 16), int('0xFA21', 16), int('0xFA23', 16), int('0xFA24', 16), int('0xFA27', 16), int('0xFA28', 16), int('0xFA29', 16)]
-        self.charsetRange['cjkCIc'] = [int('0xFA10', 16), int('0xFA12', 16), int('0xFA15', 16), int('0xFA16', 16), int('0xFA17', 16), int('0xFA18', 16), int('0xFA19', 16), int('0xFA1A', 16), int('0xFA1B', 16), int('0xFA1C', 16), int('0xFA1D', 16), int('0xFA1E', 16), int('0xFA20', 16), int('0xFA22', 16), int('0xFA25', 16), int('0xFA26', 16), int('0xFA2A', 16), int('0xFA2B', 16), int('0xFA2C', 16), int('0xFA2D', 16)]
-        self.charsetRange['cjkCId'] = [int('0xFA2E', 16), int('0xFB00', 16)]
-        self.charsetRange['cjkCIS'] = [int('0x2F800', 16), int('0x2FA20', 16)]
+        self._big5_cache = {}
 
         try:
             import orjson
@@ -458,54 +467,58 @@ class Cin(object):
 
 
     def getCharSet(self, root):
-        matchstr = root
-        matchint = ord(matchstr)
+        matchint = ord(root)
+        cr = self.charsetRange  # local alias avoids repeated global dict lookup
 
-        if matchint <= self.charsetRange['cjk'][1]:
-            if (matchint in range(self.charsetRange['bopomofo'][0], self.charsetRange['bopomofo'][1]) or # Bopomofo 區域
-                matchint in self.charsetRange['bopomofoTone']): 
+        if matchint <= cr['cjk'][1]:
+            if (cr['bopomofo'][0] <= matchint < cr['bopomofo'][1] or  # Bopomofo 區域
+                    matchint in cr['bopomofoTone']):
                 return "bopomofo"
-            elif matchint in range(self.charsetRange['cjk'][0], self.charsetRange['cjk'][1]): # CJK Unified Ideographs 區域
-                try:
-                    big5code = matchstr.encode('big5')
-                    big5codeint = int(big5code.hex(), 16)
-
-                    if big5codeint in range(self.charsetRange['big5F'][0], self.charsetRange['big5F'][1]): # Big5 常用字
-                        return "big5F"
-                    elif big5codeint in range(self.charsetRange['big5LF'][0], self.charsetRange['big5LF'][1]): # Big5 次常用字
-                        return "big5LF"
-                    elif big5codeint in range(self.charsetRange['big5S'][0], self.charsetRange['big5S'][1]): # Big5 符號
-                        return "big5LF"
-                    else: # Big5 其它漢字
-                        return "big5Other"
-                except: # CJK Unified Ideographs 漢字
+            elif cr['cjk'][0] <= matchint < cr['cjk'][1]:  # CJK Unified Ideographs 區域
+                cached = self._big5_cache.get(matchint)
+                if cached is None:
+                    try:
+                        big5codeint = int(root.encode('big5').hex(), 16)
+                    except Exception:
+                        big5codeint = -1
+                    self._big5_cache[matchint] = big5codeint
+                else:
+                    big5codeint = cached
+                if big5codeint < 0:  # not encodable as Big5 → generic CJK
                     return "cjk"
-            elif matchint in range(self.charsetRange['cjkExtA'][0], self.charsetRange['cjkExtA'][1]): # CJK Unified Ideographs Extension A 區域
+                if cr['big5F'][0] <= big5codeint < cr['big5F'][1]:
+                    return "big5F"
+                elif cr['big5LF'][0] <= big5codeint < cr['big5LF'][1]:
+                    return "big5LF"
+                elif cr['big5S'][0] <= big5codeint < cr['big5S'][1]:
+                    return "big5LF"
+                else:
+                    return "big5Other"
+            elif cr['cjkExtA'][0] <= matchint < cr['cjkExtA'][1]:  # Extension A 區域
                 return "cjkExtA"
         else:
-            if matchint in range(self.charsetRange['cjkExtB'][0], self.charsetRange['cjkExtB'][1]): # CJK Unified Ideographs Extension B 區域
+            if cr['cjkExtB'][0] <= matchint < cr['cjkExtB'][1]:
                 return "cjkExtB"
-            elif matchint in range(self.charsetRange['cjkExtC'][0], self.charsetRange['cjkExtC'][1]): # CJK Unified Ideographs Extension C 區域
+            elif cr['cjkExtC'][0] <= matchint < cr['cjkExtC'][1]:
                 return "cjkExtC"
-            elif matchint in range(self.charsetRange['cjkExtD'][0], self.charsetRange['cjkExtD'][1]): # CJK Unified Ideographs Extension D 區域
+            elif cr['cjkExtD'][0] <= matchint < cr['cjkExtD'][1]:
                 return "cjkExtD"
-            elif matchint in range(self.charsetRange['cjkExtE'][0], self.charsetRange['cjkExtE'][1]): # CJK Unified Ideographs Extension E 區域
+            elif cr['cjkExtE'][0] <= matchint < cr['cjkExtE'][1]:
                 return "cjkExtE"
-            elif matchint in range(self.charsetRange['cjkExtF'][0], self.charsetRange['cjkExtF'][1]): # CJK Unified Ideographs Extension F 區域
+            elif cr['cjkExtF'][0] <= matchint < cr['cjkExtF'][1]:
                 return "cjkExtF"
-            elif matchint in self.charsetRange['cjkCIb']: # cjk compatibility ideographs 區域
+            elif matchint in cr['cjkCIb']:
                 return "cjkCIibm"
-            elif (matchint in range(self.charsetRange['pua'][0], self.charsetRange['pua'][1]) or # Unicode Private Use 區域
-                matchint in range(self.charsetRange['puaA'][0], self.charsetRange['puaA'][1]) or
-                matchint in range(self.charsetRange['puaB'][0], self.charsetRange['puaB'][1])):
+            elif (cr['pua'][0] <= matchint < cr['pua'][1] or
+                    cr['puaA'][0] <= matchint < cr['puaA'][1] or
+                    cr['puaB'][0] <= matchint < cr['puaB'][1]):
                 return "pua"
-            elif (matchint in range(self.charsetRange['cjkCIa'][0], self.charsetRange['cjkCIa'][1]) or # cjk compatibility ideographs 區域
-                matchint in self.charsetRange['cjkCIc'] or
-                matchint in range(self.charsetRange['cjkCId'][0], self.charsetRange['cjkCId'][1])):
+            elif (cr['cjkCIa'][0] <= matchint < cr['cjkCIa'][1] or
+                    matchint in cr['cjkCIc'] or
+                    cr['cjkCId'][0] <= matchint < cr['cjkCId'][1]):
                 return "pua"
-            elif matchint in range(self.charsetRange['cjkCIS'][0], self.charsetRange['cjkCIS'][1]): # cjk compatibility ideographs supplement 區域
+            elif cr['cjkCIS'][0] <= matchint < cr['cjkCIS'][1]:
                 return "pua"
-        # 不在 CJK Unified Ideographs 區域
         return "cjkOther"
 
 

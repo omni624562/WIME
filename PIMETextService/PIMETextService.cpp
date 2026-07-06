@@ -548,7 +548,10 @@ void TextService::showMessage(Ime::EditSession* session, std::wstring message, i
 	messageWindow_->move(x, y);
 	messageWindow_->show();
 
-	messageTimerId_ = ::SetTimer(messageWindow_->hwnd(), 1, duration * 1000, (TIMERPROC)TextService::onMessageTimeout);
+	// clamp duration to avoid overflow when multiplying by 1000 for SetTimer (UINT)
+	messageTimerId_ = ::SetTimer(messageWindow_->hwnd(), 1,
+		static_cast<UINT>(std::min(duration, 3600) * 1000),
+		(TIMERPROC)TextService::onMessageTimeout);
 }
 
 void TextService::updateMessageWindow(Ime::EditSession* session) {
