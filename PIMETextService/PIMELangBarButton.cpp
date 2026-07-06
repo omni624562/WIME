@@ -20,6 +20,7 @@
 #include "PIMELangBarButton.h"
 #include "PIMETextService.h"
 #include "libIME2/src/Utils.h"
+#include <mutex>
 #include <string>
 
 // this is the GUID of the IME mode icon in Windows 8
@@ -34,7 +35,8 @@ using json = nlohmann::json;
 namespace PIME {
 
 // static
-std::unordered_map<std::wstring, HICON> LangBarButton::iconCache_; // cache loaded icons
+std::unordered_map<std::wstring, HICON> LangBarButton::iconCache_;
+std::mutex LangBarButton::iconCacheMutex_;
 
 LangBarButton::LangBarButton(TextService* service, const std::string& id, const GUID& guid, UINT commandId, const wchar_t* text, DWORD style):
 	Ime::LangBarButton(service, guid, commandId, text, style),
@@ -76,13 +78,16 @@ void LangBarButton::setIconFile(std::wstring filePath) {
 		iconFile_ = std::move(filePath);
 
 		HICON icon = NULL;
-		auto icon_it = iconCache_.find(iconFile_);
-		if (icon_it != iconCache_.end()) { // found in the cache
-			icon = icon_it->second;
-		}
-		else { // not in the cache
-			icon = (HICON)LoadImageW(NULL, iconFile_.c_str(), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE);
-			iconCache_[iconFile_] = icon; // cache the icon
+		{
+			std::lock_guard<std::mutex> lock(iconCacheMutex_);
+			auto icon_it = iconCache_.find(iconFile_);
+			if (icon_it != iconCache_.end()) {
+				icon = icon_it->second;
+			}
+			else {
+				icon = (HICON)LoadImageW(NULL, iconFile_.c_str(), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE);
+				iconCache_[iconFile_] = icon;
+			}
 		}
 		if (icon) {
 			setIcon(icon);
@@ -140,6 +145,7 @@ void LangBarButton::updateFromJson(json& info) {
 }
 
 void LangBarButton::clearIconCache() {
+	std::lock_guard<std::mutex> lock(iconCacheMutex_);
 	for (auto it = iconCache_.begin(); it != iconCache_.end(); ++it) {
 		DestroyIcon(it->second);
 	}

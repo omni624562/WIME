@@ -561,14 +561,17 @@ void Client::updateComposition(json& msg, Ime::EditSession* session, bool& endCo
 			if (!textService_->isComposing()) {
 				textService_->startComposition(session->context());
 			}
+			// Clamp against-trust backend value to prevent out-of-bounds indexing below.
+			if (!hasCompositionString)
+				compositionString = textService_->compositionString(session);
+			compositionCursor = std::min(compositionCursor, static_cast<int>(compositionString.length()));
 			// NOTE:
 			// This fixes PIME bug #166: incorrect handling of UTF-16 surrogate pairs.
 			// The TSF API unfortunately treat a UTF-16 surrogate pair as two characters while
 			// they actually represent one unicode character only. To workaround this TSF bug,
 			// we get the composition string, and try to move the cursor twice when a UTF-16
 			// surrogate pair is found.
-			if (!hasCompositionString)
-				compositionString = textService_->compositionString(session);
+			// (compositionString already fetched above for the bounds clamp)
 			int fixedCursorPos = 0;
 			for (int i = 0; i < compositionCursor; ++i) {
 				++fixedCursorPos;

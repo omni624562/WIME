@@ -22,6 +22,7 @@
 
 #include <libIME2/src/LangBarButton.h>
 #include <nlohmann/json.hpp>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -54,7 +55,8 @@ protected:
 private:
 	std::string id_;
     std::wstring iconFile_;
-	static std::unordered_map<std::wstring, HICON> iconCache_; // cache loaded icons
+	static std::unordered_map<std::wstring, HICON> iconCache_;
+	static std::mutex iconCacheMutex_;
 };
 
 } // namespace PIME
