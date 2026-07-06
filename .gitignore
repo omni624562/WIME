@@ -9,10 +9,14 @@ PIMELauncher/target/
 cleanup_x64.ps1
 replace_x64_dll.ps1
 
+# Large binaries / generated artifacts not for version control
+PIMELauncher/rustup-init.exe
+node/node_modules/
+
 # Local test/deploy artifacts
 __pycache__/
 $tmp/
 deploy-test-*.log
-candidate-message-*-mockup.svg
-candidate-no-*-mockup.svg
-candidate-selected-item-*.svg
+candidate-*mockup*
+*-preview.html
+*-demo.html

@@ -6,7 +6,7 @@
 ## 高影響 — 效能熱路徑
 
 ### 1. Python：`getCharEncode()` 全表掃描且每次出字跑兩遍
-- [ ] 未實作
+- [x] 完成（`_char_to_keys` 反向索引；呼叫端改單次呼叫）
 - 位置：`python/cinbase/cin.py:246-261`；呼叫點 `python/cinbase/__init__.py:1802-1805`、`3124-3127`（另有 `1795`、`2062`、`3117`、`3147`）
 - 問題：對整張碼表雙層迴圈 O(N×M)，反查表（RCin）常為數 MB 大表。呼叫端先呼叫一次做 `== ""` 比較、再呼叫一次取值，等於每出一個字全表掃兩遍。
 - 做法：Cin 載入時建反向索引 dict（char → [(key, root_index)]），查詢降為 O(1)；呼叫端先存區域變數消除重複呼叫。
@@ -20,7 +20,7 @@
 - 風險：中（動到按鍵熱路徑，需在多種應用程式實測；libIME2 為 submodule，需連動更新指標）。
 
 ### 3. Python：`hasLongerCharDefPrefix()` 每鍵全表掃描
-- [ ] 未實作
+- [x] 完成（`_chardef_proper_prefixes` set；`_rebuild_prefix_cache()` 同時建兩份快取）
 - 位置：`python/cinbase/cin.py:171-178`；呼叫點 `__init__.py:3004`（shouldAutoCommitSingleCandidate，由 `1721` 每鍵觸發）
 - 問題：開啟「自動送出唯一候選字」時每鍵 O(N) 掃描。同檔 `isCharDefPrefix`（143-158）已有 prefix set 快取、`sortedCharDefKeys`（181-190）也有，唯獨這個沒有。
 - 做法：重用 `_chardef_prefixes` set，或判斷 `key in prefixes and key not in chardefs`。
@@ -30,7 +30,7 @@
 ## 高影響 — 專案基礎
 
 ### 4. backends.json 與實際建置脫節 + go-backend 零 CI 覆蓋
-- [ ] 未實作
+- [x] 完成（移除 node 與 go-backend 條目，僅保留 python 後端）
 - 問題：
   - `backends.json` 註冊 `go-backend\server.exe`，但 build.bat 與 CI 都不建置 go-backend，該檔案不存在 → runtime 載入失敗。
   - `backends.json` 仍註冊 `node` 後端，但 build.bat 已註明 node 不再建置。
@@ -39,7 +39,7 @@
 - 風險：低。
 
 ### 5. Repo 膨脹止血（pack 已達 121MB）
-- [ ] 未實作
+- [x] 完成（`git rm` rustup-init.exe 與 node_modules；補 .gitignore）
 - 問題：
   - `PIMELauncher/rustup-init.exe`（12.8MB）在 HEAD 被追蹤，不該進版控。
   - `node/node.exe` 歷史被提交三次（累積約 44MB）。
@@ -78,7 +78,7 @@
 - 風險：低中。
 
 ### 10. RCin/HCin 反查表整張常駐記憶體卻只做 O(N) 查詢
-- [ ] 未實作
+- [x] 完成（與第 1 點共用 `_build_reverse_index()`；isHaveKey/getKey 改用 `_char_to_keys`）
 - 位置：`python/cinbase/__init__.py:3667`（LoadRCinTable）、`3716`（LoadHCinTable）；碼表 `python/cinbase/json/`（newcj3 6MB、ezbig 5.9MB…）
 - 問題：反查/同音只用到 char → 字根對應，卻常駐完整 Cin 物件，且查詢仍是全表掃描。
 - 做法：與第 1 點同解——載入時建精簡反向索引 dict，不保留完整 chardefs。建議與第 1 點同一個 commit 系列處理。
@@ -87,7 +87,7 @@
 ## 低影響（順手清理）
 
 ### 11. 清理已追蹤的 mockup 產物與根目錄雜物
-- [ ] 未實作
+- [x] 完成（`git rm` 5 個 mockup 檔；補 .gitignore；刪 42 個 deploy-test-*.log）
 - `git rm`：`candidate-header-style-mockup.html`、`candidate-style-preview.html`、`candidate-window-redesign-mockup.svg`、`candidate-window-ui-mockup.html`、`dayi-interactive-demo.html`
 - `.gitignore` 整併零碎規則為 `candidate-*mockup*`、`*-preview.html`、`*-demo.html`
 - 工作目錄約 20 個 `deploy-test-*.log` 已被 ignore，直接刪除即可。
