@@ -59,7 +59,7 @@
 - 風險：中（動到全部輸入法的入口，需逐一煙霧測試）。
 
 ### 7. C++ 穩定性兩處
-- [ ] 未實作
+- [x] 完成（iconCache_ 加 mutex；compositionCursor clamp 至字串長度）
 - 7a. `PIMETextService/PIMELangBarButton.cpp:37`：static `iconCache_` 跨 TSF 執行緒讀寫無鎖（`setIconFile` :80-86、`clearIconCache` :142-147），且 `clearIconCache`（由 `PIMEClient.cpp:325` 解構與 `:813` onDeactivate 觸發）會 DestroyIcon 掉可能仍被其他執行緒引用的 HICON → use-after-free。做法：加鎖 + 改 refcount 或不在單一 profile deactivate 時清全域快取。
 - 7b. `PIMETextService/PIMEClient.cpp:573-577`：後端 JSON 傳來的 `compositionCursor` 未驗證即索引 `compositionString[i]`，越界讀取風險。做法：clamp 至 `compositionString.length()`。
 - 風險：低（防禦性修正）。
