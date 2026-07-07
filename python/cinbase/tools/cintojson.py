@@ -155,7 +155,7 @@ class CinToJson(object):
 
 
     def run(self, file, filePath, sortByCharset):
-        self.jsonFile = re.sub('\.cin$', '', file) + '.json'
+        self.jsonFile = re.sub(r'\.cin$', '', file) + '.json'
         self.sortByCharset = sortByCharset
         state = PARSING_HEAD_STATE
 
@@ -473,6 +473,13 @@ def safeSplit(line):
         return line, "Error"
 
 
+def _jsonUpToDate(cinFile, jsonFile):
+    try:
+        return os.path.getmtime(jsonFile) >= os.path.getmtime(cinFile)
+    except OSError:
+        return False
+
+
 def main():
     app = CinToJson()
     if len(sys.argv) >= 2:
@@ -484,13 +491,18 @@ def main():
                 app.run(sys.argv[1], cinFile, False)
     else:
         if len(sys.argv) == 1:
+            # 批次模式：json 比 cin 新就跳過，讓建置流程可重複執行
             sortList = ['cnscj.cin', 'CnsPhonetic.cin']
-            for file in os.listdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "cin")):
+            cindir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "cin")
+            jsondir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "json")
+            for file in os.listdir(cindir):
                 if file.endswith(".cin"):
-                    if DEBUG_MODE:
-                        print('轉換 ' + file + ' 中...')
+                    cinFile = os.path.join(cindir, file)
+                    jsonFile = os.path.join(jsondir, re.sub(r'\.cin$', '', file) + '.json')
+                    if _jsonUpToDate(cinFile, jsonFile):
+                        continue
+                    print('轉換 ' + file + ' 中...')
                     app.__init__()
-                    cinFile = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "cin", file)
                     if file in sortList:
                         app.run(file, cinFile, True)
                     else:
