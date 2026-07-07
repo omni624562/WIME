@@ -112,6 +112,30 @@
 - `libIME2/src/TextService.cpp:146-168` `isInsertionAllowed` 算出 `allowed` 卻恆 `return false`——死碼/潛在 bug，目前無實害，處理時留意。
 - `PIMETextService/PIMETextService.cpp:535` `SetTimer(..., duration * 1000, ...)` 後端傳入值未做上限，極端值溢位。
 
+## 第二輪分析（2026-07-07，基準 `45f73e2`）
+
+> 第 1–15 項完成後重掃一輪。每鍵熱路徑已無明顯 O(N) 掃描（filterKeyDown 輕量、
+> checkConfigChange 有 3 秒節流、saveCountFile 有 dirty + 60 秒節流、分頁為 O(候選數)），
+> 剩餘機會集中在 repo 體積與載入路徑。
+
+### 16. 產生檔 `python/cinbase/json/`（67MB、38 檔）與來源 `cin/`（22MB）雙份入庫
+- [ ] 待處理
+- `python/cinbase/json/*.json` 由 `tools/cintojson.py` 從 `cin/*.cin` 產生，兩者同時被 git 追蹤，等於同內容雙份入庫；每次碼表調整都是多 MB 的 JSON diff。pack 已從計劃基準的 121MB 長到 158MB。
+- 做法（前向止血）：json 目錄改為建置/打包時由 cintojson.py 產生並加入 .gitignore，`git rm --cached` 停止追蹤；或反向決定 json 為正本、只追蹤其一。歷史體積要縮需 history rewrite，風險高、另案評估。
+- 風險：低-中（需確認 build.bat／installer.nsi 打包流程有產生步驟；liu.cin 已有安裝時轉換前例）。
+
+### 17. 內嵌 Python runtime 未附 orjson/ujson，三層 fallback 永遠走最慢的 stdlib json
+- [ ] 待處理
+- `server.py:18-28`、`cin.py:66-80` 都寫好 orjson → ujson → json 的 fallback，但 `python/python3/` runtime 沒有任何一個，程式碼形同虛設。實測 checj.json（3.6MB、68k chardefs）stdlib 載入 87ms（開發機熱快取），orjson 約可降至 1/5；受益於後端啟動、切換碼表、載入反查/同音表，另外每鍵 reply 的 `json.dumps` 也小幅受益。
+- 做法：把 orjson wheel（單一 .pyd，約 250KB）放進內嵌 runtime；installer 同步打包。
+- 風險：低（fallback 路徑保留，orjson 缺失時行為不變）。
+
+### 18. 低優先清理項
+- [ ] 待處理
+- `cin.py:180` `haveNextCharDef` 仍是 O(N) 全表掃描，但唯一呼叫點 `__init__.py:3067` 是 `isCharDefPrefix` 不存在時的 fallback——實際 Cin 一定有該方法，屬死碼；rcin/hcin 有各自版本。可刪除或改用 prefix cache。
+- `onKeyDown` 仍約 1,840 行，功能選單區塊（約 220 行）可依項目 14 模式續抽 `_handleMenuMode`；純維護性。
+- `config.py:191` `copytree` 參數名拼錯 `slef`（僅首次設定遷移執行，無實害）。
+
 ## 建議執行順序
 
 1. **第 1 + 3 + 10 點**（Python 反向索引 + prefix 快取）：純 Python、風險低、每鍵受益，先做。
