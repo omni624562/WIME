@@ -6,6 +6,7 @@ import re
 import sys
 import json
 import copy
+import shutil
 
 DEBUG_MODE = False
 CIN_HEAD = "%gen_inp"
@@ -495,7 +496,13 @@ def main():
             sortList = ['cnscj.cin', 'CnsPhonetic.cin']
             cindir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "cin")
             jsondir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "json")
+            os.makedirs(jsondir, mode=0o700, exist_ok=True)
             for file in os.listdir(cindir):
+                # 授權/說明 txt 隨碼表一起帶到 json 目錄（installer 打包 json 時排除 cin）
+                if file.endswith(".txt"):
+                    dst = os.path.join(jsondir, file)
+                    if not _jsonUpToDate(os.path.join(cindir, file), dst):
+                        shutil.copy2(os.path.join(cindir, file), dst)
                 if file.endswith(".cin"):
                     cinFile = os.path.join(cindir, file)
                     jsonFile = os.path.join(jsondir, re.sub(r'\.cin$', '', file) + '.json')
