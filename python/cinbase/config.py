@@ -188,7 +188,7 @@ class CinBaseConfig:
                 return path
         return None
 
-    def copytree(slef, src, dst, symlinks=False, ignore=None):
+    def copytree(self, src, dst, symlinks=False, ignore=None):
         for item in os.listdir(src):
             s = os.path.join(src, item)
             d = os.path.join(dst, item)

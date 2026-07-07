@@ -3061,10 +3061,7 @@ class CinBase:
         if cin is None:
             return True
 
-        if hasattr(cin, 'isCharDefPrefix'):
-            return cin.isCharDefPrefix(compositionChar)
-
-        return cin.isInCharDef(compositionChar) or bool(cin.haveNextCharDef(compositionChar))
+        return cin.isCharDefPrefix(compositionChar)
 
     def shouldKeepNoCandidateMessageInCandidateWindow(self, cbTS):
         return cbTS.imeDirName in ("chedayi", "checj", "cheliu") and not self.isCompositionCharPrefix(cbTS)

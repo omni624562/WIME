@@ -85,15 +85,6 @@ class HCin(object):
         """
         return self.chardefs[key]
 
-    def haveNextCharDef(self, key):
-        chardefslist = []
-        for chardef in self.chardefs:
-            if key == chardef[:1]:
-                chardefslist.append(chardef)
-                if len(chardefslist) >= 2:
-                    break
-        return chardefslist
-
     def getCharEncode(self, root):
         nunbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
         i = 0

@@ -177,15 +177,6 @@ class Cin(object):
             self._rebuild_prefix_cache()
         return key in self._chardef_prefixes
 
-    def haveNextCharDef(self, key):
-        chardefslist = []
-        for chardef in self.chardefs:
-            if key == chardef[:1]:
-                chardefslist.append(chardef)
-                if len(chardefslist) >= 2:
-                    break
-        return chardefslist
-
     def hasLongerCharDefPrefix(self, key):
         if not key:
             return False
