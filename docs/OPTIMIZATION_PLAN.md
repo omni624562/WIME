@@ -119,19 +119,19 @@
 > 剩餘機會集中在 repo 體積與載入路徑。
 
 ### 16. 產生檔 `python/cinbase/json/`（67MB、38 檔）與來源 `cin/`（22MB）雙份入庫
-- [ ] 待處理
+- [x] 完成（git rm --cached + .gitignore；cintojson 批次模式加 mtime 跳過與授權 txt 同步；build.bat 開頭加產生步驟，並修復 d8df88e6 黏行回歸；從零重建 38 檔與原入庫版完全一致）
 - `python/cinbase/json/*.json` 由 `tools/cintojson.py` 從 `cin/*.cin` 產生，兩者同時被 git 追蹤，等於同內容雙份入庫；每次碼表調整都是多 MB 的 JSON diff。pack 已從計劃基準的 121MB 長到 158MB。
 - 做法（前向止血）：json 目錄改為建置/打包時由 cintojson.py 產生並加入 .gitignore，`git rm --cached` 停止追蹤；或反向決定 json 為正本、只追蹤其一。歷史體積要縮需 history rewrite，風險高、另案評估。
 - 風險：低-中（需確認 build.bat／installer.nsi 打包流程有產生步驟；liu.cin 已有安裝時轉換前例）。
 
 ### 17. 內嵌 Python runtime 未附 orjson/ujson，三層 fallback 永遠走最慢的 stdlib json
-- [ ] 待處理
+- [x] 完成（orjson 3.11.9 cp312-win32 wheel 解入 python/python3/；實測 checj.json 55ms → 27ms；installer File /r 自動涵蓋）
 - `server.py:18-28`、`cin.py:66-80` 都寫好 orjson → ujson → json 的 fallback，但 `python/python3/` runtime 沒有任何一個，程式碼形同虛設。實測 checj.json（3.6MB、68k chardefs）stdlib 載入 87ms（開發機熱快取），orjson 約可降至 1/5；受益於後端啟動、切換碼表、載入反查/同音表，另外每鍵 reply 的 `json.dumps` 也小幅受益。
 - 做法：把 orjson wheel（單一 .pyd，約 250KB）放進內嵌 runtime；installer 同步打包。
 - 風險：低（fallback 路徑保留，orjson 缺失時行為不變）。
 
 ### 18. 低優先清理項
-- [ ] 待處理
+- [x] 完成（haveNextCharDef 三份死碼刪除、isCompositionCharPrefix 直呼 isCharDefPrefix；`_handleMenuMode` 抽方法（onKeyDown -270 行）；copytree slef 拼字修正）
 - `cin.py:180` `haveNextCharDef` 仍是 O(N) 全表掃描，但唯一呼叫點 `__init__.py:3067` 是 `isCharDefPrefix` 不存在時的 fallback——實際 Cin 一定有該方法，屬死碼；rcin/hcin 有各自版本。可刪除或改用 prefix cache。
 - `onKeyDown` 仍約 1,840 行，功能選單區塊（約 220 行）可依項目 14 模式續抽 `_handleMenuMode`；純維護性。
 - `config.py:191` `copytree` 參數名拼錯 `slef`（僅首次設定遷移執行，無實害）。
