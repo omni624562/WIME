@@ -1974,16 +1974,20 @@ class CinBase:
                                     cbTS.canSetCommitString = True
                                     cbTS.isShowCandidates = False
                         else:
-                            candCursor = 0
-                            currentCandPage = 0
                             i = cbTS.selKeys.index(charStr)
-                            cbTS.homophoneselpinyinmode = False
-                            cbTS.homophonemode = True
-                            cbTS.homophoneChar = cbTS.compositionChar
-                            cbTS.isHomophoneChardefs = True
-                            cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[i])
-                            pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
-                            cbTS.setCandidateList(pagecandidates[currentCandPage])
+                            # 讀音清單長度可能小於選字鍵數量（多數多音字只有 2-4 個讀音），
+                            # 未做邊界檢查會在使用者按下超出範圍的選字鍵時丟出 IndexError，
+                            # 且下面幾行狀態已切換到 homophonemode，會讓輸入法卡在不一致狀態。
+                            if i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr)):
+                                candCursor = 0
+                                currentCandPage = 0
+                                cbTS.homophoneselpinyinmode = False
+                                cbTS.homophonemode = True
+                                cbTS.homophoneChar = cbTS.compositionChar
+                                cbTS.isHomophoneChardefs = True
+                                cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[i])
+                                pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
+                                cbTS.setCandidateList(pagecandidates[currentCandPage])
                     elif keyCode == VK_UP:  # 游標上移
                         if (candCursor - cbTS.candPerRow) < 0:
                             if currentCandPage > 0:
@@ -2065,15 +2069,20 @@ class CinBase:
                             if not cbTS.directShowCand:
                                 cbTS.isShowCandidates = False
                         else:
-                            cbTS.homophoneselpinyinmode = False
-                            cbTS.homophonemode = True
-                            cbTS.homophoneChar = cbTS.compositionChar
-                            cbTS.isHomophoneChardefs = True
-                            cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[candCursor])
-                            candCursor = 0
-                            currentCandPage = 0
-                            pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
-                            cbTS.setCandidateList(pagecandidates[currentCandPage])
+                            # candCursor 只是目前頁內的游標（0..candPerPage-1），跨頁時必須加上
+                            # currentCandPage 的位移才是讀音清單裡的絕對索引，否則第 2 頁以後會
+                            # 選到錯誤的讀音；同時補邊界檢查避免 IndexError。
+                            i = currentCandPage * cbTS.candPerPage + candCursor
+                            if i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr)):
+                                cbTS.homophoneselpinyinmode = False
+                                cbTS.homophonemode = True
+                                cbTS.homophoneChar = cbTS.compositionChar
+                                cbTS.isHomophoneChardefs = True
+                                cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKeyList(cbTS.homophoneStr)[i])
+                                candCursor = 0
+                                currentCandPage = 0
+                                pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
+                                cbTS.setCandidateList(pagecandidates[currentCandPage])
                     elif keyCode == VK_SPACE and cbTS.switchPageWithSpace: # 按下空白鍵
                         if cbTS.canUseSpaceAsPageKey:
                             if (currentCandPage + 1) < currentCandPageCount:
