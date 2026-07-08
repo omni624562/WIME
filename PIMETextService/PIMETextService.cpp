@@ -86,9 +86,6 @@ TextService::~TextService(void) {
 		closeClient();
 	}
 
-	if(popupMenu_)
-		::DestroyMenu(popupMenu_);
-
 	if (candidateWindow_) {
 		hideCandidates();
 	}

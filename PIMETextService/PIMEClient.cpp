@@ -483,7 +483,11 @@ void Client::updateSelectionKeys(json& msg) {
 
 void Client::updateMessageWindow(json& msg, Ime::EditSession* session, bool& endComposition) {
 	auto& showMessageVal = msg["showMessage"];
-	if (showMessageVal.is_object()) {
+	// Showing a message may need to start a composition, which requires a live edit
+	// session. updateStatus() calls this before its "if (session != nullptr)" guard
+	// (so that "hideMessage" below still works for session-less RPCs like onActivate),
+	// so this branch must check session itself to avoid dereferencing a null session.
+	if (showMessageVal.is_object() && session != nullptr) {
 		auto& message = showMessageVal["message"];
 		auto& duration = showMessageVal["duration"];
 		if (message.is_string() && duration.is_number_integer()) {
@@ -997,8 +1001,17 @@ static bool menuFromJson(ITfMenu* pMenu, json& menuInfo) {
 bool Client::onMenu(LangBarButton* btn, ITfMenu* pMenu) {
 	json result;
 	if (sendOnMenu(btn->id(), result)) {
-		json& menuInfo = result["return"];
-		return menuFromJson(pMenu, menuInfo);
+		// menuFromJson() calls .value()/.get<T>() on backend-controlled JSON, which
+		// throws on a malformed reply (e.g. non-object items or a mistyped "id").
+		// This is a raw COM entry point (ITfLangBarItemButton::OnClick), so an
+		// uncaught exception here would cross the COM boundary and take down the
+		// host process; never let a bad backend reply escape.
+		try {
+			json& menuInfo = result["return"];
+			return menuFromJson(pMenu, menuInfo);
+		}
+		catch (...) {
+		}
 	}
 	return false;
 }
@@ -1038,8 +1051,14 @@ static HMENU menuFromJson(json& menuInfo) {
 HMENU Client::onMenu(LangBarButton* btn) {
 	json result;
 	if (sendOnMenu(btn->id(), result)) {
-		json& menuInfo = result["return"];
-		return menuFromJson(menuInfo);
+		// See the ITfMenu overload above: menuFromJson() can throw on a malformed
+		// backend reply, and this is also a raw COM entry point.
+		try {
+			json& menuInfo = result["return"];
+			return menuFromJson(menuInfo);
+		}
+		catch (...) {
+		}
 	}
 	return NULL;
 }
@@ -1264,15 +1283,62 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 	return success;
 }
 
+// Anchor used solely to resolve this DLL's own HMODULE via GetModuleHandleExW's
+// "from address" lookup below (needs an ordinary, non-member function address).
+static void thisModuleAnchor() {
+}
+
 bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
-	// security check: make sure that we're connecting to the correct server
-	ULONG serverPid;
-	if (GetNamedPipeServerProcessId(pipe, &serverPid)) {
-		// FIXME: check the command line of the server?
-		// See this: http://www.codeproject.com/Articles/19685/Get-Process-Info-with-NtQueryInformationProcess
-		// Too bad! Undocumented Windows internal API might be needed here. :-(
+	// security check: make sure that we're connecting to the real PIMELauncher
+	// process, not another process running as the same user that pre-created a
+	// pipe with the same predictable name (\\.\pipe\<username>\PIME\Launcher),
+	// e.g. during boot or the launcher's crash-restart window.
+	ULONG serverPid = 0;
+	if (!GetNamedPipeServerProcessId(pipe, &serverPid)) {
+		return false;
 	}
-	return true;
+
+	HANDLE serverProcess = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, serverPid);
+	if (serverProcess == NULL) {
+		return false;
+	}
+	wchar_t serverPath[MAX_PATH] = { 0 };
+	DWORD serverPathLen = MAX_PATH;
+	BOOL gotServerPath = ::QueryFullProcessImageNameW(serverProcess, 0, serverPath, &serverPathLen);
+	::CloseHandle(serverProcess);
+	if (!gotServerPath) {
+		return false;
+	}
+
+	// Resolve our own DLL's directory, then require the server exe to be
+	// "PIMELauncher.exe" one level up (installer layout: PIMETextService.dll
+	// lives in an arch subfolder such as x86/x64/arm64, PIMELauncher.exe sits
+	// directly in the parent install directory).
+	HMODULE hSelf = NULL;
+	if (!::GetModuleHandleExW(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			reinterpret_cast<LPCWSTR>(&thisModuleAnchor),
+			&hSelf) || hSelf == NULL) {
+		return false;
+	}
+	wchar_t selfPath[MAX_PATH] = { 0 };
+	if (::GetModuleFileNameW(hSelf, selfPath, MAX_PATH) == 0) {
+		return false;
+	}
+
+	std::wstring dllPath(selfPath);
+	size_t archDirSlash = dllPath.find_last_of(L"\\/");
+	if (archDirSlash == std::wstring::npos) {
+		return false;
+	}
+	std::wstring archDir = dllPath.substr(0, archDirSlash);
+	size_t installDirSlash = archDir.find_last_of(L"\\/");
+	if (installDirSlash == std::wstring::npos) {
+		return false;
+	}
+	std::wstring expectedLauncherPath = archDir.substr(0, installDirSlash) + L"\\PIMELauncher.exe";
+
+	return _wcsicmp(serverPath, expectedLauncherPath.c_str()) == 0;
 }
 
 // establish a connection to the specified pipe and returns its handle

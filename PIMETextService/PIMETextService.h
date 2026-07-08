@@ -294,8 +294,6 @@ private:
 	RECT cachedSelRect_;
 	bool cachedSelRectValid_;
 
-	HMENU popupMenu_;
-
 	std::unique_ptr<Client> client_; // connection client
 	GUID currentLangProfile_;
 };
