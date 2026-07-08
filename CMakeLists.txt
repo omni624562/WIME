@@ -24,6 +24,7 @@ add_definitions(
 	/GR- # turn off C++ RTTI
     -DWIN32_LEAN_AND_MEAN
     -D_WIN32_WINNT=0x0600
+    -DNOMINMAX # windows.h 的 min/max 巨集會讓 std::min/std::max 呼叫編譯失敗
 )
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/libIME2)
