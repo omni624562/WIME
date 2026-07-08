@@ -706,10 +706,17 @@ textarea {
 @media (prefers-color-scheme: dark) {
     :root {
         color-scheme: dark;
+        /* Bootstrap 5 元件（.card 等）直接取用 --bs-body-color，須一併覆寫 */
+        --bs-body-color: #dbe1ea;
+        --bs-body-bg: #15181e;
     }
 
     body {
         background: #15181e;
+        color: #dbe1ea;
+    }
+
+    .card {
         color: #dbe1ea;
     }
 
