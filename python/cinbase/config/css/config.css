@@ -1074,8 +1074,15 @@ textarea.form-control {
         border-color: #2c323d;
     }
 
-    .candidate-config-field > label {
+    .candidate-config-field > label,
+    .candidate-config-check label,
+    .candidate-theme-heading {
         color: #cfd6e2;
+    }
+
+    .candidate-theme-current,
+    .candidate-behavior-label {
+        color: #8b95a7;
     }
 
     .candidate-theme-card,
