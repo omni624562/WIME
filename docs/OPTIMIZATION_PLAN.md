@@ -143,7 +143,7 @@
 > （皆 O(候選數)）、userphrase/msymbols 等小表——都乾淨。剩一個真正的漏網之魚：
 
 ### 19. rcin.py／hcin.py 完全沒吃到項目 1 的反向索引，出字熱路徑仍 O(N) 全表掃描
-- [ ] 待處理
+- [x] 完成（RCin/HCin 各加 `_build_reverse_index`；isHaveKey/getKey/getKeyList/getCharEncode 改走索引；tests/test_reverse_lookup.py 新舊實作等價測試 + CnsPhonetic 500 字隨機抽驗全等；getCharEncode 2.97ms → 0.002ms）
 - 項目 1 只修了 `cin.py`。`rcin.py:62-66`、`hcin.py:61-68` 的 `isHaveKey`/`getKey`/`getKeyList`
   仍是 list comprehension 全表掃描；`rcin.py:77`、`hcin.py:88` 的 `getCharEncode` 是雙層迴圈全表掃描。
 - 呼叫頻率：反查開啟時 `RCinTable.cin.getCharEncode` 每次出字必跑（`__init__.py:1826`、`3144`）；

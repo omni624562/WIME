@@ -37,12 +37,26 @@ class RCin(object):
                     pass
                 self.__dict__.update(json.load(fs))
 
+        self._build_reverse_index()
+
 
     def __del__(self):
         del self.keynames
         del self.chardefs
         self.keynames = {}
         self.chardefs = {}
+        self._char_to_keys = {}
+
+    def _build_reverse_index(self):
+        # char → [keys]，鍵序與 chardefs 迭代順序一致，同一鍵內重複出現會重複收錄
+        # （getCharEncode 依出現次數輸出，須保留）
+        index = {}
+        for chardef, chars in self.chardefs.items():
+            for char in chars:
+                if char not in index:
+                    index[char] = []
+                index[char].append(chardef)
+        self._char_to_keys = index
 
     def getEname(self):
         return self.ename
@@ -60,10 +74,10 @@ class RCin(object):
         return self.keynames[key]
 
     def isHaveKey(self, val):
-        return True if [key for key, value in self.chardefs.items() if val in value] else False
+        return val in self._char_to_keys
 
     def getKey(self, val):
-        return [key for key, value in self.chardefs.items() if val in value][0]
+        return self._char_to_keys[val][0]
 
     def isInCharDef(self, key):
         return key in self.chardefs
@@ -78,14 +92,12 @@ class RCin(object):
         nunbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
         i = 0
         result = root + ':'
-        for chardef in self.chardefs:
-            for char in self.chardefs[chardef]:
-                if char == root:
-                    result += '　' + nunbers[i]
-                    if i < 9:
-                        i = i + 1
-                    for str in chardef:
-                        result += self.getKeyName(str)
+        for chardef in self._char_to_keys.get(root, ()):
+            result += '　' + nunbers[i]
+            if i < 9:
+                i = i + 1
+            for str in chardef:
+                result += self.getKeyName(str)
 
         if result == root + ':':
             result = ''
