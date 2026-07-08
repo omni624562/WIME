@@ -24,6 +24,7 @@ import uuid  # use to generate a random auth token
 import random
 import json
 import threading
+import hmac  # constant-time token comparison
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 if current_dir not in sys.path:
@@ -59,9 +60,19 @@ search_paths = ";".join((cfg.getConfigDir(), data_dir)).encode("UTF-8")
 class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):  # override the login check
-        return self.get_cookie(COOKIE_ID)
+        # 認證：cookie 值必須與本次啟動產生的 access_token 完全相符（常數時間比對），
+        # 而非只檢查 cookie 是否存在，否則任何非空 cookie 都能通過。
+        token = self.get_cookie(COOKIE_ID)
+        expected = self.settings.get("access_token")
+        if token and expected and hmac.compare_digest(token, expected):
+            return token
+        return None
 
     def prepare(self):  # called before every request
+        # 只接受來自本機迴路的 Host，阻擋 DNS rebinding（惡意網頁把自身網域指向 127.0.0.1）
+        host = self.request.host.rsplit(":", 1)[0].strip("[]").lower()
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            raise tornado.web.HTTPError(403)
         self.application.reset_timeout()  # reset the quit server timeout
 
 
@@ -82,9 +93,6 @@ class KeepAliveHandler(BaseHandler):
 
 
 class ConfigHandler(BaseHandler):
-
-    def get_current_user(self):  # override the login check
-        return self.get_cookie(COOKIE_ID)
 
     @tornado.web.authenticated
     def get(self):  # get config
@@ -111,6 +119,11 @@ class ConfigHandler(BaseHandler):
         # write the config to files
         config = data.get("config", None)
         if config is not None:
+            # 過濾掉不應由設定檔覆寫的內部欄位（如 imeDirName/curdir），
+            # 避免惡意 POST 注入這些鍵在下次 load() 時偏移檔案路徑。
+            if isinstance(config, dict):
+                for k in cfg.ignoreSaveList:
+                    config.pop(k, None)
             self.save_file("config.json", json.dumps(config, sort_keys=True, indent=4))
 
         symbols = data.get("symbols", None)
@@ -159,7 +172,12 @@ class ConfigHandler(BaseHandler):
         CinDict["chepinyin"] = ["thpinyin.json", "pinyin.json", "roman.json"]
         CinDict["chesimplex"] = ["simplecj.json", "simplex.json", "simplex5.json"]
         CinDict["cheliu"] = ["liu.json"]
-        jsonFile = CinDict[cfg.imeDirName][cfg.selCinType]
+        fileList = CinDict.get(cfg.imeDirName)
+        if not fileList:
+            return
+        # 對索引做範圍檢查，避免被竄改的 selCinType 造成 IndexError
+        idx = cfg.selCinType if isinstance(cfg.selCinType, int) and 0 <= cfg.selCinType < len(fileList) else 0
+        jsonFile = fileList[idx]
 
         datafile = os.path.join(json_dir, jsonFile)
         if os.path.exists(datafile):
@@ -202,8 +220,9 @@ class LoginHandler(BaseHandler):
 
     def login(self, page_name):
         token = self.get_argument("token", "")
-        if token == self.settings["access_token"]:
-            self.set_cookie(COOKIE_ID, token)
+        if hmac.compare_digest(token, self.settings["access_token"]):
+            # HttpOnly：前端不需讀取此 cookie；SameSite=Strict：阻擋跨站請求夾帶 cookie（CSRF）
+            self.set_cookie(COOKIE_ID, token, httponly=True, samesite="Strict")
             if page_name != "user_phrase_editor":
                 page_name = "config"
             self.redirect("/{}.html?v={}".format(page_name, self.settings["access_token"][:8]))
@@ -224,7 +243,8 @@ class ConfigApp(tornado.web.Application):
         settings = {
             "access_token": self.access_token, # our custom setting
             "login_url": "/version",
-            "debug": True
+            # 正式環境關閉 debug：避免未攔截例外把 Python traceback（含路徑）回傳瀏覽器
+            "debug": False
         }
         handlers = [
             (r"/(.*\.html|config.js)", NoCacheStaticFileHandler, {"path": current_ime_config_dir}),

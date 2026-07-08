@@ -121,8 +121,19 @@ impl PipeServer {
         let mut backend_name_opt = None;
         let mut handshake_line = None;
 
-        // Phase 1: Wait for initial handshake
-        while let Some(result) = line_reader.next().await {
+        // Phase 1: Wait for initial handshake.
+        // Bound each read so a client that connects but never sends a handshake
+        // cannot pin a pipe instance (and its handler task) forever — 254 such
+        // silent connections would otherwise exhaust max_instances (DoS).
+        const HANDSHAKE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+        loop {
+            let result = match tokio::time::timeout(HANDSHAKE_TIMEOUT, line_reader.next()).await {
+                Ok(Some(result)) => result,
+                Ok(None) => break, // client closed the pipe before handshaking
+                Err(_) => {
+                    return Err(format!("Handshake timed out for client {}", client_id));
+                }
+            };
             match result {
                 Ok(line) => {
                     if line.is_empty() {
@@ -196,6 +207,9 @@ impl PipeServer {
         let formatted_handshake =
             protocol::format_backend_input(&client_id, handshake_line.as_deref().unwrap());
         if let Err(e) = backend_writer.send(formatted_handshake).await {
+            // The client was already registered above; drop it so its Sender does
+            // not linger in the clients map on this error path.
+            manager.unregister_client(&client_id, &backend_name).await;
             return Err(format!("Failed to forward handshake to backend: {}", e));
         }
 

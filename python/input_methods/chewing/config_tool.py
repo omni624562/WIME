@@ -22,6 +22,7 @@ import os
 import uuid  # use to generate a random auth token
 import random
 import json
+import hmac  # constant-time token comparison
 
 current_dir = os.path.dirname(__file__)
 
@@ -53,9 +54,19 @@ chewing_ctx = ChewingContext(syspath = search_paths, userpath = user_phrase)  # 
 class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):  # override the login check
-        return self.get_cookie(COOKIE_ID)
+        # 認證：cookie 值必須與本次啟動產生的 access_token 完全相符（常數時間比對），
+        # 而非只檢查 cookie 是否存在，否則任何非空 cookie 都能通過。
+        token = self.get_cookie(COOKIE_ID)
+        expected = self.settings.get("access_token")
+        if token and expected and hmac.compare_digest(token, expected):
+            return token
+        return None
 
     def prepare(self):  # called before every request
+        # 只接受來自本機迴路的 Host，阻擋 DNS rebinding（惡意網頁把自身網域指向 127.0.0.1）
+        host = self.request.host.rsplit(":", 1)[0].strip("[]").lower()
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            raise tornado.web.HTTPError(403)
         self.application.reset_timeout()  # reset the quit server timeout
 
 
@@ -76,9 +87,6 @@ class KeepAliveHandler(BaseHandler):
 
 
 class ConfigHandler(BaseHandler):
-
-    def get_current_user(self):  # override the login check
-        return self.get_cookie(COOKIE_ID)
 
     @tornado.web.authenticated
     def get(self):  # get config
@@ -196,7 +204,7 @@ class UserPhraseFileHandler(BaseHandler):
     def get(self):  # download user phrase file
         user_phrase_file = os.path.join(config_dir, "chewing.sqlite3")
         if not os.path.exists(user_phrase_file):
-            raise HTTPError(404)
+            raise tornado.web.HTTPError(404)
         self.set_header("Content-Type", "application/force-download")
         self.set_header("Content-Disposition", "attachment; filename=chewing.sqlite3")
         with open(user_phrase_file, "rb") as f:
@@ -206,8 +214,8 @@ class UserPhraseFileHandler(BaseHandler):
                 self.finish()
                 return
             except:
-                raise HTTPError(404)
-        raise HTTPError(500)
+                raise tornado.web.HTTPError(404)
+        raise tornado.web.HTTPError(500)
 
     @tornado.web.authenticated
     def post(self):  # upload file
@@ -242,8 +250,9 @@ class LoginHandler(BaseHandler):
 
     def login(self, page_name):
         token = self.get_argument("token", "")
-        if token == self.settings["access_token"]:
-            self.set_cookie(COOKIE_ID, token)
+        if hmac.compare_digest(token, self.settings["access_token"]):
+            # HttpOnly：前端不需讀取此 cookie；SameSite=Strict：阻擋跨站請求夾帶 cookie（CSRF）
+            self.set_cookie(COOKIE_ID, token, httponly=True, samesite="Strict")
             if page_name != "user_phrase_editor":
                 page_name = "config_tool"
             self.redirect("/{}.html?v={}".format(page_name, token[:8]))
@@ -263,7 +272,8 @@ class ConfigApp(tornado.web.Application):
         settings = {
             "access_token": self.access_token, # our custom setting
             "login_url": "/version",
-            "debug": True
+            # 正式環境關閉 debug：避免未攔截例外把 Python traceback（含路徑）回傳瀏覽器
+            "debug": False
         }
         handlers = [
             (r"/(.*\.html)", NoCacheStaticFileHandler, {"path": current_dir}),
