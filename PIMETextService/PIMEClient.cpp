@@ -154,6 +154,18 @@ static int candidateHeaderStyleValue(const std::string& style) {
 	return Ime::CandidateWindow::HeaderLabelPlain;
 }
 
+// Windows 個人化的深淺色設定（deep/light mode）
+static bool systemPrefersLightTheme() {
+	DWORD value = 0;
+	DWORD size = sizeof(value);
+	if (::RegGetValueW(HKEY_CURRENT_USER,
+			L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size) == ERROR_SUCCESS) {
+		return value != 0;
+	}
+	return false;
+}
+
 static void candidateThemeColors(const std::string& theme,
 	COLORREF& panelBackground,
 	COLORREF& panelBorder,
@@ -162,7 +174,10 @@ static void candidateThemeColors(const std::string& theme,
 	COLORREF& highlightBackground,
 	COLORREF& highlightBorder,
 	COLORREF& highlightText) {
-	const std::string name = normalizedThemeName(theme);
+	std::string name = normalizedThemeName(theme);
+	if (name == "system" || name == "followsystem" || name == "auto") {
+		name = systemPrefersLightTheme() ? "light" : "nightcomfort";
+	}
 	if (name == "nightcomfort" || name == "night" || name == "dark") {
 		panelBackground = RGB(27, 28, 32);
 		panelBorder = RGB(74, 77, 87);
@@ -303,14 +318,10 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
-		textService_->setCandidateTheme(
-			RGB(27, 28, 32),
-			RGB(74, 77, 87),
-			RGB(229, 232, 238),
-			RGB(169, 175, 186),
-			RGB(64, 95, 138),
-			RGB(94, 126, 167),
-			RGB(238, 244, 255));
+		// 後端回覆設定前的預設主題：跟隨 Windows 深淺色
+		COLORREF panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText;
+		candidateThemeColors("system", panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
+		textService_->setCandidateTheme(panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
 		textService_->setCandidateMaxWidth(true, 300);

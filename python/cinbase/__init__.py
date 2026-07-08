@@ -82,6 +82,37 @@ LEGACY_LIGHT_CANDIDATE_COLORS = {
 }
 
 
+_systemThemeCache = {"light": None, "ts": 0.0}
+
+
+def systemPrefersLightTheme():
+    """讀取 Windows 深淺色設定（AppsUseLightTheme），5 秒內快取避免頻繁碰 registry。"""
+    now = time.time()
+    if _systemThemeCache["light"] is not None and now - _systemThemeCache["ts"] < 5.0:
+        return _systemThemeCache["light"]
+    light = False
+    try:
+        import winreg
+        with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+            light = bool(winreg.QueryValueEx(key, "AppsUseLightTheme")[0])
+    except Exception:
+        light = False
+    _systemThemeCache["light"] = light
+    _systemThemeCache["ts"] = now
+    return light
+
+
+def resolveCandidateTheme(cfg):
+    """把「跟隨系統」主題解析成實際主題名，其餘原樣傳回。"""
+    theme = str(getattr(cfg, 'candidateTheme', '') or '')
+    normalized = ''.join(ch.lower() for ch in theme if ch.isalnum())
+    if normalized in ('system', 'followsystem', 'auto'):
+        return "Light" if systemPrefersLightTheme() else "Night Comfort"
+    return theme
+
+
 def candidateColorsForTheme(cfg):
     colors = getattr(cfg, 'candidateColors', {})
     if not isinstance(colors, dict) or not colors:
@@ -3369,7 +3400,7 @@ class CinBase:
             "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
             "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
-            "candidateTheme": getattr(cfg, 'candidateTheme', 'light'),
+            "candidateTheme": resolveCandidateTheme(cfg),
             "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
             "candidateHeaderStyle": getattr(cfg, 'candidateHeaderStyle', 'badge'),
             "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),

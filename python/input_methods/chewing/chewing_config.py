@@ -73,7 +73,7 @@ class ChewingConfig:
         self.candidateLayout = "horizontal"
         self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
-        self.candidateTheme = "Night Comfort"
+        self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
         self.candidateKeyStyle = "keycap"
         self.candidateMessageStyle = "badge"
         self.candidateMessageBehavior = "progressive"

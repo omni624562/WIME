@@ -48,7 +48,7 @@ $(function () {
             chewingConfig.candidateMaxWidth = 300;
         }
         if (typeof chewingConfig.candidateTheme === "undefined") {
-            chewingConfig.candidateTheme = "Night Comfort";
+            chewingConfig.candidateTheme = "System";
         }
         else if (chewingConfig.candidateTheme === "dark") {
             chewingConfig.candidateTheme = "Night Comfort";
@@ -175,6 +175,7 @@ $(function () {
     }
 
     var candidateThemeNames = [
+        "System",
         "Night Comfort",
         "Soft Focus",
         "Warm Gray",
@@ -203,6 +204,11 @@ $(function () {
         "Mist Light": ["#e9edf0", "#a8b3bc", "#d4dce1", "#24303a", "#66727d", "#426b85", "#5f7f94", "#4b687b", "#f7fbfd", "#577385"],
         "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"]
     };
+
+    // 「System」跟隨 Windows 深淺色：預覽以瀏覽器的 prefers-color-scheme 對應
+    candidateThemePalette["System"] = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ? candidateThemePalette["Night Comfort"]
+        : candidateThemePalette["Light"];
 
     var candidateKeyStyleOptions = {
         keycap: "Selected Only Keycap",
