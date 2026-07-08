@@ -241,6 +241,8 @@ private:
 	void applyCandidateWindowStyle();
 	void moveCandidateWindow(Ime::EditSession* session);
 	int candFontHeight();
+	int scaleForCandDpi(int value) const;
+	void updateCandidateWindowDpi();
 
 	void closeClient();
 
@@ -286,6 +288,7 @@ private:
 	int candidateStableWidthPx_; // grown width carried across candidate window recreation
 	bool candidateWrapToMaxWidth_;
 	int candidateMaxWidth_;
+	int candWindowDpi_; // DPI of the monitor hosting the candidate window (96 = 100%)
 
 	// Per-updateStatus-pass cache: avoids repeated cross-process GetTextExt calls.
 	RECT cachedSelRect_;

@@ -68,6 +68,7 @@ TextService::TextService(ImeModule* module):
 	candidateStableWidthPx_(0),
 	candidateWrapToMaxWidth_(false),
 	candidateMaxWidth_(0),
+	candWindowDpi_(0),
 	cachedSelRect_{},
 	cachedSelRectValid_(false) {
 
@@ -293,6 +294,7 @@ void TextService::createCandidateWindow(Ime::EditSession* session) {
 
 void TextService::updateCandidates(Ime::EditSession* session) {
 	createCandidateWindow(session);
+	updateCandidateWindowDpi();
 	candidateWindow_->clear();
 	candidateWindow_->setTextRows(candidateMessage_, candidateHeader_, candidatePageInfo_);
 
@@ -404,12 +406,16 @@ void TextService::applyCandidateWindowStyle() {
 		candidateHighlightBackground_,
 		candidateHighlightBorder_,
 		candidateHighlightText_);
-	candidateWindow_->setSpacing(candidateContentMargin_, candidateTextMargin_, candidateBorderRadius_);
+	// 間距與寬度以候選窗所在螢幕的 DPI 縮放（96 = 100%）
+	candidateWindow_->setSpacing(
+		scaleForCandDpi(candidateContentMargin_),
+		scaleForCandDpi(candidateTextMargin_),
+		scaleForCandDpi(candidateBorderRadius_));
 	candidateWindow_->setKeyStyle(candidateKeyStyle_);
 	candidateWindow_->setMessageStyle(candidateMessageDisplayStyle_);
 	candidateWindow_->setHeaderLabelStyle(candidateHeaderStyle_);
-	candidateWindow_->setStableWidth(candidateStableWidth_, candidateMinWidth_);
-	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, candidateMaxWidth_);
+	candidateWindow_->setStableWidth(candidateStableWidth_, scaleForCandDpi(candidateMinWidth_));
+	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, scaleForCandDpi(candidateMaxWidth_));
 	candidateWindow_->seedStableWidth(candidateStableWidthPx_);
 }
 
@@ -597,15 +603,49 @@ void CALLBACK TextService::onMessageTimeout(HWND hwnd, UINT msg, UINT_PTR id, DW
 void TextService::updateLangButtons() {
 }
 
-int TextService::candFontHeight() {
-	int candFontHeight_ = candFontSize_;
-	HDC hdc = GetDC(NULL);
-	if (hdc)
-	{
-		candFontHeight_ = -MulDiv(candFontSize_, GetDeviceCaps(hdc, LOGPIXELSY), 72);
-		ReleaseDC(NULL, hdc);
+// 目前候選窗所在螢幕的 DPI；視窗未建立時退回系統 DPI
+static UINT dpiForWindow(HWND hwnd) {
+	typedef UINT(WINAPI* GetDpiForWindowFunc)(HWND);
+	static GetDpiForWindowFunc pGetDpiForWindow = []() {
+		HMODULE user32 = ::GetModuleHandleW(L"user32.dll");
+		return user32 ? (GetDpiForWindowFunc)::GetProcAddress(user32, "GetDpiForWindow") : nullptr;
+	}();
+	if (hwnd && pGetDpiForWindow) {
+		UINT dpi = pGetDpiForWindow(hwnd);
+		if (dpi)
+			return dpi;
 	}
-	return candFontHeight_;
+	UINT dpi = 96;
+	HDC hdc = ::GetDC(NULL);
+	if (hdc) {
+		dpi = ::GetDeviceCaps(hdc, LOGPIXELSY);
+		::ReleaseDC(NULL, hdc);
+	}
+	return dpi;
+}
+
+int TextService::candFontHeight() {
+	UINT dpi = candWindowDpi_ ? candWindowDpi_ : dpiForWindow(NULL);
+	return -MulDiv(candFontSize_, dpi, 72);
+}
+
+int TextService::scaleForCandDpi(int value) const {
+	if (!candWindowDpi_ || candWindowDpi_ == 96)
+		return value;
+	return ::MulDiv(value, candWindowDpi_, 96);
+}
+
+// 候選窗跨到不同 DPI 的螢幕時，重建字型並重套間距
+void TextService::updateCandidateWindowDpi() {
+	if (!candidateWindow_)
+		return;
+	int dpi = (int)dpiForWindow(candidateWindow_->hwnd());
+	if (dpi == candWindowDpi_)
+		return;
+	candWindowDpi_ = dpi;
+	candidateStableWidthPx_ = 0; // 舊 DPI 量出來的寬度不再適用
+	updateFont_ = true;
+	applyCandidateWindowStyle();
 }
 
 void TextService::closeClient() {
