@@ -3142,7 +3142,8 @@ class CinBase:
         cbTS.isShowCandidates = True
 
     def getKeyState(self, keyCode):
-        return ctypes.WinDLL("User32.dll").GetKeyState(keyCode)
+        # 用已快取的 windll.user32（與 isPressed 一致），避免每次呼叫重新載入 User32.dll
+        return windll.user32.GetKeyState(keyCode)
 
     # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getasynckeystate
     # 當 keyCode 對應的按鍵、曾被按下觸發過，GetAsyncKeyState() 的回傳值會 >= 1

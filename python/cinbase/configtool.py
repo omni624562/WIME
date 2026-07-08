@@ -94,6 +94,9 @@ class KeepAliveHandler(BaseHandler):
 
 class ConfigHandler(BaseHandler):
 
+    # (檔案路徑 → (mtime, cincount)) 快取，避免重複解析多 MB 碼表 JSON
+    _cincount_cache = {}
+
     @tornado.web.authenticated
     def get(self):  # get config
         data = {
@@ -162,7 +165,6 @@ class ConfigHandler(BaseHandler):
         return config
 
     def load_cindata(self):
-        cfg.load()
         CinDict ={}
         CinDict["checj"] = ["checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json"]
         CinDict["chephonetic"] = ["thphonetic.json", "CnsPhonetic.json", "bpmf.json"]
@@ -180,13 +182,23 @@ class ConfigHandler(BaseHandler):
         jsonFile = fileList[idx]
 
         datafile = os.path.join(json_dir, jsonFile)
-        if os.path.exists(datafile):
-            try:
-                with open(datafile, "r", encoding="UTF-8") as f:
-                    jsondata = json.load(f)
-                    return jsondata['cincount']
-            except Exception as e:
-                print(e)
+        if not os.path.exists(datafile):
+            return
+        try:
+            # cincount 只是碼表 JSON 頂層的一個小摘要，但檔案可達數 MB。
+            # 依 (檔案, mtime) 快取解析結果，避免同一設定工作階段內每次 /config
+            # 都重新解析整份碼表（開一次設定頁會抓 2~3 次）。
+            mtime = os.path.getmtime(datafile)
+            cache = ConfigHandler._cincount_cache
+            cached = cache.get(datafile)
+            if cached and cached[0] == mtime:
+                return cached[1]
+            with open(datafile, "r", encoding="UTF-8") as f:
+                cincount = json.load(f).get("cincount")
+            cache[datafile] = (mtime, cincount)
+            return cincount
+        except Exception as e:
+            print(e)
 
     def load_data(self, name):
         try:

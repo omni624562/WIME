@@ -1218,20 +1218,20 @@ $(function() {
     // show PIME version number
     $("#tabs").hide();
     $("#version").load(VERSION_URL);
-    $("#navbar_top").load("config.htm #navbar_top");
-    $("#typing_page").load("config.htm #typing_page");
-    $("#intelligent_page").load("config.htm #intelligent_page");
-    $("#ui_page").load("config.htm #ui_page");
-    $("#keyboard_page").load("config.htm #keyboard_page");
-    $("#cin_count").load("config.htm #cin_count");
-    $("#cin_options").load("config.htm #cin_options");
-    $("#extendtable_page").load("config.htm #extendtable_page");
-    $("#symbols_page").load("config.htm #symbols_page");
-    $("#fs_symbols_page").load("config.htm #fs_symbols_page");
-    $("#ez_symbols_page").load("config.htm #ez_symbols_page");
-    $("#phrase_page").load("config.htm #phrase_page");
-    $("#flangs_page").load("config.htm #flangs_page");
-    $("#navbar_bottom").load("config.htm #navbar_bottom");
+    // 只抓一次 config.htm，再於 client 端把各片段填入對應容器；
+    // 原本對同一份 40KB 檔發了 14 次 .load()（14 趟往返、解析 14 遍）。
+    // 每個片段仍各自 $.parseHTML 一份，語意與 jQuery .load(url + " #id") 一致。
+    var fragmentTargets = [
+        "#navbar_top", "#typing_page", "#intelligent_page", "#ui_page",
+        "#keyboard_page", "#cin_count", "#cin_options", "#extendtable_page",
+        "#symbols_page", "#fs_symbols_page", "#ez_symbols_page", "#phrase_page",
+        "#flangs_page", "#navbar_bottom"
+    ];
+    $.get("config.htm", function(html) {
+        fragmentTargets.forEach(function(sel) {
+            $(sel).html($("<div>").append($.parseHTML(html)).find(sel));
+        });
+    }, "html");
     pageWait();
 });
 
