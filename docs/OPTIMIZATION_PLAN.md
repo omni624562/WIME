@@ -136,6 +136,25 @@
 - `onKeyDown` 仍約 1,840 行，功能選單區塊（約 220 行）可依項目 14 模式續抽 `_handleMenuMode`；純維護性。
 - `config.py:191` `copytree` 參數名拼錯 `slef`（僅首次設定遷移執行，無實害）。
 
+## 第三輪分析（2026-07-08，基準 `875201b`）
+
+> 第 16–18 項完成後再掃一輪：C++ RPC 層（PIMEClient 已是稀疏 keyStates、payload ~130B）、
+> Rust launcher（1,488 行、無明顯熱點）、sortByPhrase/sortByCount/filterExcludedPhrases
+> （皆 O(候選數)）、userphrase/msymbols 等小表——都乾淨。剩一個真正的漏網之魚：
+
+### 19. rcin.py／hcin.py 完全沒吃到項目 1 的反向索引，出字熱路徑仍 O(N) 全表掃描
+- [ ] 待處理
+- 項目 1 只修了 `cin.py`。`rcin.py:62-66`、`hcin.py:61-68` 的 `isHaveKey`/`getKey`/`getKeyList`
+  仍是 list comprehension 全表掃描；`rcin.py:77`、`hcin.py:88` 的 `getCharEncode` 是雙層迴圈全表掃描。
+- 呼叫頻率：反查開啟時 `RCinTable.cin.getCharEncode` 每次出字必跑（`__init__.py:1826`、`3144`）；
+  同音查詢開啟時 `HCinTable.cin` 的 `isHaveKey`+`getKeyList`（×2）+`getKey` 一次出字連掃 3-4 遍
+  （`__init__.py:2001-2016`）。實測 CnsPhonetic 一次 getCharEncode 4.3ms、isHaveKey 1.5ms（開發機）；
+  使用者可選 4MB 級碼表（cnscj 等），單次出字可達數十 ms。
+- 做法：照 `cin.py` 的 `_build_reverse_index()` 模式在 RCin/HCin 載入後建 char → [keys] 索引；
+  `getKeyList` 需 `sorted()` 維持原本 sorted(chardefs) 的鍵序；`getCharEncode` 改走索引。
+  兩檔九成程式碼互相重複、也與 cin.py 重複，可趁機抽共用基底（或至少共用索引建構函式）。
+- 風險：低（純 Python；反查/同音有 e2e 可加測）。
+
 ## 建議執行順序
 
 1. **第 1 + 3 + 10 點**（Python 反向索引 + prefix 快取）：純 Python、風險低、每鍵受益，先做。
