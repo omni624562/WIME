@@ -63,6 +63,9 @@ class CinBaseTextService(TextService):
         self._hcin_table = hcin_table
 
         self.cinbase.initTextService(self, TextService)
+        # 子類別的自訂旗標（如大易的 useDayiSymbols）必須在 initCinBaseContext
+        # 之前設定，否則 context 初始化不會載入對應的資料表
+        self.initTextServiceExtra()
 
         CinBaseConfig.__init__()
         self.configVersion = CinBaseConfig.getVersion()
@@ -82,6 +85,11 @@ class CinBaseTextService(TextService):
             if not cin_table.loading:
                 self.cin = cin_table.cin
             # if still loading, cbTS.cin is set by checkConfigChange after loading completes
+
+    def initTextServiceExtra(self):
+        # 輸入法模組自訂的初始化掛鉤，需要在 initCinBaseContext 前設定的
+        # 旗標請覆寫此方法，不要在 __init__ 的 super().__init__() 之後才設定
+        pass
 
     def checkConfigChange(self):
         self.cinbase.checkConfigChange(self, self._cin_table, self._rcin_table, self._hcin_table)

@@ -24,6 +24,9 @@ class CheDayiTextService(CinBaseTextService):
 
     def __init__(self, client):
         super().__init__(client, CinTable, RCinTable, HCinTable)
+
+    def initTextServiceExtra(self):
+        # 必須在 initCinBaseContext 之前設好，dsymbols 標點符號表才會載入
         self.useDayiSymbols = True
         self.selDayiSymbolCharType = 0
 
