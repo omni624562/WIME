@@ -3624,7 +3624,10 @@ class CinBase:
             loadCinFile = LoadCinTable(cbTS, CinTable)
             loadCinFile.start()
         else:
-            if not cbTS.cin == CinTable.cin:
+            # cbTS.cin 可能不存在：在碼表載入期間建立的實例不會被 LoadCinTable
+            # 回填（它只設定啟動載入的那個實例）。這裡必須用 getattr，否則
+            # AttributeError 會讓每個請求在進入處理前就失敗，該實例永久失效
+            if not getattr(cbTS, 'cin', None) == CinTable.cin:
                 cbTS.cin = CinTable.cin
 
         if DEBUG_MODE:

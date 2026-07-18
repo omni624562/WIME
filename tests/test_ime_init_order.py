@@ -59,5 +59,39 @@ class DayiSymbolsInitTests(unittest.TestCase):
         self.assertFalse(hasattr(svc, "dsymbols"))
 
 
+class CheckConfigChangeResilienceTests(unittest.TestCase):
+    """回歸測試：碼表載入期間建立的實例沒有 cin 屬性，checkConfigChange
+    不得丟 AttributeError（否則該實例每個請求都失敗、永久失效——
+    使用者看到的症狀是輸入法「有時」完全沒反應，直到重新聚焦視窗）。
+    """
+
+    def test_missing_cin_attribute_self_heals(self):
+        mod = load_ime_module("chedayi", "chedayi_ime.py")
+        with mock.patch("cinbase.ime_base.LoadCinTable"), \
+             mock.patch("cinbase.LoadPhraseData"):
+            svc = getattr(mod, "CheDayiTextService")(DummyClient())
+        if hasattr(svc, "cin"):
+            del svc.cin
+
+        # 讓 checkConfigChange 走「不需重載碼表」的 else 分支（出事的那條路）
+        sentinel = object()
+        mod.CinTable.loading = False
+        mod.CinTable.cin = sentinel
+        mod.CinTable.curCinType = svc.cfg.selCinType
+        mod.CinTable.ignorePrivateUseArea = svc.cfg.ignorePrivateUseArea
+        mod.CinTable.userExtendTable = svc.cfg.userExtendTable
+        mod.CinTable.priorityExtendTable = svc.cfg.priorityExtendTable
+        svc.cfg.reLoadTable = False
+        svc.cfg.imeReverseLookup = False
+        svc.imeReverseLookup = False
+        svc.cfg.homophoneQuery = False
+        svc.homophoneQuery = False
+
+        with mock.patch("cinbase.LoadRCinTable"), mock.patch("cinbase.LoadHCinTable"):
+            svc.checkConfigChange()  # 修復前這裡直接 AttributeError
+
+        self.assertIs(svc.cin, sentinel, "checkConfigChange 應把共享碼表回填給實例")
+
+
 if __name__ == "__main__":
     unittest.main()
