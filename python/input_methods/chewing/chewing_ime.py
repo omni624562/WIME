@@ -767,7 +767,8 @@ class ChewingTextService(TextService):
             visibleCompStr, compRootStr = splitTrailingBopomofo(compStr)
             rootStr = bopomofoStr or compRootStr
 
-            if getattr(cfg, 'candidateModernStyle', False) and visibleCompStr and not rootStr and not candidates and not candidateSelectionKey:
+            # Esc 剛把選字模式關掉，不能又自動重開，否則永遠離不開選字窗
+            if getattr(cfg, 'candidateModernStyle', False) and visibleCompStr and not rootStr and not candidates and not candidateSelectionKey and keyCode != VK_ESCAPE:
                 chewingContext.handle_Space()
                 if chewingContext.cand_TotalChoice() > 0:
                     candidates = []
