@@ -247,6 +247,13 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.candidateEdgeAvoidance === "undefined") {
         checjConfig.candidateEdgeAvoidance = true;
     }
+    if (typeof checjConfig.candidatePositionMode === "undefined") {
+        checjConfig.candidatePositionMode = 0;
+    }
+    if (typeof checjConfig.candidateOpacity === "undefined" ||
+        checjConfig.candidateOpacity < 30 || checjConfig.candidateOpacity > 100) {
+        checjConfig.candidateOpacity = 100;
+    }
 }
 
 var candidateThemeNames = [
@@ -1313,6 +1320,17 @@ function pageReady() {
         candidateTheme.append(item);
     }
     candidateTheme.val(checjConfig.candidateTheme || "Night Comfort");
+
+    var selPositionModes = [
+        "跟隨游標",
+        "螢幕下緣置中"
+    ];
+    var candidatePositionMode = $("#candidatePositionMode");
+    for(var i = 0; i < selPositionModes.length; ++i) {
+        var item = '<option value="' + i + '">' + selPositionModes[i] + '</option>';
+        candidatePositionMode.append(item);
+    }
+    candidatePositionMode.children().eq(checjConfig.candidatePositionMode || 0).prop("selected", true);
 
     $("#candidateKeyStyle").val(checjConfig.candidateKeyStyle || "keycap");
     $("#candidateHeaderStyle").val(checjConfig.candidateHeaderStyle || "badge");

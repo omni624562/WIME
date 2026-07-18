@@ -107,6 +107,13 @@ $(function () {
         if (typeof chewingConfig.candidateEdgeAvoidance === "undefined") {
             chewingConfig.candidateEdgeAvoidance = true;
         }
+        if (typeof chewingConfig.candidatePositionMode === "undefined") {
+            chewingConfig.candidatePositionMode = 0;
+        }
+        if (typeof chewingConfig.candidateOpacity === "undefined" ||
+            chewingConfig.candidateOpacity < 30 || chewingConfig.candidateOpacity > 100) {
+            chewingConfig.candidateOpacity = 100;
+        }
     }
 
     function bindTabsFallback() {
@@ -961,6 +968,14 @@ $(function () {
         setCandidateNumber("fontSize", 16);
         setCandidateNumber("candidateMinWidth", 286);
         setCandidateNumber("candidateMaxWidth", 300);
+
+        var selPositionModes = ["跟隨游標", "螢幕下緣置中"];
+        var candidatePositionMode = $("#candidatePositionMode");
+        for (var i = 0; i < selPositionModes.length; ++i) {
+            candidatePositionMode.append('<option value="' + i + '">' + selPositionModes[i] + '</option>');
+        }
+        candidatePositionMode.children().eq(chewingConfig.candidatePositionMode || 0).prop("selected", true);
+        setCandidateNumber("candidateOpacity", 100);
     }
 
     // Use for select phrase example

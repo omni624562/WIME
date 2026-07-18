@@ -73,6 +73,8 @@ class ChewingConfig:
         self.candidateLayout = "horizontal"
         self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
+        self.candidatePositionMode = 0 # 0 = 跟隨游標，1 = 螢幕下緣置中
+        self.candidateOpacity = 100 # 候選窗不透明度 30~100（百分比）
         self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
         self.candidateKeyStyle = "keycap"
         self.candidateMessageStyle = "badge"

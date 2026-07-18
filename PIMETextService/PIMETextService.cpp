@@ -49,6 +49,8 @@ TextService::TextService(ImeModule* module):
 	candFontSize_(12),
 	candidateModernStyle_(false),
 	candidateEdgeAvoidance_(true),
+	candidatePositionMode_(0),
+	candidateOpacity_(100),
 	candidatePanelBackground_(RGB(255, 255, 255)),
 	candidatePanelBorder_(RGB(218, 221, 227)),
 	candidateTextPrimary_(RGB(32, 36, 42)),
@@ -414,6 +416,25 @@ void TextService::applyCandidateWindowStyle() {
 	candidateWindow_->setStableWidth(candidateStableWidth_, scaleForCandDpi(candidateMinWidth_));
 	candidateWindow_->setMaxWidth(candidateWrapToMaxWidth_, scaleForCandDpi(candidateMaxWidth_));
 	candidateWindow_->seedStableWidth(candidateStableWidthPx_);
+	applyCandidateWindowOpacity();
+}
+
+void TextService::applyCandidateWindowOpacity() {
+	if (!candidateWindow_)
+		return;
+	HWND hwnd = candidateWindow_->hwnd();
+	if (!hwnd)
+		return;
+	LONG_PTR exStyle = ::GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+	if (candidateOpacity_ >= 100) {
+		// 拿掉 layered 屬性，避免不透明時仍多付一層合成成本
+		if (exStyle & WS_EX_LAYERED)
+			::SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_LAYERED);
+		return;
+	}
+	if (!(exStyle & WS_EX_LAYERED))
+		::SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
+	::SetLayeredWindowAttributes(hwnd, 0, static_cast<BYTE>(candidateOpacity_ * 255 / 100), LWA_ALPHA);
 }
 
 bool TextService::cachedSelectionRect(Ime::EditSession* session, RECT* out) {
@@ -441,6 +462,25 @@ void TextService::moveCandidateWindow(Ime::EditSession* session) {
 	int width = 0;
 	int height = 0;
 	candidateWindow_->size(&width, &height);
+
+	// 固定位置模式：置於文字所在螢幕的工作區下緣置中，不跟隨游標、
+	// 不遮蓋輸入處附近的內容
+	if (candidatePositionMode_ == 1) {
+		HMONITOR monitor = ::MonitorFromRect(&textRect, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO mi;
+		mi.cbSize = sizeof(mi);
+		if (::GetMonitorInfo(monitor, &mi)) {
+			const RECT& work = mi.rcWork;
+			int x = work.left + ((work.right - work.left) - width) / 2;
+			int y = work.bottom - height - scaleForCandDpi(12);
+			if (x < work.left)
+				x = work.left;
+			if (y < work.top)
+				y = work.top;
+			candidateWindow_->move(x, y);
+			return;
+		}
+	}
 
 	int x = textRect.left;
 	int y = textRect.bottom + 4;

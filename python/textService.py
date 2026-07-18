@@ -289,7 +289,8 @@ class TextService:
     Valid arguments:
     candFontName, cadFontSize, candPerRow, candUseCursor,
     candidateModernStyle, candidateLayout, candidatePerRow,
-    candidateEdgeAvoidance, candidateTheme, candidateColors, candidateStyle,
+    candidateEdgeAvoidance, candidatePositionMode, candidateOpacity,
+    candidateTheme, candidateColors, candidateStyle,
     candidateStableWidth, candidateMinWidth
     '''
     def customizeUI(self, **kwargs):

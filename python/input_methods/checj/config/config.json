@@ -35,6 +35,8 @@
   "candidateLayout": "horizontal",
   "candidatePerRow": 6,
   "candidateEdgeAvoidance": true,
+  "candidatePositionMode": 0,
+  "candidateOpacity": 100,
   "candidateTheme": "Night Comfort",
   "candidateKeyStyle": "keycap",
   "candidateMessageStyle": "badge",

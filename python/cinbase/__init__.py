@@ -3410,6 +3410,8 @@ class CinBase:
             "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
             "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
+            "candidatePositionMode": getattr(cfg, 'candidatePositionMode', 0),
+            "candidateOpacity": getattr(cfg, 'candidateOpacity', 100),
             "candidateTheme": resolveCandidateTheme(cfg),
             "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
             "candidateHeaderStyle": getattr(cfg, 'candidateHeaderStyle', 'badge'),

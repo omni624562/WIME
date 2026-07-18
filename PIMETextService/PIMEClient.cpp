@@ -406,6 +406,12 @@ void Client::updateUI(json& data) {
 		else if (value.is_boolean() && name == "candidateEdgeAvoidance") {
 			textService_->setCandidateEdgeAvoidance(value.get<bool>());
 		}
+		else if (value.is_number_integer() && name == "candidatePositionMode") {
+			textService_->setCandidatePositionMode(value.get<int>());
+		}
+		else if (value.is_number_integer() && name == "candidateOpacity") {
+			textService_->setCandidateOpacity(value.get<int>());
+		}
 		else if (value.is_string() && name == "candidateKeyStyle") {
 			textService_->setCandidateKeyStyle(candidateKeyStyleValue(value.get<string>()));
 		}

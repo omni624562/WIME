@@ -207,6 +207,23 @@ public:
 		candidateEdgeAvoidance_ = enabled;
 	}
 
+	// 0 = 跟隨游標（預設），1 = 固定在螢幕工作區下緣置中
+	void setCandidatePositionMode(int mode) {
+		candidatePositionMode_ = (mode == 1) ? 1 : 0;
+	}
+
+	// 30~100（百分比），100 = 不透明
+	void setCandidateOpacity(int percent) {
+		if (percent < 30)
+			percent = 30;
+		else if (percent > 100)
+			percent = 100;
+		if (candidateOpacity_ == percent)
+			return;
+		candidateOpacity_ = percent;
+		applyCandidateWindowOpacity();
+	}
+
 	void setCandidateModernStyle(bool enabled) {
 		candidateModernStyle_ = enabled;
 		applyCandidateWindowStyle();
@@ -239,6 +256,7 @@ private:
 
 	void createCandidateWindow(Ime::EditSession* session);
 	void applyCandidateWindowStyle();
+	void applyCandidateWindowOpacity();
 	void moveCandidateWindow(Ime::EditSession* session);
 	int candFontHeight();
 	int scaleForCandDpi(int value) const;
@@ -269,6 +287,8 @@ private:
 	int candFontSize_;
 	bool candidateModernStyle_;
 	bool candidateEdgeAvoidance_;
+	int candidatePositionMode_; // 0 = 跟隨游標，1 = 螢幕下緣置中
+	int candidateOpacity_; // 30~100（百分比）
 	COLORREF candidatePanelBackground_;
 	COLORREF candidatePanelBorder_;
 	COLORREF candidateTextPrimary_;
