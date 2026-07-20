@@ -53,9 +53,9 @@ Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"
 
 !ifdef ONLY_DAYI_CHEWING_CHECJ
-OutFile "PIME-${PRODUCT_VERSION}-dayi-chewing-checj-setup.exe" ; Limited installer for Dayi, Chewing, and New Cangjie
+OutFile "WIME-${PRODUCT_VERSION}-dayi-chewing-checj-setup.exe" ; Limited installer for Dayi, Chewing, and New Cangjie
 !else
-OutFile "PIME-${PRODUCT_VERSION}-setup.exe" ; The generated installer file name
+OutFile "WIME-${PRODUCT_VERSION}-setup.exe" ; The generated installer file name
 !endif
 
 ; We install everything to C:\Program Files (x86)

@@ -13,7 +13,8 @@ compile installer.nsi with the ONLY_DAYI_CHEWING_CHECJ define:
 
 The output file is:
 
-    installer\PIME-<version>-dayi-chewing-checj-setup.exe
+    installer\WIME-<version>-dayi-chewing-checj-setup.exe
 
-The output filename and install paths still use PIME for low-level compatibility.
-See ..\docs\WIME_CHANGES.md for the post-rename change summary.
+The install paths, named pipe, and registry keys still use PIME internally for
+low-level compatibility; only outward-facing display names and the installer
+filename use WIME. See ..\docs\WIME_CHANGES.md for the post-rename change summary.
