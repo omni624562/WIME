@@ -2592,10 +2592,10 @@ class CinBase:
         if buttonId == "settings" or buttonId == "windows-mode-icon":
             # 用 json 語法表示選單結構
             return [
-                {"text": "參觀 PIME 官方網站(&W)", "id": ID_WEBSITE},
+                {"text": "參觀 WIME 官方網站(&W)", "id": ID_WEBSITE},
                 {},
-                {"text": "PIME 錯誤回報(&B)", "id": ID_BUGREPORT},
-                {"text": "PIME 討論區 (&F)", "id": ID_FORUM},
+                {"text": "WIME 錯誤回報(&B)", "id": ID_BUGREPORT},
+                {"text": "WIME 討論區 (&F)", "id": ID_FORUM},
                 {},
                 {"text": "設定輸入法模組(&C)", "id": ID_SETTINGS},
                 {},
