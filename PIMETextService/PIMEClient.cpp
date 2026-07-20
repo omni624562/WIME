@@ -1294,11 +1294,32 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 static void thisModuleAnchor() {
 }
 
+// 目前行程是否跑在 AppContainer 沙箱裡（UWP：SearchHost、設定、Store 應用）。
+// 這類行程即使與使用者同帳號，token 也被過濾，無法對一般行程做 OpenProcess，
+// 因此下方的伺服器身分驗證註定失敗——必須跳過，否則所有 UWP 應用的輸入法
+// 會整個失效。管道本身的 ACL（PIMELauncher acl.rs 的 SDDL）仍是真正的存取閘門。
+static bool isRunningInAppContainer() {
+	HANDLE token = NULL;
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token))
+		return false;
+	DWORD isAppContainer = 0;
+	DWORD retLen = 0;
+	BOOL ok = ::GetTokenInformation(token, TokenIsAppContainer,
+		&isAppContainer, sizeof(isAppContainer), &retLen);
+	::CloseHandle(token);
+	return ok && isAppContainer != 0;
+}
+
 bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 	// security check: make sure that we're connecting to the real PIMELauncher
 	// process, not another process running as the same user that pre-created a
 	// pipe with the same predictable name (\\.\pipe\<username>\PIME\Launcher),
 	// e.g. during boot or the launcher's crash-restart window.
+
+	// UWP/AppContainer 沙箱行程無法驗證伺服器身分，直接信任管道 ACL 放行
+	if (isRunningInAppContainer())
+		return true;
+
 	ULONG serverPid = 0;
 	if (!GetNamedPipeServerProcessId(pipe, &serverPid)) {
 		return false;
@@ -1306,7 +1327,9 @@ bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 
 	HANDLE serverProcess = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, serverPid);
 	if (serverProcess == NULL) {
-		return false;
+		// 非 AppContainer 但仍受限的沙箱（例如 low integrity level）同理無從
+		// 驗證，OpenProcess 被拒時放行；其他非權限類失敗維持拒連
+		return ::GetLastError() == ERROR_ACCESS_DENIED;
 	}
 	wchar_t serverPath[MAX_PATH] = { 0 };
 	DWORD serverPathLen = MAX_PATH;
