@@ -51,10 +51,14 @@ $(function () {
             chewingConfig.candidateTheme = "System";
         }
         else if (chewingConfig.candidateTheme === "dark") {
-            chewingConfig.candidateTheme = "Night Comfort";
+            chewingConfig.candidateTheme = "Graphite";
         }
         else if (chewingConfig.candidateTheme === "light") {
             chewingConfig.candidateTheme = "Light";
+        }
+        // 配色已精簡；若存的是被移除的主題，退回 System（跟隨系統）
+        else if (candidateThemeNames.indexOf(chewingConfig.candidateTheme) === -1) {
+            chewingConfig.candidateTheme = "System";
         }
         // 選字符樣式只提供 Word First，一律固定為 word-first
         chewingConfig.candidateKeyStyle = "word-first";
@@ -162,38 +166,26 @@ $(function () {
 
     var candidateThemeNames = [
         "System",
-        "Night Comfort",
-        "Soft Focus",
-        "Warm Gray",
         "Graphite",
-        "Slate Teal",
-        "Olive",
+        "Sepia Dim",
         "Plum",
-        "Amber",
         "Light",
-        "Paper",
-        "Mist Light",
-        "Sepia Dim"
+        "Pure Black",
+        "High Contrast"
     ];
 
     var candidateThemePalette = {
-        "Night Comfort": ["#1b1c20", "#4a4d57", "#30323a", "#e5e8ee", "#a9afba", "#b8c7e8", "#405f8a", "#5e7ea7", "#eef4ff", "#aeb9cf"],
-        "Soft Focus": ["#191d21", "#44525a", "#2b343a", "#e4ebee", "#a8b5ba", "#9cc8bd", "#3f6f6b", "#6a9993", "#ecfbf8", "#a4bcb6"],
-        "Warm Gray": ["#20201d", "#58554b", "#39372f", "#ebe7dc", "#b7b1a3", "#d7c48e", "#5f684d", "#87936f", "#f7f3e7", "#c1b8a2"],
         "Graphite": ["#12141a", "#444a57", "#292e38", "#f3f5fa", "#aeb5c4", "#8fb3ff", "#4169d7", "#6f92eb", "#edf3ff", "#9eb0d5"],
-        "Slate Teal": ["#152027", "#3f5a64", "#263943", "#f0f8fb", "#a5bac2", "#87d4dd", "#2f7f9f", "#60adc8", "#e9fbff", "#98c2ca"],
-        "Olive": ["#171b16", "#4b5941", "#2c3328", "#f4f7ef", "#b4bda7", "#b6df88", "#5d7f36", "#91b962", "#f4ffe8", "#b9c8a8"],
+        "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"],
         "Plum": ["#1d1721", "#604b66", "#382c3e", "#fbf4ff", "#c0adca", "#e0a7ff", "#7a55b8", "#aa83e6", "#fbf3ff", "#c5a9d1"],
-        "Amber": ["#211a12", "#68533a", "#3c2f22", "#fff8ed", "#cfbda4", "#ffc46f", "#9a6730", "#d59a58", "#fff3de", "#d4baa0"],
         "Light": ["#f7f9fc", "#aeb8cb", "#dbe2ed", "#182235", "#657187", "#2f66dc", "#2f6eea", "#1d56c4", "#ffffff", "#44639a"],
-        "Paper": ["#fbfaf6", "#b7ac9c", "#e4ded4", "#272119", "#786b5d", "#8a4f17", "#315f87", "#244967", "#f7fbff", "#6f665c"],
-        "Mist Light": ["#e9edf0", "#a8b3bc", "#d4dce1", "#24303a", "#66727d", "#426b85", "#5f7f94", "#4b687b", "#f7fbfd", "#577385"],
-        "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"]
+        "Pure Black": ["#000000", "#3a3f46", "#22262b", "#e8eaed", "#9aa2ac", "#7fd1c0", "#1f6f63", "#3f9c8d", "#eafffb", "#a7b3ae"],
+        "High Contrast": ["#0a0a0c", "#6b7280", "#33373d", "#ffffff", "#c9ced6", "#ffd75e", "#8a6d00", "#c7a83c", "#fff8dc", "#d6dae2"]
     };
 
     // 「System」跟隨 Windows 深淺色：預覽以瀏覽器的 prefers-color-scheme 對應
     candidateThemePalette["System"] = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
-        ? candidateThemePalette["Night Comfort"]
+        ? candidateThemePalette["Graphite"]
         : candidateThemePalette["Light"];
 
     var candidateKeyStyleOptions = {
@@ -503,7 +495,7 @@ $(function () {
             return;
         }
 
-        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var selectedTheme = $("#candidateTheme").val() || "System";
         var modern = $("#candidateModernStyle").prop("checked");
         var stableWidth = $("#candidateStableWidth").prop("checked");
         var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
@@ -526,7 +518,7 @@ $(function () {
             preview.find(".candidate-preview-root").text(sample.root);
             fillCandidatePreviewItems(preview, sample);
             applyCandidatePreviewKeyStyle(preview, selectedStyle);
-            applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Night Comfort"], modern);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Graphite"], modern);
         });
     }
 
@@ -537,7 +529,7 @@ $(function () {
         }
 
         var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
-        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var selectedTheme = $("#candidateTheme").val() || "System";
         var modern = $("#candidateModernStyle").prop("checked");
         var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
         var sample = getCandidatePreviewSample();
@@ -556,7 +548,7 @@ $(function () {
             preview.find(".candidate-preview-root").text(sample.root);
             fillCandidatePreviewItems(preview, sample);
             applyCandidatePreviewKeyStyle(preview, styleValue);
-            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
         });
     }
 
@@ -567,7 +559,7 @@ $(function () {
         }
 
         var selectedStyle = $("#candidateMessageStyle").val() || "badge";
-        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var selectedTheme = $("#candidateTheme").val() || "System";
         var modern = $("#candidateModernStyle").prop("checked");
         var sample = getCandidatePreviewSample();
         $("#candidateMessageStyleCurrent").text(candidateMessageStyleOptions[selectedStyle] || "");
@@ -582,8 +574,8 @@ $(function () {
             card.find(".candidate-style-card-state").text(selected ? "已選" : "");
             preview.find(".candidate-preview-name").text(sample.name);
             preview.find(".candidate-preview-root").text(sample.root + sample.root + sample.root);
-            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
-            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
         });
     }
 
@@ -595,7 +587,7 @@ $(function () {
 
         var selectedBehavior = $("#candidateMessageBehavior").val() || "progressive";
         var selectedStyle = $("#candidateMessageStyle").val() || "badge";
-        var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
+        var selectedTheme = $("#candidateTheme").val() || "System";
         var modern = $("#candidateModernStyle").prop("checked");
         var sample = getCandidatePreviewSample();
         $("#candidateMessageBehaviorCurrent").text(candidateMessageBehaviorOptions[selectedBehavior] || "");
@@ -611,8 +603,8 @@ $(function () {
             card.find(".candidate-preview").each(function () {
                 var preview = $(this);
                 preview.css("font-size", candidatePreviewFontSize() + "pt");
-                applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
-                applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Night Comfort"], modern);
+                applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+                applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
             });
         });
     }
@@ -922,7 +914,7 @@ $(function () {
     }
 
     function initializeCandidateWindowSettings() {
-        appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "Night Comfort");
+        appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "System");
         $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "word-first");
         $("#candidateMessageStyle").val(chewingConfig.candidateMessageStyle || "badge");
         $("#candidateMessageBehavior").val(chewingConfig.candidateMessageBehavior || "progressive");

@@ -176,7 +176,7 @@ static void candidateThemeColors(const std::string& theme,
 	COLORREF& highlightText) {
 	std::string name = normalizedThemeName(theme);
 	if (name == "system" || name == "followsystem" || name == "auto") {
-		name = systemPrefersLightTheme() ? "light" : "nightcomfort";
+		name = systemPrefersLightTheme() ? "light" : "graphite";
 	}
 	if (name == "nightcomfort" || name == "night" || name == "dark") {
 		panelBackground = RGB(27, 28, 32);
@@ -213,6 +213,24 @@ static void candidateThemeColors(const std::string& theme,
 		highlightBackground = RGB(65, 105, 215);
 		highlightBorder = RGB(111, 146, 235);
 		highlightText = RGB(237, 243, 255);
+	}
+	else if (name == "pureblack" || name == "black" || name == "oled") {
+		panelBackground = RGB(0, 0, 0);
+		panelBorder = RGB(58, 63, 70);
+		textPrimary = RGB(232, 234, 237);
+		textSecondary = RGB(154, 162, 172);
+		highlightBackground = RGB(31, 111, 99);
+		highlightBorder = RGB(63, 156, 141);
+		highlightText = RGB(234, 255, 251);
+	}
+	else if (name == "highcontrast" || name == "contrast") {
+		panelBackground = RGB(10, 10, 12);
+		panelBorder = RGB(107, 114, 128);
+		textPrimary = RGB(255, 255, 255);
+		textSecondary = RGB(201, 206, 214);
+		highlightBackground = RGB(138, 109, 0);
+		highlightBorder = RGB(199, 168, 60);
+		highlightText = RGB(255, 248, 220);
 	}
 	else if (name == "slateteal" || name == "teal") {
 		panelBackground = RGB(21, 32, 39);

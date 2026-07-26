@@ -109,7 +109,7 @@ def resolveCandidateTheme(cfg):
     theme = str(getattr(cfg, 'candidateTheme', '') or '')
     normalized = ''.join(ch.lower() for ch in theme if ch.isalnum())
     if normalized in ('system', 'followsystem', 'auto'):
-        return "Light" if systemPrefersLightTheme() else "Night Comfort"
+        return "Light" if systemPrefersLightTheme() else "Graphite"
     return theme
 
 
