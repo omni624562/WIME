@@ -184,20 +184,8 @@ function applyCandidateDefaults() {
     if (!validCandidateMessageBehaviors[checjConfig.candidateMessageBehavior]) {
         checjConfig.candidateMessageBehavior = "progressive";
     }
-    if (typeof checjConfig.candidateHeaderStyle === "undefined") {
-        checjConfig.candidateHeaderStyle = "badge";
-    }
-    var validCandidateHeaderStyles = {
-        plain: true,
-        badge: true,
-        accent: true,
-        tag: true,
-        bar: true,
-        underline: true
-    };
-    if (!validCandidateHeaderStyles[checjConfig.candidateHeaderStyle]) {
-        checjConfig.candidateHeaderStyle = "badge";
-    }
+    // 輸入法名稱標籤樣式只提供 Accent Name，一律固定為 accent
+    checjConfig.candidateHeaderStyle = "accent";
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;
@@ -282,12 +270,7 @@ var candidateMessageStyleOptions = {
 };
 
 var candidateHeaderStyleOptions = {
-    plain: "Plain Name",
-    badge: "Badge Chip",
-    accent: "Accent Name",
-    tag: "Outline Tag",
-    bar: "Accent Bar",
-    underline: "Underline"
+    accent: "Accent Name"
 };
 
 var candidateMessageBehaviorOptions = {
@@ -463,7 +446,7 @@ function candidatePreviewFontSize() {
 
 function createCandidatePreview(sample, keyStyle, headerStyle) {
     var preview = $("<div>").addClass("candidate-preview");
-    headerStyle = headerStyle || $("#candidateHeaderStyle").val() || "badge";
+    headerStyle = headerStyle || $("#candidateHeaderStyle").val() || "accent";
     preview.addClass("header-style-" + headerStyle);
     var header = $("<div>").addClass("candidate-preview-header");
     header.append($("<span>").addClass("candidate-preview-name").text(sample.name));
@@ -750,7 +733,7 @@ function updateCandidateHeaderStyleGallery() {
         return;
     }
 
-    var selectedStyle = $("#candidateHeaderStyle").val() || "badge";
+    var selectedStyle = $("#candidateHeaderStyle").val() || "accent";
     var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
     var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
@@ -1300,7 +1283,7 @@ function pageReady() {
     candidatePositionMode.children().eq(checjConfig.candidatePositionMode || 0).prop("selected", true);
 
     $("#candidateKeyStyle").val(checjConfig.candidateKeyStyle || "word-first");
-    $("#candidateHeaderStyle").val(checjConfig.candidateHeaderStyle || "badge");
+    $("#candidateHeaderStyle").val(checjConfig.candidateHeaderStyle || "accent");
     $("#candidateMessageStyle").val(checjConfig.candidateMessageStyle || "badge");
     $("#candidateMessageBehavior").val(checjConfig.candidateMessageBehavior || "progressive");
 
