@@ -160,36 +160,15 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.intelligentSelectContext === "undefined") {
         checjConfig.intelligentSelectContext = true;
     }
-    if (typeof checjConfig.candidateKeyStyle === "undefined") {
-        checjConfig.candidateKeyStyle = "keycap";
-    }
-    else if (checjConfig.candidateKeyStyle == "underline" || checjConfig.candidateKeyStyle == "rule" || checjConfig.candidateKeyStyle == "rule-key") {
-        checjConfig.candidateKeyStyle = "word-anchor";
-    }
+    // 選字符樣式只提供 Word First，一律固定為 word-first
+    checjConfig.candidateKeyStyle = "word-first";
     if (typeof checjConfig.candidateMessageStyle === "undefined") {
         checjConfig.candidateMessageStyle = "badge";
     }
     if (typeof checjConfig.candidateMessageBehavior === "undefined") {
         checjConfig.candidateMessageBehavior = "progressive";
     }
-    var validCandidateKeyStyles = {
-        keycap: true,
-        quiet: true,
-        divider: true,
-        badge: true,
-        "accent-dot": true,
-        rail: true,
-        "monospace-slot": true,
-        "word-first": true,
-        "soft-capsule": true,
-        "left-tag": true,
-        "glow-key": true,
-        "micro-tab": true,
-        "word-anchor": true
-    };
-    if (!validCandidateKeyStyles[checjConfig.candidateKeyStyle]) {
-        checjConfig.candidateKeyStyle = "keycap";
-    }
+    // candidateKeyStyle 已固定為 word-first，無需驗證清單
     var validCandidateMessageStyles = {
         badge: true,
         bar: true,
@@ -293,19 +272,7 @@ candidateThemePalette["System"] = (window.matchMedia && window.matchMedia("(pref
     : candidateThemePalette["Light"];
 
 var candidateKeyStyleOptions = {
-    keycap: "Selected Only Keycap",
-    quiet: "Quiet Key",
-    divider: "Divider Slim",
-    badge: "Badge Minimal",
-    "accent-dot": "Accent Dot",
-    rail: "Rail Marker",
-    "monospace-slot": "Monospace Slot",
-    "word-first": "Word First",
-    "soft-capsule": "Soft Capsule",
-    "left-tag": "Left Tag",
-    "glow-key": "Glow Key",
-    "micro-tab": "Micro Tab",
-    "word-anchor": "Word Anchor"
+    "word-first": "Word First"
 };
 
 var candidateMessageStyleOptions = {
@@ -465,7 +432,7 @@ function applyCandidatePreviewTheme(preview, theme, modern) {
 }
 
 function applyCandidatePreviewKeyStyle(preview, keyStyle) {
-    keyStyle = keyStyle || $("#candidateKeyStyle").val() || checjConfig.candidateKeyStyle || "keycap";
+    keyStyle = keyStyle || $("#candidateKeyStyle").val() || checjConfig.candidateKeyStyle || "word-first";
     preview
         .removeClass(candidateKeyStyleClassNames.join(" "))
         .addClass("key-style-" + keyStyle);
@@ -605,7 +572,7 @@ function renderCandidateHeaderStyleGallery() {
     }
 
     var sample = getCandidatePreviewSample();
-    var keyStyle = $("#candidateKeyStyle").val() || "keycap";
+    var keyStyle = $("#candidateKeyStyle").val() || "word-first";
     grid.empty();
     $.each(candidateHeaderStyleOptions, function(styleValue, styleName) {
         var card = $("<button>").attr("type", "button").addClass("candidate-style-card candidate-header-style-card").data("style", styleValue);
@@ -667,7 +634,7 @@ function updateCandidateThemeGallery() {
     var modern = $("#candidateModernStyle").prop("checked");
     var stableWidth = $("#candidateStableWidth").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
-    var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
+    var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var sample = getCandidatePreviewSample();
     $("#candidateMinWidth").prop("disabled", !stableWidth);
     $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
@@ -696,7 +663,7 @@ function updateCandidateKeyStyleGallery() {
         return;
     }
 
-    var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
+    var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
     var modern = $("#candidateModernStyle").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
@@ -1332,7 +1299,7 @@ function pageReady() {
     }
     candidatePositionMode.children().eq(checjConfig.candidatePositionMode || 0).prop("selected", true);
 
-    $("#candidateKeyStyle").val(checjConfig.candidateKeyStyle || "keycap");
+    $("#candidateKeyStyle").val(checjConfig.candidateKeyStyle || "word-first");
     $("#candidateHeaderStyle").val(checjConfig.candidateHeaderStyle || "badge");
     $("#candidateMessageStyle").val(checjConfig.candidateMessageStyle || "badge");
     $("#candidateMessageBehavior").val(checjConfig.candidateMessageBehavior || "progressive");

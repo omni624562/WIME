@@ -56,36 +56,15 @@ $(function () {
         else if (chewingConfig.candidateTheme === "light") {
             chewingConfig.candidateTheme = "Light";
         }
-        if (typeof chewingConfig.candidateKeyStyle === "undefined") {
-            chewingConfig.candidateKeyStyle = "keycap";
-        }
-        else if (chewingConfig.candidateKeyStyle === "underline" || chewingConfig.candidateKeyStyle === "rule" || chewingConfig.candidateKeyStyle === "rule-key") {
-            chewingConfig.candidateKeyStyle = "word-anchor";
-        }
+        // 選字符樣式只提供 Word First，一律固定為 word-first
+        chewingConfig.candidateKeyStyle = "word-first";
         if (typeof chewingConfig.candidateMessageStyle === "undefined") {
             chewingConfig.candidateMessageStyle = "badge";
         }
         if (typeof chewingConfig.candidateMessageBehavior === "undefined") {
             chewingConfig.candidateMessageBehavior = "progressive";
         }
-        var validCandidateKeyStyles = {
-            keycap: true,
-            quiet: true,
-            divider: true,
-            badge: true,
-            "accent-dot": true,
-            rail: true,
-            "monospace-slot": true,
-            "word-first": true,
-            "soft-capsule": true,
-            "left-tag": true,
-            "glow-key": true,
-            "micro-tab": true,
-            "word-anchor": true
-        };
-        if (!validCandidateKeyStyles[chewingConfig.candidateKeyStyle]) {
-            chewingConfig.candidateKeyStyle = "keycap";
-        }
+        // candidateKeyStyle 已固定為 word-first，無需驗證清單
         var validCandidateMessageStyles = {
             badge: true,
             bar: true,
@@ -218,19 +197,7 @@ $(function () {
         : candidateThemePalette["Light"];
 
     var candidateKeyStyleOptions = {
-        keycap: "Selected Only Keycap",
-        quiet: "Quiet Key",
-        divider: "Divider Slim",
-        badge: "Badge Minimal",
-        "accent-dot": "Accent Dot",
-        rail: "Rail Marker",
-        "monospace-slot": "Monospace Slot",
-        "word-first": "Word First",
-        "soft-capsule": "Soft Capsule",
-        "left-tag": "Left Tag",
-        "glow-key": "Glow Key",
-        "micro-tab": "Micro Tab",
-        "word-anchor": "Word Anchor"
+        "word-first": "Word First"
     };
 
     var candidateMessageStyleOptions = {
@@ -360,7 +327,7 @@ $(function () {
     }
 
     function applyCandidatePreviewKeyStyle(preview, keyStyle) {
-        keyStyle = keyStyle || $("#candidateKeyStyle").val() || chewingConfig.candidateKeyStyle || "keycap";
+        keyStyle = keyStyle || $("#candidateKeyStyle").val() || chewingConfig.candidateKeyStyle || "word-first";
         preview
             .removeClass(candidateKeyStyleClassNames.join(" "))
             .addClass("key-style-" + keyStyle);
@@ -540,7 +507,7 @@ $(function () {
         var modern = $("#candidateModernStyle").prop("checked");
         var stableWidth = $("#candidateStableWidth").prop("checked");
         var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
-        var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
+        var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
         var sample = getCandidatePreviewSample();
         $("#candidateMinWidth").prop("disabled", !stableWidth);
         $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
@@ -569,7 +536,7 @@ $(function () {
             return;
         }
 
-        var selectedStyle = $("#candidateKeyStyle").val() || "keycap";
+        var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
         var selectedTheme = $("#candidateTheme").val() || "Night Comfort";
         var modern = $("#candidateModernStyle").prop("checked");
         var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
@@ -956,7 +923,7 @@ $(function () {
 
     function initializeCandidateWindowSettings() {
         appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "Night Comfort");
-        $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "keycap");
+        $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "word-first");
         $("#candidateMessageStyle").val(chewingConfig.candidateMessageStyle || "badge");
         $("#candidateMessageBehavior").val(chewingConfig.candidateMessageBehavior || "progressive");
 
