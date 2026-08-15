@@ -1432,9 +1432,8 @@ function pageReady() {
         $parent.on("click", apply);
     }
 
-    // 注意：selWildcardType / selRCinType / selHCinType 的啟用狀態由
-    // disableControlItem() 依碼表類型管理（大易 selWildcardType 恆為停用），
-    // 此處不另行連動以免覆蓋；其「關閉時無作用」已於說明文字註明。
+    // selWildcardType / selRCinType / selHCinType 的停用狀態由 disableControlItem()
+    // 同時考量「碼表相容性」與「對應功能核取是否開啟」；見該函式末端的相依連動。
     bindDependentEnable("intelligentSelect", [
         { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" },
         { field: "intelligentSelectContext", item: "intelligentSelectContext_item" }
@@ -1582,9 +1581,26 @@ function pageReady() {
         if ($('#selWildcardType')[0].disabled == true) {
             $("#selWildcardType").val(1);
         }
+
+        // 相依下拉：停用狀態 = 碼表相容邏輯停用 或 對應功能核取關閉（雙向）。
+        // 讓「功能關閉→右側下拉無作用」直接以變灰呈現，開啟時再回復可用。
+        // 只有 selWildcardType 受碼表管理（大易恆停用）；另兩者純由核取決定。
+        // 放在 selWildcardType val 重設之後，避免因核取停用而誤重設使用者選值。
+        [["supportWildcard", "selWildcardType"],
+         ["imeReverseLookup", "selRCinType"],
+         ["homophoneQuery", "selHCinType"]].forEach(function(pair) {
+            var cb = document.getElementById(pair[0]);
+            var sel = document.getElementById(pair[1]);
+            if (!cb || !sel) return;
+            var tableDisabled = (pair[1] === "selWildcardType") ? sel.disabled : false;
+            sel.disabled = tableDisabled || !cb.checked;
+        });
     }
 
     disableControlItem();
+
+    // 功能核取切換時，即時更新其相依下拉的停用狀態
+    $("#supportWildcard, #imeReverseLookup, #homophoneQuery").on("click", disableControlItem);
 
     $('#compositionBufferMode').click(function() {
         if ($('#compositionBufferMode')[0].checked == false) {
