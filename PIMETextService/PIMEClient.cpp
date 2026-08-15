@@ -178,34 +178,8 @@ static void candidateThemeColors(const std::string& theme,
 	if (name == "system" || name == "followsystem" || name == "auto") {
 		name = systemPrefersLightTheme() ? "light" : "graphite";
 	}
-	if (name == "nightcomfort" || name == "night" || name == "dark") {
-		panelBackground = RGB(27, 28, 32);
-		panelBorder = RGB(74, 77, 87);
-		textPrimary = RGB(229, 232, 238);
-		textSecondary = RGB(169, 175, 186);
-		highlightBackground = RGB(64, 95, 138);
-		highlightBorder = RGB(94, 126, 167);
-		highlightText = RGB(238, 244, 255);
-	}
-	else if (name == "softfocus" || name == "soft") {
-		panelBackground = RGB(25, 29, 33);
-		panelBorder = RGB(68, 82, 90);
-		textPrimary = RGB(228, 235, 238);
-		textSecondary = RGB(168, 181, 186);
-		highlightBackground = RGB(63, 111, 107);
-		highlightBorder = RGB(106, 153, 147);
-		highlightText = RGB(236, 251, 248);
-	}
-	else if (name == "warmgray" || name == "warmgrey") {
-		panelBackground = RGB(32, 32, 29);
-		panelBorder = RGB(88, 85, 75);
-		textPrimary = RGB(235, 231, 220);
-		textSecondary = RGB(183, 177, 163);
-		highlightBackground = RGB(95, 104, 77);
-		highlightBorder = RGB(135, 147, 111);
-		highlightText = RGB(247, 243, 231);
-	}
-	else if (name == "graphite") {
+	// 舊的 dark / night 別名沿用至新的深色預設 graphite（與 System 深色一致）
+	if (name == "graphite" || name == "dark" || name == "night") {
 		panelBackground = RGB(18, 20, 26);
 		panelBorder = RGB(68, 74, 87);
 		textPrimary = RGB(243, 245, 250);
@@ -232,24 +206,6 @@ static void candidateThemeColors(const std::string& theme,
 		highlightBorder = RGB(199, 168, 60);
 		highlightText = RGB(255, 248, 220);
 	}
-	else if (name == "slateteal" || name == "teal") {
-		panelBackground = RGB(21, 32, 39);
-		panelBorder = RGB(63, 90, 100);
-		textPrimary = RGB(240, 248, 251);
-		textSecondary = RGB(165, 186, 194);
-		highlightBackground = RGB(47, 127, 159);
-		highlightBorder = RGB(96, 173, 200);
-		highlightText = RGB(233, 251, 255);
-	}
-	else if (name == "olive") {
-		panelBackground = RGB(23, 27, 22);
-		panelBorder = RGB(75, 89, 65);
-		textPrimary = RGB(244, 247, 239);
-		textSecondary = RGB(180, 189, 167);
-		highlightBackground = RGB(93, 127, 54);
-		highlightBorder = RGB(145, 185, 98);
-		highlightText = RGB(244, 255, 232);
-	}
 	else if (name == "plum") {
 		panelBackground = RGB(29, 23, 33);
 		panelBorder = RGB(96, 75, 102);
@@ -258,33 +214,6 @@ static void candidateThemeColors(const std::string& theme,
 		highlightBackground = RGB(122, 85, 184);
 		highlightBorder = RGB(170, 131, 230);
 		highlightText = RGB(251, 243, 255);
-	}
-	else if (name == "amber") {
-		panelBackground = RGB(33, 26, 18);
-		panelBorder = RGB(104, 83, 58);
-		textPrimary = RGB(255, 248, 237);
-		textSecondary = RGB(207, 189, 164);
-		highlightBackground = RGB(154, 103, 48);
-		highlightBorder = RGB(213, 154, 88);
-		highlightText = RGB(255, 243, 222);
-	}
-	else if (name == "paper") {
-		panelBackground = RGB(251, 250, 246);
-		panelBorder = RGB(183, 172, 156);
-		textPrimary = RGB(39, 33, 25);
-		textSecondary = RGB(120, 107, 93);
-		highlightBackground = RGB(49, 95, 135);
-		highlightBorder = RGB(36, 73, 103);
-		highlightText = RGB(247, 251, 255);
-	}
-	else if (name == "mistlight" || name == "mist") {
-		panelBackground = RGB(233, 237, 240);
-		panelBorder = RGB(168, 179, 188);
-		textPrimary = RGB(36, 48, 58);
-		textSecondary = RGB(102, 114, 125);
-		highlightBackground = RGB(95, 127, 148);
-		highlightBorder = RGB(75, 104, 123);
-		highlightText = RGB(247, 251, 253);
 	}
 	else if (name == "sepiadim" || name == "sepia") {
 		panelBackground = RGB(40, 37, 31);
