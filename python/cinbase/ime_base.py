@@ -79,8 +79,12 @@ class CinBaseTextService(TextService):
         self.cinbase.initCinBaseContext(self)
 
         if not cin_table.curCinType == self.cfg.selCinType and not cin_table.loading:
-            loadCinFile = LoadCinTable(self, cin_table)
-            loadCinFile.start()
+            # 首次載入採「同步」：碼表 JSON 不大（最大約 5.8MB / 0.16 秒，
+            # 預設大易 0.05 秒、酷倉 0.10 秒），直接同步解析可讓 self.cin 在
+            # 啟用後第一個按鍵前就緒，避免出現「正在載入輸入法碼表，請稍候」。
+            # 這不是 busy-wait（無輪詢），只是把解析放在 init 完成前。
+            # 設定變更觸發的重載（checkConfigChange）仍維持非同步，不阻塞。
+            LoadCinTable(self, cin_table).run()
         else:
             if not cin_table.loading:
                 self.cin = cin_table.cin
