@@ -84,7 +84,16 @@ class CinBaseTextService(TextService):
             # 啟用後第一個按鍵前就緒，避免出現「正在載入輸入法碼表，請稍候」。
             # 這不是 busy-wait（無輪詢），只是把解析放在 init 完成前。
             # 設定變更觸發的重載（checkConfigChange）仍維持非同步，不阻塞。
-            LoadCinTable(self, cin_table).run()
+            try:
+                LoadCinTable(self, cin_table).run()
+            except Exception:
+                pass
+            # 同步失敗回退：檔案缺失/損毀/暫時被鎖時，LoadCinTable.run() 會
+            # 讓 self.cin / CinTable.cin 留在 None。此時改用非同步重載——不再
+            # 阻塞 init，由背景執行緒重試，第一個按鍵則走既有的「正在載入」
+            # 訊息路徑，避免停在「無碼表卻不重試」的退化狀態。
+            if getattr(self, 'cin', None) is None and not cin_table.loading:
+                LoadCinTable(self, cin_table).start()
         else:
             if not cin_table.loading:
                 self.cin = cin_table.cin
