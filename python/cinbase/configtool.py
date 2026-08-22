@@ -68,6 +68,14 @@ class BaseHandler(tornado.web.RequestHandler):
             return token
         return None
 
+    def get_login_url(self):
+        # There is no interactive login page - auth only happens via the
+        # one-time token URL from launch_browser(). @tornado.web.authenticated
+        # would otherwise redirect unauthenticated GETs to the settings-value
+        # "login_url", which points nowhere and previously 404'd instead of
+        # cleanly rejecting the request.
+        raise tornado.web.HTTPError(403)
+
     def prepare(self):  # called before every request
         # 只接受來自本機迴路的 Host，阻擋 DNS rebinding（惡意網頁把自身網域指向 127.0.0.1）
         host = self.request.host.rsplit(":", 1)[0].strip("[]").lower()
@@ -254,7 +262,6 @@ class ConfigApp(tornado.web.Application):
         self.access_token = uuid.uuid4().hex
         settings = {
             "access_token": self.access_token, # our custom setting
-            "login_url": "/version",
             # 正式環境關閉 debug：避免未攔截例外把 Python traceback（含路徑）回傳瀏覽器
             "debug": False
         }
