@@ -1,5 +1,8 @@
 from __future__ import print_function
 from __future__ import unicode_literals
+import bisect
+import collections
+import itertools
 import math
 import os
 import re
@@ -15,6 +18,7 @@ class Cin(object):
     encoding = 'utf-8'
     MAX_CONTEXT_ENTRIES = 32
     COUNT_SAVE_INTERVAL_SECONDS = 60.0
+    WILDCARD_CACHE_SIZE = 32
     # big5 encoding cache shared across all Cin instances (encoding is deterministic)
     _big5_cache: dict = {}
 
@@ -209,7 +213,72 @@ class Cin(object):
             self._sorted_chardef_keys_count = chardef_count
         return cached
 
+    def _wildcardIndex(self):
+        """萬用字元查詢用的索引：依字根長度分組的已排序字根，以及按需建立的
+        「某長度、某位置是某字元」清單與最近查詢結果。碼表內容變了就重建。"""
+        chardef_count = len(self.chardefs)
+        if getattr(self, "_wildcard_index_count", -1) != chardef_count:
+            keys_by_length = {}
+            for key in self.sortedCharDefKeys():
+                keys_by_length.setdefault(len(key), []).append(key)
+            self._keys_by_length = keys_by_length
+            self._keys_by_position = {}
+            self._wildcard_results = collections.OrderedDict()
+            self._wildcard_index_count = chardef_count
+        return self._keys_by_length
+
+    def _keysWithCharAt(self, length, pos):
+        index = self._keys_by_position.get((length, pos))
+        if index is None:
+            index = {}
+            for key in self._keys_by_length.get(length, ()):
+                index.setdefault(key[pos], []).append(key)
+            self._keys_by_position[(length, pos)] = index
+        return index
+
+    def _wildcardMatchKeys(self, CompositionChar, WildcardChar, pattern, variableWildcard):
+        """符合 pattern 的字根，依排序順序。結果與逐一比對全部已排序字根
+        相同，只是先縮小要比對的範圍：以前每個萬用字元按鍵都對整張碼表
+        （酷倉 6.8 萬個字根）跑一次 regex。"""
+        keys_by_length = self._wildcardIndex()
+        prefix = CompositionChar.split(WildcardChar, 1)[0]
+        if variableWildcard:
+            # 長度不固定：已排序清單裡同一開頭的字根是連續的一段
+            keys = self.sortedCharDefKeys()
+            start = bisect.bisect_left(keys, prefix)
+            candidates = itertools.takewhile(lambda key: key.startswith(prefix),
+                                             itertools.islice(keys, start, None))
+        else:
+            length = len(CompositionChar)
+            if prefix:
+                bucket = keys_by_length.get(length, [])
+                start = bisect.bisect_left(bucket, prefix)
+                candidates = itertools.takewhile(lambda key: key.startswith(prefix),
+                                                 itertools.islice(bucket, start, None))
+            else:
+                literals = [(pos, char) for pos, char in enumerate(CompositionChar) if char != WildcardChar]
+                if literals:
+                    pos, char = literals[0]
+                    candidates = self._keysWithCharAt(length, pos).get(char, [])
+                else:
+                    candidates = keys_by_length.get(length, [])
+        return [key for key in candidates if pattern.match(key)]
+
     def getWildcardCharDefs(self, CompositionChar, WildcardChar, candMaxItems, variableWildcard=False):
+        # 同一個查詢常在連續幾個按鍵重複出現（例如查無結果時，呼叫端不會快取）
+        self._wildcardIndex()
+        cacheKey = (CompositionChar, WildcardChar, candMaxItems, variableWildcard)
+        cached = self._wildcard_results.get(cacheKey)
+        if cached is not None:
+            self._wildcard_results.move_to_end(cacheKey)
+            return list(cached)
+        result = self._computeWildcardCharDefs(CompositionChar, WildcardChar, candMaxItems, variableWildcard)
+        self._wildcard_results[cacheKey] = result
+        if len(self._wildcard_results) > self.WILDCARD_CACHE_SIZE:
+            self._wildcard_results.popitem(last=False)
+        return list(result)
+
+    def _computeWildcardCharDefs(self, CompositionChar, WildcardChar, candMaxItems, variableWildcard=False):
         wildcardchardefs = []
         lowFrequencyChardefs = {}
         highFrequencyCharSetList = ["bopomofo", "bopomofoTone", "cjk", "big5F", "big5LF", "big5S"]
@@ -219,7 +288,6 @@ class Cin(object):
             lowFrequencyChardefs[i] = []
         lowFrequencySeen = set()
 
-        keyLength = len(CompositionChar)
         matchstring = ''
         for char in CompositionChar:
             if char == WildcardChar:
@@ -228,11 +296,8 @@ class Cin(object):
                 matchstring += re.escape(char)
         pattern = re.compile('^' + matchstring + '$')
 
-        sortedchardefs = self.sortedCharDefKeys()
-        if variableWildcard:
-            matchchardefs = [self.chardefs[key] for key in sortedchardefs if pattern.match(key)]
-        else:
-            matchchardefs = [self.chardefs[key] for key in sortedchardefs if len(key) == keyLength and pattern.match(key)]
+        matchchardefs = [self.chardefs[key] for key in
+                         self._wildcardMatchKeys(CompositionChar, WildcardChar, pattern, variableWildcard)]
 
         if matchchardefs:
             # 同一個字常出現在多個相符的碼（例如 a*b 同時符合 aab、acb），
@@ -299,6 +364,8 @@ class Cin(object):
             self._chardef_prefix_cache_count = None
             self._chardef_prefixes = set()
             self._chardef_proper_prefixes = set()
+            # 擴充碼表可能只改既有字根的候選字、字根數不變，萬用字元的索引與結果要重建
+            self._wildcard_index_count = -1
             self._build_reverse_index()
 
 
