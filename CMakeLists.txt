@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 
+# CMake 4 refuses cmake_minimum_required(VERSION < 3.5), which the vendored
+# googletest 1.10 (libIME2/lib) and libIME2 still declare, so a fresh configure -
+# e.g. on CI - failed unless -DCMAKE_POLICY_VERSION_MINIMUM=3.5 was passed by hand.
+# Give those subprojects a policy floor here (the purpose of this variable).
+if(NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
 # override default c/c++ flags, add /MT to link VC++ runtime statically.
 # NOTE: these two lines should go before the project() command according to CMake FAQ:
 # https://cmake.org/Wiki/CMake_FAQ#Make_Override_Files
