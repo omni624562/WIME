@@ -71,6 +71,10 @@ ID_LITTLEDICT = 11
 ID_PROVERBDICT = 12
 ID_OUTPUT_SIMP_CHINESE = 13
 
+# 鍵盤掃描碼（set 1）：左、右 Shift 的虛擬鍵都是 VK_SHIFT，只能靠掃描碼分辨
+LEFT_SHIFT_SCAN_CODE = 0x2A
+RIGHT_SHIFT_SCAN_CODE = 0x36
+
 # 碼表載入失敗（檔案缺失、損毀）後，多久才再試一次。checkConfigChange 每個
 # 請求都會檢查，不節流的話失敗期間每個按鍵都會開一條執行緒重新解析碼表
 TABLE_RETRY_INTERVAL = 5.0
@@ -2534,11 +2538,11 @@ class CinBase:
                 # 檢查使用者當前的設定，是使用哪一邊的 Shift 來切換中英文模式
                 if cbTS.cfg.switchLangWithWhichShift == SWITCH_LANG_WITH_BOTH_SHIFT:
                     pass
-                elif cbTS.cfg.switchLangWithWhichShift == SWITCH_LANG_WITH_LEFT_SHIFT and not self.isPressed(VK_LSHIFT):
+                elif cbTS.cfg.switchLangWithWhichShift == SWITCH_LANG_WITH_LEFT_SHIFT and not self.isShiftSide(keyEvent, VK_LSHIFT):
                     cbTS.lastKeyDownCode = 0
                     cbTS.lastKeyDownTime = 0.0
                     return False
-                elif cbTS.cfg.switchLangWithWhichShift == SWITCH_LANG_WITH_RIGHT_SHIFT and not self.isPressed(VK_RSHIFT):
+                elif cbTS.cfg.switchLangWithWhichShift == SWITCH_LANG_WITH_RIGHT_SHIFT and not self.isShiftSide(keyEvent, VK_RSHIFT):
                     cbTS.lastKeyDownCode = 0
                     cbTS.lastKeyDownTime = 0.0
                     return False
@@ -3276,6 +3280,17 @@ class CinBase:
     # 當 keyCode 對應的按鍵、曾被按下觸發過，GetAsyncKeyState() 的回傳值會 >= 1
     def isPressed(self, keyCode):
         return windll.user32.GetAsyncKeyState(keyCode) >= 1
+
+    # 放開的 Shift 是不是 sideVk（VK_LSHIFT/VK_RSHIFT）那一邊。優先用按鍵事件的掃描碼
+    # （左 0x2A、右 0x36）：以前只靠 isPressed()，放開時鍵已彈起，只剩 GetAsyncKeyState
+    # 的「上次查詢後按過」位元，微軟文件說它不可靠——用左 Shift 打過大寫後，「只用左
+    # Shift 切換」模式下按右 Shift 也會切換。掃描碼不是這兩個值（舊版 DLL 一律傳 0、
+    # SendInput 模擬的按鍵）時退回原本的判斷
+    def isShiftSide(self, keyEvent, sideVk):
+        scanCode = getattr(keyEvent, 'scanCode', 0)
+        if scanCode in (LEFT_SHIFT_SCAN_CODE, RIGHT_SHIFT_SCAN_CODE):
+            return scanCode == (LEFT_SHIFT_SCAN_CODE if sideVk == VK_LSHIFT else RIGHT_SHIFT_SCAN_CODE)
+        return self.isPressed(sideVk)
 
     # 組字編輯緩衝的實作集中在 compositionbuffer 模組；保留薄委派維持呼叫端 API
     def setCompositionBufferString(self, cbTS, compositionString, removeStringLength):
