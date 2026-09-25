@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from .textclusters import symbolClusters
+
 class fsymbols(object):
 
     # TODO check the possiblility if the encoding is not utf-8
@@ -16,7 +18,7 @@ class fsymbols(object):
             # 使用者可編輯的檔案：去掉 UTF-8 BOM（否則第一個分類永遠比對不到），
             # 跳過空行，以及沒有名稱或沒有內容的分類——「名稱=」這種行原本會列進
             # 選單，選到時 getCharDef KeyError，整條管道被重置
-            line = line.lstrip('﻿').strip()
+            line = line.lstrip('\ufeff').strip()
             if not line:
                 continue
 
@@ -26,7 +28,8 @@ class fsymbols(object):
             if not key or not root:
                 continue
 
-            for rootstr in root:
+            # 以符號為單位切，不是逐碼位：❤️、👍🏻、🇹🇼 等由多個碼位組成
+            for rootstr in symbolClusters(root):
                 try:
                     self.chardefs[key].append(rootstr)
                 except KeyError:

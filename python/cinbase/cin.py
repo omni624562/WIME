@@ -421,6 +421,10 @@ class Cin(object):
             tempname = filename + ".tmp"
             with open(tempname, "w", encoding="utf-8") as f:
                 f.write(payload)
+                # 先寫到磁碟再取代：否則斷電後 NTFS 可能留下 0 位元組的 cincount.json，
+                # 載入時被當成沒有檔案，下次存檔就把累積的選字次數全覆寫掉
+                f.flush()
+                os.fsync(f.fileno())
             os.replace(tempname, filename)
             self._count_dirty = False
             self._last_count_save_time = now
