@@ -1,6 +1,7 @@
 # WIME
 
-[![GitHub release](https://img.shields.io/github/release/omni624562/WIME.svg)](https://github.com/omni624562/WIME/releases)
+[![Build](https://github.com/omni624562/WIME/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/omni624562/WIME/actions/workflows/ci.yaml?query=branch%3Amaster)
+[![Latest tag](https://img.shields.io/github/v/tag/omni624562/WIME?sort=date&label=latest)](https://github.com/omni624562/WIME/tags)
 
 Implement input methods easily for Windows via Text Services Framework:
 *   LibIME contains a library which aims to be a simple wrapper for Windows Text Service Framework (TSF).
