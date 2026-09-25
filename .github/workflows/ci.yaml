@@ -3,42 +3,56 @@ name: Build
 on:
   push:
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'true'
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-msvc
-      - name: Run Rust tests
+
+      - name: Run Rust tests (PIMELauncher)
         run: |
           cd PIMELauncher
           cargo test --verbose
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+
+      # Use the embedded 32-bit Python that ships in the installer: it is what the
+      # backends actually run on, and the bundled chewing.dll / tornado need it.
       - name: Run Python backend tests
         run: |
-          python -m unittest discover -s tests -p "*.py" -v
-      - name: Use Install NSIS
+          .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v
+
+      - name: Install NSIS
         uses: repolevedavaj/install-nsis@v1.2.0
         with:
           nsis-version: 3.08
+
+      # Builds x86 (everything, incl. PIMELauncher and the C++ tests), plus the
+      # x64 and ARM64 PIMETextService.dll. Stops at the first failing step.
       - name: Run build.bat
         env:
           Rust_COMPILER: ${{ env.CARGO_HOME }}\bin\rustc.exe
         run: |
-          .\build.bat
+          cmd /C build.bat
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run C++ tests (libIME2, incl. candidate window rendering)
+        run: |
+          cd build
+          ctest -C Release --output-on-failure
+
       - name: Build the installer (dayi/chewing/checj only)
         run: |
-          cmd /C "C:\Program Files (x86)\NSIS\Bin\makensis.exe" "/DONLY_DAYI_CHEWING_CHECJ" ".\installer\installer.nsi"
+          cmd /C "C:\Program Files (x86)\NSIS\Bin\makensis.exe" "/DNO_SIMP_CHINESE" "/DONLY_DAYI_CHEWING_CHECJ" ".\installer\installer.nsi"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - uses: actions/upload-artifact@v4
         with:
           name: Installer
