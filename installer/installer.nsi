@@ -764,9 +764,10 @@ Section "" Register
 	${If} $INST_PYTHON == "True"
 		SetOutPath "$INSTDIR\python"
 !ifdef ONLY_DAYI_CHEWING_CHECJ
-		File /r /x "__pycache__" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" "..\python\*.*"
+		; .pytest_cache：在 python\ 下跑過 pytest 就會出現，不入 git 但會被 /r 一起打包
+		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" "..\python\*.*"
 !else
-		File /r /x "__pycache__" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"
+		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"
 !endif
 		SetOutPath "$INSTDIR\python\input_methods"
 		File "..\python\input_methods\__init__.py"
