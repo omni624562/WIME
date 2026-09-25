@@ -122,8 +122,59 @@ var INST_NODE
 var LIU_UNI_TAB_FILE
 !endif
 
+; Get a possibly-locked file out of the way so a new copy can be written to its path.
+; The TSF DLL is mapped into explorer, browsers, SearchHost and every other app that
+; has used the IME, so during a real upgrade it can essentially never be deleted.
+; Windows refuses to delete a mapped image but does allow renaming it, so rename it
+; aside (like Edge/Chrome do with old_msedge.exe); running apps keep using the old
+; image and newly started ones load the new file. Leftover *.old files are removed by
+; the next install once nothing maps them any more.
+; Deliberately no /REBOOTOK here: it sets the reboot flag, which made the upgrade abort
+; half-way (old version removed, new one never installed), and a boot-time delete
+; scheduled on the ORIGINAL path would also delete the freshly installed file.
+Function moveAsideIfLocked
+	Exch $0 ; path of the file
+	Push $1
+	Delete "$0"
+	${If} ${FileExists} "$0"
+		StrCpy $1 0
+		${Do}
+			Delete "$0.old$1" ; reuse a stale slot if nothing maps it any more
+			${IfNot} ${FileExists} "$0.old$1"
+				ClearErrors
+				Rename "$0" "$0.old$1"
+				${IfNot} ${Errors}
+					${ExitDo}
+				${EndIf}
+			${EndIf}
+			IntOp $1 $1 + 1
+		${LoopUntil} $1 >= 10
+	${EndIf}
+	Pop $1
+	Pop $0
+FunctionEnd
+
+; Force-terminate anything still running from the install dir after the graceful
+; "PIMELauncher.exe /quit": the launcher's worker kill does not reach its python
+; backends, and settings-tool servers (configtool.py) could outlive their idle timeout
+; in older versions. Any of them keeps python\python3\*.dll mapped, which blocks
+; removing the old python tree.
+Function killProcessesInInstDir
+	Push $0
+	nsExec::ExecToLog `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '$INSTDIR\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
+	Pop $0 ; exit code, ignored: best effort
+	Pop $0
+	Sleep 500
+FunctionEnd
+
 ; Uninstall old versions
 Function uninstallOldVersion
+	; Remove leftovers renamed aside by a previous upgrade (see moveAsideIfLocked);
+	; ones still mapped by running apps just stay until the next install.
+	Delete "$INSTDIR\x86\PIMETextService.dll.old*"
+	Delete "$INSTDIR\x64\PIMETextService.dll.old*"
+	Delete "$INSTDIR\arm64\PIMETextService.dll.old*"
+	Delete "$INSTDIR\PIMELauncher.exe.old*"
 	ClearErrors
 	;  run uninstaller
 	ReadRegStr $R0 HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
@@ -150,7 +201,8 @@ Function uninstallOldVersion
 			${If} $1 == $3
 				StrCpy $UPDATEX86DLL "False"
 			${Else}
-				RMDir /REBOOTOK /r "$INSTDIR\x86"
+				Push "$INSTDIR\x86\PIMETextService.dll"
+				Call moveAsideIfLocked
 			${EndIf}
 
 			${If} ${RunningX64}
@@ -166,7 +218,8 @@ Function uninstallOldVersion
 				${If} $1 == $3
 					StrCpy $UPDATEX64DLL "False"
 				${Else}
-					RMDir /REBOOTOK /r "$INSTDIR\x64"
+					Push "$INSTDIR\x64\PIMETextService.dll"
+					Call moveAsideIfLocked
 				${EndIf}
 			${EndIf}
 
@@ -184,7 +237,8 @@ Function uninstallOldVersion
 				${If} $1 == $3
 					StrCpy $UPDATEARM64DLL "False"
 				${Else}
-					RMDir /REBOOTOK /r "$INSTDIR\arm64"
+					Push "$INSTDIR\arm64\PIMETextService.dll"
+					Call moveAsideIfLocked
 				${EndIf}
 			${EndIf}
 
@@ -192,21 +246,28 @@ Function uninstallOldVersion
 			; Otherwise we cannot replace it.
 			ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
 			Sleep 1000
-			Delete /REBOOTOK "$INSTDIR\PIMELauncher.exe"
+			; /quit does not reach the python backends (or leftover settings-tool
+			; servers); kill whatever still runs from the install dir so the old
+			; files below can really be deleted instead of scheduled for reboot.
+			Call killProcessesInInstDir
+			Push "$INSTDIR\PIMELauncher.exe"
+			Call moveAsideIfLocked
 
             Delete "$INSTDIR\backends.json"
-			RMDir /REBOOTOK /r "$INSTDIR\python"
-			RMDir /REBOOTOK /r "$INSTDIR\node"
+			; No /REBOOTOK on anything we are about to reinstall: a boot-time delete
+			; would wipe the new files, and the reboot flag aborts the upgrade.
+			RMDir /r "$INSTDIR\python"
+			RMDir /r "$INSTDIR\node"
 
 			; Only exist in earlier versions, but need to delete it.
-			RMDir /REBOOTOK /r "$INSTDIR\server"
+			RMDir /r "$INSTDIR\server"
 
 			; Delete shortcuts in Start Menu
 			RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
 
 			Delete "$INSTDIR\version.txt"
 			Delete "$INSTDIR\Uninstall.exe"
-			RMDir /REBOOTOK "$INSTDIR"
+			RMDir "$INSTDIR" ; only removed if empty; we reinstall into it anyway
 
 			${If} ${RebootFlag}
 				MessageBox MB_YESNO "$(MB_REBOOT_REQUIRED)" /SD IDNO IDNO +3
@@ -219,6 +280,14 @@ Function uninstallOldVersion
 
 	ClearErrors
 	; Ensure that old files are all deleted
+	; Also covers installs without an uninstall key: nothing may still be running
+	; from the install dir, or overwriting python\python3\*.dll fails and, with
+	; AllowSkipFiles off, aborts the whole install.
+	${If} ${FileExists} "$INSTDIR\PIMELauncher.exe"
+		ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
+		Sleep 1000
+	${EndIf}
+	Call killProcessesInInstDir
 	${If} ${RunningX64}
 		${If} ${FileExists} "$INSTDIR\x64\PIMETextService.dll"
 			; Verify the MD5/SHA1 checksum of 64-bit PIMETextService.dll
@@ -231,9 +300,11 @@ Function uninstallOldVersion
 			${If} $1 == $3
 				StrCpy $UPDATEX64DLL "False"
 			${Else}
-				Delete /REBOOTOK "$INSTDIR\x64\PIMETextService.dll"
-				IfErrors 0 +2
+				Push "$INSTDIR\x64\PIMETextService.dll"
+				Call moveAsideIfLocked
+				${If} ${FileExists} "$INSTDIR\x64\PIMETextService.dll"
 					Call .onInstFailed
+				${EndIf}
 			${EndIf}
 		${EndIf}
 	${EndIf}
@@ -250,9 +321,11 @@ Function uninstallOldVersion
 			${If} $1 == $3
 				StrCpy $UPDATEARM64DLL "False"
 			${Else}
-				Delete /REBOOTOK "$INSTDIR\arm64\PIMETextService.dll"
-				IfErrors 0 +2
+				Push "$INSTDIR\arm64\PIMETextService.dll"
+				Call moveAsideIfLocked
+				${If} ${FileExists} "$INSTDIR\arm64\PIMETextService.dll"
 					Call .onInstFailed
+				${EndIf}
 			${EndIf}
 		${EndIf}
 	${EndIf}
@@ -268,9 +341,11 @@ Function uninstallOldVersion
 		${If} $1 == $3
 			StrCpy $UPDATEX86DLL "False"
 		${Else}
-			Delete /REBOOTOK "$INSTDIR\x86\PIMETextService.dll"
-			IfErrors 0 +2
+			Push "$INSTDIR\x86\PIMETextService.dll"
+			Call moveAsideIfLocked
+			${If} ${FileExists} "$INSTDIR\x86\PIMETextService.dll"
 				Call .onInstFailed
+			${EndIf}
 		${EndIf}
 	${EndIf}
 
