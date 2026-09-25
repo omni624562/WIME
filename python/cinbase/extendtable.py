@@ -11,12 +11,16 @@ class extendtable(object):
         self.chardefs = {}
 
         for line in fs:
-
-            line = line.strip()
+            # 使用者可編輯的檔案：去掉 UTF-8 BOM（否則第一行永遠比對不到），跳過空行
+            # 與沒有空白分隔的行——以前這種行的候選字是字串 "Error"，例如只打了
+            # 「Q」的一行會讓 Shift+Q 輸出 Error
+            line = line.lstrip('\ufeff').strip()
 
             key, root = safeSplit(line)
             key = key.lower().strip()
             root = root.strip()
+            if not key or not root:
+                continue
 
             try:
                 self.chardefs[key].append(root)
@@ -43,6 +47,6 @@ def safeSplit(line):
     elif '\t' in line:
         return line.split('\t', 1)
     else:
-        return line, "Error"
+        return line, ""
 
 __all__ = ["extendtable"]

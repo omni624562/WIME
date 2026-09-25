@@ -15,7 +15,7 @@ class userphrase(object):
 
         for line in fs:
 
-            line = line.lstrip('﻿').strip()
+            line = line.lstrip('\ufeff').strip()
 
             key, root = safeSplit(line)
             key = key.strip()
