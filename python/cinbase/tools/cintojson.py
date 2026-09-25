@@ -482,6 +482,14 @@ def _jsonUpToDate(cinFile, jsonFile):
 
 
 def main():
+    # Progress messages are Chinese. When stdout is redirected (build.bat under
+    # CI, the installer's nsExec) Python encodes with the ANSI code page, which on
+    # non-Chinese Windows (cp1252) cannot represent them - the print raised
+    # UnicodeEncodeError and aborted the whole table conversion.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
     app = CinToJson()
     if len(sys.argv) >= 2:
         cinFile = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "cin", sys.argv[1])
