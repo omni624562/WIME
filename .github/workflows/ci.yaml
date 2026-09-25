@@ -36,12 +36,25 @@ jobs:
 
       # Builds x86 (everything, incl. PIMELauncher and the C++ tests), plus the
       # x64 and ARM64 PIMETextService.dll. Stops at the first failing step.
+      # (No Rust_COMPILER override: `${{ env.CARGO_HOME }}` only sees workflow-level
+      # env, so it expanded to "\bin\rustc.exe". Corrosion finds rustc on PATH.)
+      # On failure, the error lines and log tail are also emitted as annotations so
+      # they are visible without opening the full log.
       - name: Run build.bat
-        env:
-          Rust_COMPILER: ${{ env.CARGO_HOME }}\bin\rustc.exe
+        shell: pwsh
         run: |
-          cmd /C build.bat
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmd /C build.bat *> build.log
+          $code = $LASTEXITCODE
+          Get-Content build.log
+          if ($code -ne 0) {
+            function Annotate($title, $lines) {
+              $text = ($lines -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error title=$title::$text"
+            }
+            Annotate "build.bat error lines (exit $code)" (Select-String -Path build.log -Pattern 'error|Error|FAILED' | Select-Object -First 25 | ForEach-Object { $_.Line })
+            Annotate "build.bat log tail" (Get-Content build.log -Tail 30)
+            exit $code
+          }
 
       - name: Run C++ tests (libIME2, incl. candidate window rendering)
         run: |
