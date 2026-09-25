@@ -71,7 +71,10 @@ class RCin(object):
         return key in self.keynames
 
     def getKeyName(self, key):
-        return self.keynames[key]
+        # Some codes use keys that %keyname does not list (thdayi's "=," for ，,
+        # array30's digits, CnsPhonetic's accented keys): show the key itself
+        # instead of raising KeyError on the keystroke path.
+        return self.keynames.get(key, key)
 
     def isHaveKey(self, val):
         return val in self._char_to_keys

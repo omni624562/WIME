@@ -26,6 +26,13 @@ def insertString(cbTS, text, removeStringLength):
 
 def removeString(cbTS, removeStringLength, removeBefore):
     """自游標前（removeBefore）或游標後刪除 removeStringLength 個字。"""
+    # 不可刪超過游標那一側實際有的字數：例如功能選單在緩衝已被清空後退出，
+    # 仍會扣掉組字長度，游標變成負數，之後以游標取字就 IndexError
+    if removeBefore:
+        removeStringLength = max(0, min(removeStringLength, cbTS.compositionBufferCursor))
+    else:
+        removeStringLength = max(0, min(removeStringLength,
+                                        len(cbTS.compositionBufferString) - cbTS.compositionBufferCursor))
     if removeBefore:
         compPos1 = cbTS.compositionBufferCursor - removeStringLength
         compPos2 = cbTS.compositionBufferCursor - len(cbTS.compositionBufferString)

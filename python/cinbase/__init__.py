@@ -282,6 +282,34 @@ class CinBase:
         self.customizeCandidateUI(cbTS, force=True)
 
 
+    @staticmethod
+    def unicodeInputCodePoint(hexDigits):
+        """`U 輸入的十六進位字串 → 可送出的碼位；不合法（非十六進位、超出 U+10FFFF、
+        代理字元 D800-DFFF、C0 控制字元與 DEL）回傳 None。"""
+        try:
+            codePoint = int(hexDigits, 16)
+        except ValueError:
+            return None
+        if codePoint < 0x20 or codePoint == 0x7F or 0xD800 <= codePoint <= 0xDFFF or codePoint > 0x10FFFF:
+            return None
+        return codePoint
+
+    def clampCandidatePosition(self, cbTS, pagecandidates, currentCandPage, candCursor):
+        """頁碼與游標沿用上一個按鍵的值，但候選清單可能已經變了（新打的字根、
+        Ctrl/Shift 符號、聯想字、選單內容或每頁數量改變…）。超出範圍就回到第一頁、
+        第一個候選，否則 pagecandidates[currentCandPage] / candidateList[candCursor]
+        會 IndexError——例外讓 server 回 success:false，C++ 端整條管道被重置。
+        回傳 (pagecandidates, currentCandPage, candCursor)。"""
+        if not pagecandidates:
+            pagecandidates = [[]]
+        if not 0 <= currentCandPage < len(pagecandidates):
+            currentCandPage = 0
+            cbTS.setCandidatePage(0)
+        if not 0 <= candCursor < max(1, len(pagecandidates[currentCandPage])):
+            candCursor = 0
+            cbTS.setCandidateCursor(0)
+        return pagecandidates, currentCandPage, candCursor
+
     def setModernCandidatePageInfo(self, cbTS, currentCandPage, pagecandidates):
         if not getattr(cbTS.cfg, 'candidateModernStyle', False):
             return
@@ -617,6 +645,11 @@ class CinBase:
                             cbTS.compositionChar = charStr
                             candidates = cbTS.msymbols.getCharDef(cbTS.compositionChar)
                             self.setCompositionBufferString(cbTS, candidates[0], RemoveStringLength)
+                    # 換上另一組符號清單：游標與頁碼從頭開始。onKeyDown 後段「按下其它鍵
+                    # 就歸零」的邏輯在 ctrlsymbolsmode 下會略過，沿用舊游標會指到新清單
+                    # 範圍外（Enter/空白鍵選字時 IndexError）。
+                    cbTS.setCandidateCursor(0)
+                    cbTS.setCandidatePage(0)
                     if cbTS.imeDirName == "chedayi":
                         if charStr in "'[]-\\":
                             cbTS.canUseSelKey = False
@@ -686,7 +719,10 @@ class CinBase:
 
             # 候選清單分頁
             pagecandidates = pager.paginate(candidates, cbTS.candPerPage)
+            pagecandidates, currentCandPage, candCursor = self.clampCandidatePosition(
+                cbTS, pagecandidates, currentCandPage, candCursor)
             cbTS.setCandidateList(pagecandidates[currentCandPage])
+            candCount = len(cbTS.candidateList)
             if not cbTS.isSelKeysChanged:
                 cbTS.setShowCandidates(True)
             cbTS.resetMenuCand = False
@@ -1041,7 +1077,9 @@ class CinBase:
                     cbTS.menusymbolsmode = False
                     cbTS.compositionChar += charStr
                 elif cbTS.compositionChar[:2] == '`U':
-                    if keyCode >= 0x30 and keyCode <= 0x46:
+                    # 只收十六進位字元；以 keyCode 判斷會把 Shift+數字（!@#…，同為 0x31…）
+                    # 也收進來，送出時 int(…, 16) 就 ValueError
+                    if len(charStr) == 1 and charStr.upper() in "0123456789ABCDEF":
                         cbTS.compositionChar += charStr.upper()
                         if cbTS.compositionBufferMode:
                             self.setCompositionBufferString(cbTS, charStr.upper(), 0)
@@ -1639,8 +1677,10 @@ class CinBase:
                             candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                             cbTS.selcandmode = True
                     else:
-                        if cbTS.cin.isHaveKey(cbTS.compositionBufferString[cbTS.compositionBufferCursor]):
-                            cbTS.compositionChar = cbTS.cin.getKey(cbTS.compositionBufferString[cbTS.compositionBufferCursor])
+                        # 用上面已處理過「游標在最末端」的 selStringPos；直接用游標會在
+                        # 末端時 IndexError
+                        if cbTS.cin.isHaveKey(cbTS.compositionBufferString[selStringPos]):
+                            cbTS.compositionChar = cbTS.cin.getKey(cbTS.compositionBufferString[selStringPos])
                             candidates = cbTS.cin.getCharDef(cbTS.compositionChar)
                             if cbTS.sortByPhrase and candidates:
                                 candidates = self.sortByPhrase(cbTS, list(candidates))
@@ -1882,7 +1922,10 @@ class CinBase:
                             pagecandidates = cbTS.wildcardpagecandidates
                     else:
                         pagecandidates = pager.paginate(candidates, cbTS.candPerPage)
+                    pagecandidates, currentCandPage, candCursor = self.clampCandidatePosition(
+                        cbTS, pagecandidates, currentCandPage, candCursor)
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
+                    candCount = len(cbTS.candidateList)
 
                     if not cbTS.isSelKeysChanged:
                         cbTS.setShowCandidates(True)
@@ -2066,8 +2109,15 @@ class CinBase:
                                 self.resetComposition(cbTS)
                             else:
                                 if cbTS.compositionChar[:2] == '`U':
-                                    if len(cbTS.compositionChar) > 2:
-                                        commitStr = chr(int(cbTS.compositionChar[2:], 16))
+                                    codePoint = self.unicodeInputCodePoint(cbTS.compositionChar[2:])
+                                    if len(cbTS.compositionChar) > 2 and codePoint is None:
+                                        # 超出 U+10FFFF、代理字元（送給 C++ 前 orjson 就會失敗）或控制字元：
+                                        # 保留組字讓使用者用 Backspace 修正
+                                        if not cbTS.client.isUiLess:
+                                            cbTS.isShowMessage = True
+                                            cbTS.showMessage("無效的 Unicode 編碼...", cbTS.messageDurationTime)
+                                    elif len(cbTS.compositionChar) > 2:
+                                        commitStr = chr(codePoint)
                                         cbTS.lastCommitString = commitStr
                                         if not cbTS.client.isUiLess:
                                             cbTS.isShowMessage = True
@@ -2121,19 +2171,9 @@ class CinBase:
             if self.isNumberChar(keyCode) and keyEvent.isKeyDown(VK_SHIFT) and not cbTS.imeDirName == "chedayi":
                 charCode = keyCode
                 charStr = chr(charCode)
-            phrasecandidates = []
-            if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
-                phrasecandidates = list(cbTS.userphrase.getCharDef(cbTS.lastCommitString))
-            if PhraseData.phrase.isInCharDef(cbTS.lastCommitString):
-                if len(phrasecandidates) == 0:
-                    phrasecandidates = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
-                else:
-                    if not cbTS.isShowPhraseCandidates:
-                        plist = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
-                        for pstr in plist:
-                            if not pstr in phrasecandidates:
-                                phrasecandidates.append(pstr)
-            phrasecandidates = self.filterExcludedPhrases(cbTS, cbTS.lastCommitString, phrasecandidates)
+            # 每個按鍵都重算完整清單（原本只在顯示後的第一個按鍵合併內建詞庫，
+            # 之後清單縮成只剩使用者詞，選第 3 個以後的鍵就被吃掉）
+            phrasecandidates = self.phraseSuggestions(cbTS, cbTS.lastCommitString)
 
             if phrasecandidates:
                 candCursor = cbTS.candidateCursor  # 目前的游標位置
@@ -2148,7 +2188,10 @@ class CinBase:
 
                 # 候選清單分頁
                 pagecandidates = pager.paginate(phrasecandidates, cbTS.candPerPage)
+                pagecandidates, currentCandPage, candCursor = self.clampCandidatePosition(
+                    cbTS, pagecandidates, currentCandPage, candCursor)
                 cbTS.setCandidateList(pagecandidates[currentCandPage])
+                candCount = len(cbTS.candidateList)
                 cbTS.setShowCandidates(True)
 
                 # 使用選字鍵執行項目或輸出候選字
@@ -2586,6 +2629,11 @@ class CinBase:
             # 焦點離開或組字被外部中斷：游標多半已移動，
             # 「前一字上下文」不再可靠，避免加權到不相干的位置
             cbTS.lastCommitString = ""
+            # 焦點離開時功能選單也要關閉。原本 showmenu 會留著：回到視窗後舊選單
+            # 再冒出、下一個鍵被吃掉；鍵盤關閉再開啟後 ` 永遠被吞；組字緩衝模式下
+            # 緩衝已被清空，退出選單時再扣組字長度會讓緩衝游標變負數。
+            if cbTS.showmenu:
+                self.closeMenuCand(cbTS)
 
         if not cbTS.showmenu and not cbTS.keepComposition:
             self.resetComposition(cbTS)
@@ -2969,21 +3017,25 @@ class CinBase:
             excluded = set(exclude.getCharDef(leadChar))
         return [p for p in phraselist if p not in excluded]
 
-    def sortByPhrase(self, cbTS, candidates):
-        sortbyphraselist = []
-        if cbTS.userphrase.isInCharDef(cbTS.lastCommitString):
-            sortbyphraselist = list(cbTS.userphrase.getCharDef(cbTS.lastCommitString))
-        if PhraseData.phrase.isInCharDef(cbTS.lastCommitString):
-            if len(sortbyphraselist) == 0:
-                sortbyphraselist = PhraseData.phrase.getCharDef(cbTS.lastCommitString)
-            else:
-                seen = set(sortbyphraselist)
-                for pstr in PhraseData.phrase.getCharDef(cbTS.lastCommitString):
-                    if pstr not in seen:
-                        sortbyphraselist.append(pstr)
-                        seen.add(pstr)
+    def phraseSuggestions(self, cbTS, leadChar):
+        """leadChar 之後的聯想詞：使用者詞（userphrase.dat）在前、內建詞庫接在後並去重，
+        再套用排除清單。內建詞庫由背景執行緒載入，載入中或載入失敗時
+        PhraseData.phrase 為 None——此時只用使用者詞，不可拋例外（每個按鍵都會走到）。"""
+        suggestions = []
+        userphrase = getattr(cbTS, 'userphrase', None)
+        if userphrase is not None and userphrase.isInCharDef(leadChar):
+            suggestions = list(userphrase.getCharDef(leadChar))
+        phraseTable = PhraseData.phrase
+        if phraseTable is not None and phraseTable.isInCharDef(leadChar):
+            seen = set(suggestions)
+            for pstr in phraseTable.getCharDef(leadChar):
+                if pstr not in seen:
+                    suggestions.append(pstr)
+                    seen.add(pstr)
+        return self.filterExcludedPhrases(cbTS, leadChar, suggestions)
 
-        sortbyphraselist = self.filterExcludedPhrases(cbTS, cbTS.lastCommitString, sortbyphraselist)
+    def sortByPhrase(self, cbTS, candidates):
+        sortbyphraselist = self.phraseSuggestions(cbTS, cbTS.lastCommitString)
         if not sortbyphraselist:
             return candidates
 
