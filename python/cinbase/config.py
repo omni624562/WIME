@@ -31,6 +31,53 @@ selKeys=(
     "1234567890"
 )
 
+# Valid ranges for integer settings (at least as wide as the settings page allows);
+# anything outside falls back to the default in CinBaseConfig.normalize(). Table
+# indices are range-checked against the IME's table list where they are used.
+_INT_RANGES = (
+    ("candPerRow", 1, 10),
+    ("candPerPage", 1, 10),
+    ("candidatePerRow", 1, 10),
+    ("candMaxItems", 1, 10000),
+    ("fontSize", 6, 200),
+    ("candidateOpacity", 30, 100),
+    ("candidatePositionMode", 0, 1),
+    ("candidateMinWidth", 0, 4000),
+    ("candidateMaxWidth", 0, 4000),
+    ("selWildcardType", 0, 1),
+    ("switchLangWithWhichShift", 0, 2),
+    ("messageDurationTime", 0, 60),
+    ("selCinType", 0, 999),
+    ("selRCinType", 0, 999),
+    ("selHCinType", 0, 999),
+)
+
+
+def _toInt(value, default):
+    """"5" / 5.0 / " 7 " -> int; "", None, "abc", lists... -> default."""
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return default
+    return value if isinstance(value, int) else default
+
+
+def _toBool(value, default):
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in ("true", "1", "yes", "on"):
+            return True
+        if lowered in ("false", "0", "no", "off", ""):
+            return False
+    return default
+
 class CinBaseConfig:
 
     def __init__(self):
@@ -130,13 +177,20 @@ class CinBaseConfig:
     def load(self):
         # Layer 1: apply shipped defaults so new keys reach all users regardless of
         # whether they already have an APPDATA config from a previous install.
+        # The shipped files are UTF-8 with Chinese text; the backend runs without
+        # Python's UTF-8 mode, so open() without an encoding used the ANSI code page
+        # (cp950 on zh-TW Windows), failed, and the error was swallowed - none of the
+        # per-IME defaults (directShowCand, the * wildcard, modern layout, display
+        # name...) ever took effect for zh-TW users.
         default_config = os.path.join(self.getDefaultConfigDir(), "config.json")
         try:
             if os.path.exists(default_config) and os.stat(default_config).st_size > 0:
-                with open(default_config, "r") as f:
+                with open(default_config, "r", encoding="utf-8-sig") as f:
                     self.__dict__.update(json.load(f))
         except Exception:
             pass
+        self.normalize()
+        shipped = dict(self.__dict__)
 
         # Layer 2: overlay with the user's personal config (APPDATA or legacy home-dir path).
         filename = self.getConfigFile()
@@ -153,23 +207,93 @@ class CinBaseConfig:
                     filename = self.getConfigFile()
 
             if filename:
-                with open(filename, "r") as f:
-                    self.__dict__.update(json.load(f))
+                self.__dict__.update(self._readUserConfig(filename))
         except Exception:
-            self.save()
+            # Keep the user's file: it used to be overwritten with defaults here, so a
+            # typo (or the encoding bug above) silently wiped all of their settings.
+            # Keep a copy aside for them and carry on with the defaults.
+            self._backupBrokenConfig(filename)
+        self.normalize(shipped)
         self.update()
+
+    @staticmethod
+    def _readUserConfig(filename):
+        # Written as ASCII JSON by the backend and the settings page; tolerate a BOM
+        # and legacy files hand-edited in the ANSI code page.
+        with open(filename, "rb") as f:
+            raw = f.read()
+        try:
+            text = raw.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = raw.decode("mbcs")
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("config.json is not a JSON object")
+        return data
+
+    @staticmethod
+    def _backupBrokenConfig(filename):
+        try:
+            if filename and os.path.exists(filename):
+                backup = "%s.broken-%d" % (filename, int(os.path.getmtime(filename)))
+                if not os.path.exists(backup):
+                    shutil.copy2(filename, backup)
+        except Exception:
+            pass
+
+    def normalize(self, fallback=None):
+        """Coerce settings read from config.json to the types and ranges the code
+        expects. Values come from the settings page (older/newer versions, empty
+        number fields are saved as ""), or from hand edits; a wrong type used to raise
+        on activation or on every keystroke (e.g. candidatePerRow "" -> TypeError in
+        the pager, selWildcardType 2 -> selWildcardChar never set).
+        Invalid values are replaced from fallback (the shipped per-IME defaults when
+        normalizing the user's layer), else from the class defaults."""
+        defaults = type(self)().__dict__
+        if fallback is None:
+            fallback = defaults
+        for key, default in defaults.items():
+            if key.startswith("_") or key in self.ignoreSaveList:
+                continue
+            value = self.__dict__.get(key, default)
+            good = fallback.get(key, default)
+            if isinstance(default, bool):
+                if not isinstance(value, bool):
+                    self.__dict__[key] = _toBool(value, good)
+            elif isinstance(default, int):
+                if isinstance(value, bool) or not isinstance(value, int):
+                    self.__dict__[key] = _toInt(value, good)
+            elif isinstance(default, str):
+                # 設定頁把看起來像數字的文字欄位存成數字（顯示名稱填 "123" 就變 123）
+                if not isinstance(value, str):
+                    self.__dict__[key] = str(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else good
+            elif isinstance(default, dict):
+                if not isinstance(value, dict):
+                    self.__dict__[key] = good
+        for key, low, high in _INT_RANGES:
+            if not low <= self.__dict__[key] <= high:
+                good = fallback.get(key, defaults[key])
+                self.__dict__[key] = good if low <= good <= high else defaults[key]
 
     def toJson(self):
         return {key: value for key, value in self.__dict__.items() if not key.startswith("_") and not key in self.ignoreSaveList}
 
     def save(self):
         filename = self.getConfigFile()
+        tmp_filename = filename + ".tmp"
         try:
-            with open(filename, "w") as f:
+            # write-then-rename: a crash or full disk mid-write must not leave a
+            # truncated config.json (which the next load would treat as broken)
+            with open(tmp_filename, "w", encoding="utf-8") as f:
                 json.dump(self.toJson(), f, sort_keys=True, indent=4)
+            os.replace(tmp_filename, filename)
             self.update()
         except Exception:
-            pass # FIXME: handle I/O errors?
+            try:
+                if os.path.exists(tmp_filename):
+                    os.remove(tmp_filename)
+            except Exception:
+                pass
 
     def getDataDir(self):
         return os.path.join(os.path.dirname(__file__), "data")

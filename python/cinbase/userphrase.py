@@ -10,26 +10,25 @@ class userphrase(object):
 
         self.keynames = []
         self.chardefs = {}
+        # 以前用 list 判斷重複，詞庫有上萬行時每次建立輸入法實例都要跑數秒
+        seen = set()
 
         for line in fs:
 
-            line = line.strip()
+            line = line.lstrip('﻿').strip()
 
             key, root = safeSplit(line)
             key = key.strip()
+            # 空行、「=詞」這種沒有字的行，以及結尾多打的逗號都略過，
+            # 否則聯想清單會出現空白候選字
+            candidates = [rootstr.strip() for rootstr in rootSplit(root) if rootstr.strip()]
+            if not key or not candidates:
+                continue
 
-            rootlist = rootSplit(root)
-            
-            if len(rootlist) > 0:
-                for rootstr in rootlist:
-                    stripstr = rootstr.strip()
-                    try:
-                        self.chardefs[key].append(stripstr)
-                    except KeyError:
-                        self.chardefs[key] = [stripstr]
-
-                if key not in self.keynames:
-                    self.keynames.append(key)
+            self.chardefs.setdefault(key, []).extend(candidates)
+            if key not in seen:
+                seen.add(key)
+                self.keynames.append(key)
 
     def __del__(self):
         del self.keynames
@@ -44,7 +43,7 @@ class userphrase(object):
         """ 
         will return a list conaining all possible result
         """
-        return self.chardefs[key]
+        return self.chardefs.get(key, [])
 
     def getKeyNames(self):
         return self.keynames

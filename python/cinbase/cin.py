@@ -5,6 +5,7 @@ import os
 import re
 import json
 import copy
+import shutil
 import time
 
 
@@ -66,18 +67,22 @@ class Cin(object):
         try:
             import orjson
             content = fs.read()
-            self.__dict__.update(orjson.loads(content))
+            data = orjson.loads(content)
         except Exception:
             try:
                 import ujson
                 fs.seek(0)
-                self.__dict__.update(ujson.load(fs))
+                data = ujson.load(fs)
             except Exception:
                 try:
                     fs.seek(0)
                 except Exception:
                     pass
-                self.__dict__.update(json.load(fs))
+                data = json.load(fs)
+        # 碼表 JSON 的 "cincount" 是 cintojson 產生的字集統計（{"big5F": 10505, ...}），
+        # 和使用者選字次數同名；直接 update 進來會被一起寫進 cincount.json
+        data.pop("cincount", None)
+        self.__dict__.update(data)
 
         if self.ignorePrivateUseArea:
             for key in self.privateuse:
@@ -99,6 +104,11 @@ class Cin(object):
 
 
     def __del__(self):
+        # 會被明確呼叫（換碼表時），物件回收時 Python 還會再呼叫一次。第一次若
+        # 存檔失敗（檔案被防毒暫時鎖住），第二次就會把下面清空的 {} 寫出去
+        if getattr(self, "_closed", False):
+            return
+        self._closed = True
         try:
             self.saveCountFile(force=True)
         except Exception:
@@ -313,7 +323,14 @@ class Cin(object):
                         if changed:
                             self._count_dirty = True
             except Exception:
-                pass
+                # 讀不懂就從頭累計，但先留一份：下次存檔會覆寫原檔，
+                # 使用者累積的選字習慣就永久消失
+                try:
+                    backup = "%s.broken-%d" % (filename, int(os.path.getmtime(filename)))
+                    if not os.path.exists(backup):
+                        shutil.copy2(filename, backup)
+                except Exception:
+                    pass
 
     def saveCountFile(self, force=False):
         if not self._count_dirty:

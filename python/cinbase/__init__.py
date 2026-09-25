@@ -71,6 +71,35 @@ ID_LITTLEDICT = 11
 ID_PROVERBDICT = 12
 ID_OUTPUT_SIMP_CHINESE = 13
 
+# 碼表載入失敗（檔案缺失、損毀）後，多久才再試一次。checkConfigChange 每個
+# 請求都會檢查，不節流的話失敗期間每個按鍵都會開一條執行緒重新解析碼表
+TABLE_RETRY_INTERVAL = 5.0
+
+
+def tableIndex(value, count):
+    """設定裡的碼表索引 -> 合法索引；型別錯、負數（Python 會從尾端取）或超出
+    清單都回 0。"""
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < count:
+        return 0
+    return value
+
+
+def tableLoadRecentlyFailed(table):
+    return time.time() - getattr(table, 'lastLoadFailure', 0.0) < TABLE_RETRY_INTERVAL
+
+
+def readDataText(path):
+    """使用者可編輯的 .dat 檔：設定頁存成 UTF-8，但手動編輯的舊檔可能是 ANSI
+    （zh-TW 為 cp950）；以前一律用 UTF-8 解碼，失敗就讓整批表格載入中斷。"""
+    with open(path, 'rb') as f:
+        raw = f.read()
+    try:
+        text = raw.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        text = raw.decode('mbcs', errors='replace')
+    return io.StringIO(text, newline=None)
+
+
 # 候選窗主題共用邏輯已抽出到頂層 candidate_theme 模組（重構 B）。
 # 在此 re-export，維持既有 cinbase.resolveCandidateTheme 等引用路徑不變。
 from candidate_theme import (
@@ -379,7 +408,8 @@ class CinBase:
         if hasattr(cbTS, 'dsymbols'):
             del cbTS.dsymbols
 
-        if hasattr(cbTS, 'cin'):
+        # 碼表載入失敗時 cin 是 None
+        if getattr(cbTS, 'cin', None) is not None:
             cbTS.cin.saveCountFile(force=True)
 
 
@@ -397,7 +427,14 @@ class CinBase:
             cbTS.lastKeyDownTime = time.time()
 
         if CinTable.loading or not getattr(cbTS, 'cin', None):
-            return True
+            # 碼表還沒就緒（背景重載中，或檔案缺失/損毀而載入失敗）：只攔下
+            # 中文模式下會拿來組字的可見字元，onKeyDown 顯示「正在載入」。
+            # 以前一律攔下，載入失敗時連 Ctrl+C、Enter、方向鍵都送不到應用程式
+            if cbTS.isComposing() or cbTS.showCandidates:
+                return True
+            if keyEvent.isKeyDown(VK_MENU) or keyEvent.isKeyDown(VK_CONTROL):
+                return False
+            return cbTS.langMode == CHINESE_MODE and keyEvent.isPrintableChar()
 
         # 使用者開始輸入，還沒送出前的編輯區內容稱 composition string
         # isComposing() 是 False，表示目前編輯區是空的
@@ -1856,7 +1893,7 @@ class CinBase:
                                             if not cbTS.client.isUiLess:
                                                 cbTS.isShowMessage = True
                                                 cbTS.showMessageOnKeyUp = True
-                                                if cbTS.RCinFileNotExist:
+                                                if getattr(RCinTable, 'fileNotExist', cbTS.RCinFileNotExist):
                                                     cbTS.onKeyUpMessage = "反查字根碼表檔案不存在！"
                                                 else:
                                                     cbTS.onKeyUpMessage = "反查字根碼表尚在載入中！"
@@ -2044,6 +2081,14 @@ class CinBase:
                                     cbTS.homophonecandidates = HCinTable.cin.getCharDef(HCinTable.cin.getKey(commitStr))
                                     pagecandidates = pager.paginate(cbTS.homophonecandidates, cbTS.candPerPage)
                                     cbTS.setCandidateList(pagecandidates[currentCandPage])
+                        elif not cbTS.client.isUiLess:
+                            # 以前什麼都不做，使用者不知道為什麼同音字查詢沒反應
+                            cbTS.isShowMessage = True
+                            cbTS.showMessageOnKeyUp = True
+                            if getattr(HCinTable, 'fileNotExist', False):
+                                cbTS.onKeyUpMessage = "同音字碼表檔案不存在！"
+                            else:
+                                cbTS.onKeyUpMessage = "同音字碼表尚在載入中！"
                     elif (keyCode == VK_RETURN or (keyCode == VK_SPACE and not cbTS.switchPageWithSpace)) and cbTS.canSetCommitString:  # 按下 Enter 鍵或空白鍵
                         if not cbTS.homophoneselpinyinmode:
                             # 找出目前游標位置的選字鍵 (1234..., asdf...等等)
@@ -3196,7 +3241,7 @@ class CinBase:
                 if not cbTS.client.isUiLess:
                     cbTS.isShowMessage = True
                     cbTS.showMessageOnKeyUp = True
-                    if cbTS.RCinFileNotExist:
+                    if getattr(RCinTable, 'fileNotExist', cbTS.RCinFileNotExist):
                         cbTS.onKeyUpMessage = "反查字根碼表檔案不存在！"
                     else:
                         cbTS.onKeyUpMessage = "反查字根碼表尚在載入中！"
@@ -3350,54 +3395,40 @@ class CinBase:
             del cbTS.dsymbols
 
         self.applyConfig(cbTS) # 套用其餘的使用者設定
-        
-        datadirs = (cfg.getConfigDir(), cfg.getDataDir())
-        swkbPath = cfg.findFile(datadirs, "swkb.dat")
-        with io.open(swkbPath, 'r', encoding='utf-8') as fs:
-            cbTS.swkb = swkb(fs)
 
-        symbolsPath = cfg.findFile(datadirs, "symbols.dat")
-        with io.open(symbolsPath, 'r', encoding='utf-8') as fs:
-            cbTS.symbols = symbols(fs)
-
-        fsymbolsPath = cfg.findFile(datadirs, "fsymbols.dat")
-        with io.open(fsymbolsPath, 'r', encoding='utf-8') as fs:
-            cbTS.fsymbols = fsymbols(fs)
-
-        flangsPath = cfg.findFile(datadirs, "flangs.dat")
-        with io.open(flangsPath, 'r', encoding='utf-8') as fs:
-            cbTS.flangs = flangs(fs)
-
-        userphrasePath = cfg.findFile(datadirs, "userphrase.dat")
-        with io.open(userphrasePath, 'r', encoding='utf-8') as fs:
-            cbTS.userphrase = userphrase(fs)
-
+        # 上面已刪掉舊表格，這裡每個都必須重新給值：以前任一檔解析失敗（例如
+        # ANSI 編碼的 symbols.dat）就中斷，後面的表格全都不存在，之後每個用到
+        # 它們的按鍵都丟 AttributeError
+        cbTS.swkb = self.loadDataFile(cfg, "swkb.dat", swkb)
+        cbTS.symbols = self.loadDataFile(cfg, "symbols.dat", symbols)
+        cbTS.fsymbols = self.loadDataFile(cfg, "fsymbols.dat", fsymbols)
+        cbTS.flangs = self.loadDataFile(cfg, "flangs.dat", flangs)
+        cbTS.userphrase = self.loadDataFile(cfg, "userphrase.dat", userphrase)
         # 排除聯想字詞（內建詞庫裡不想看到的詞，如人名）；語法與詞庫相同
-        try:
-            excludephrasePath = cfg.findFile(datadirs, "excludephrase.dat")
-            with io.open(excludephrasePath, 'r', encoding='utf-8') as fs:
-                cbTS.excludephrase = userphrase(fs)
-        except Exception:
-            cbTS.excludephrase = userphrase([])
-
-        msymbolsPath = cfg.findFile(datadirs, "msymbols.json")
-        with io.open(msymbolsPath, 'r', encoding='utf-8') as fs:
-            cbTS.msymbols = msymbols(fs)
-
-        extendtablePath = cfg.findFile(datadirs, "extendtable.dat")
-        with io.open(extendtablePath, 'r', encoding='utf8') as fs:
-            cbTS.extendtable = extendtable(fs)
+        cbTS.excludephrase = self.loadDataFile(cfg, "excludephrase.dat", userphrase)
+        cbTS.msymbols = self.loadDataFile(cfg, "msymbols.json", msymbols, empty="{}")
+        cbTS.extendtable = self.loadDataFile(cfg, "extendtable.dat", extendtable)
 
         if cbTS.useDayiSymbols:
-            dsymbolsPath = cfg.findFile(datadirs, "dsymbols.json")
-            with io.open(dsymbolsPath, 'r', encoding='utf8') as fs:
-                cbTS.dsymbols = dsymbols(fs)
+            cbTS.dsymbols = self.loadDataFile(cfg, "dsymbols.json", dsymbols, empty="{}")
 
         if not PhraseData.phrase and not PhraseData.loading:
             loadPhraseData = LoadPhraseData(cbTS, PhraseData)
             loadPhraseData.start()
 
         cbTS.initCinBaseState = True
+
+
+    def loadDataFile(self, cfg, name, parser, empty=""):
+        """解析使用者資料夾的 name，失敗就改用內建的那份，都失敗則給空表格。"""
+        for datadir in (cfg.getConfigDir(), cfg.getDataDir()):
+            path = os.path.join(datadir, name)
+            if os.path.exists(path):
+                try:
+                    return parser(readDataText(path))
+                except Exception:
+                    pass
+        return parser(io.StringIO(empty))
 
 
     def customizeCandidateUI(self, cbTS, force=False):
@@ -3523,10 +3554,8 @@ class CinBase:
         cbTS.supportWildcard = cfg.supportWildcard
 
         # 使用的萬用字元?
-        if cfg.selWildcardType == 0:
-            cbTS.selWildcardChar = 'z'
-        elif cfg.selWildcardType == 1:
-            cbTS.selWildcardChar = '*'
+        # 只有 0（z）與 1（*）；以前其他值讓 selWildcardChar 從未設定，打字時 AttributeError
+        cbTS.selWildcardChar = '*' if cfg.selWildcardType == 1 else 'z'
 
         # 最大候選字個數?
         cbTS.candMaxItems = cfg.candMaxItems
@@ -3572,7 +3601,8 @@ class CinBase:
                 cbTS.cin.saveCountFile()
 
         # 如果有更換輸入法碼表，就重新載入碼表資料
-        if not CinTable.loading:
+        # （剛載入失敗就先別重試：失敗時下面的條件都還成立，每個請求都會再開一次）
+        if not CinTable.loading and not tableLoadRecentlyFailed(CinTable):
             if not CinTable.curCinType == cfg.selCinType:
                 reLoadCinTable = True
 
@@ -3595,14 +3625,14 @@ class CinBase:
 
         if cfg.imeReverseLookup or cbTS.imeReverseLookup:
             # 載入反查輸入法碼表
-            if not RCinTable.loading and not CinTable.loading:
+            if not RCinTable.loading and not CinTable.loading and not tableLoadRecentlyFailed(RCinTable):
                 if not RCinTable.curCinType == cfg.selRCinType or RCinTable.cin is None:
                     loadRCinFile = LoadRCinTable(cbTS, RCinTable)
                     loadRCinFile.start()
 
         if cfg.homophoneQuery or cbTS.homophoneQuery:
             # 載入同音字碼表
-            if not HCinTable.loading and not CinTable.loading:
+            if not HCinTable.loading and not CinTable.loading and not tableLoadRecentlyFailed(HCinTable):
                 if not HCinTable.curCinType == cfg.selHCinType or HCinTable.cin is None:
                     loadHCinFile = LoadHCinTable(cbTS, HCinTable)
                     loadHCinFile.start()
@@ -3616,13 +3646,9 @@ class CinBase:
             self.applyConfig(cbTS)
 
         if reLoadCinTable or updateExtendTable:
-            datadirs = (cfg.getConfigDir(), cfg.getDataDir())
             if updateExtendTable:
-                if hasattr(cbTS, 'extendtable'):
-                    del cbTS.extendtable
-                extendtablePath = cfg.findFile(datadirs, "extendtable.dat")
-                with io.open(extendtablePath, encoding='utf-8') as fs:
-                    cbTS.extendtable = extendtable(fs)
+                # 這裡在每個請求處理前執行，丟例外就是該請求失敗、C++ 端重置管道
+                cbTS.extendtable = self.loadDataFile(cfg, "extendtable.dat", extendtable)
             if reLoadCinTable:
                 cbTS.reLoadCinTable = True
             loadCinFile = LoadCinTable(cbTS, CinTable)
@@ -3687,40 +3713,42 @@ class LoadCinTable(threading.Thread):
 
         self.CinTable.loading = True
         selCinFile = None
+        cbTS = self.cbTS
+        cfg = cbTS.cfg
         try:
-            if self.cbTS.cfg.selCinType >= len(self.cbTS.cinFileList):
-                self.cbTS.cfg.selCinType = 0
-            selCinFile = self.cbTS.cinFileList[self.cbTS.cfg.selCinType]
-            jsonPath = os.path.join(self.cbTS.jsondir, selCinFile)
+            cfg.selCinType = tableIndex(cfg.selCinType, len(cbTS.cinFileList))
+            selCinFile = cbTS.cinFileList[cfg.selCinType]
+            jsonPath = os.path.join(cbTS.jsondir, selCinFile)
 
-            if self.cbTS.reLoadCinTable or not hasattr(self.cbTS, 'cin'):
-                self.cbTS.reLoadCinTable = False
+            current = getattr(cbTS, 'cin', None)
+            if cbTS.reLoadCinTable or current is None:
+                cbTS.reLoadCinTable = False
+                # 先解析新碼表，成功才換掉舊的：以前先清掉舊表再讀檔，讀檔失敗後
+                # cbTS.cin 是 None，下一次重載呼叫 None.__del__() 就丟例外，
+                # 這個實例再也載不回碼表，使用者只看到「正在載入輸入法碼表」
+                try:
+                    with io.open(jsonPath, 'r', encoding='utf8') as fs:
+                        newCin = Cin(fs, cbTS.imeDirName, cbTS.ignorePrivateUseArea)
+                except Exception:
+                    self.CinTable.lastLoadFailure = time.time()
+                    if current is None:
+                        cbTS.cin = self.CinTable.cin   # 還有別的實例載好的表就先用
+                    raise
 
-                if hasattr(self.cbTS, 'cin'):
-                    self.cbTS.cin.__del__()
-                if hasattr(self.CinTable.cin, '__del__'):
-                    self.CinTable.cin.__del__()
+                # 實例與共用的通常是同一個物件，只關閉一次（__del__ 會寫出選字次數）
+                for old in {id(table): table for table in (current, self.CinTable.cin) if table is not None}.values():
+                    old.__del__()
+                cbTS.cin = newCin
+                self.CinTable.cin = newCin
+                self.CinTable.curCinType = cfg.selCinType
+                self.CinTable.lastLoadFailure = 0.0
 
-                self.cbTS.cin = None
-                self.CinTable.cin = None
-
-                with io.open(jsonPath, 'r', encoding='utf8') as fs:
-                    self.cbTS.cin = Cin(fs, self.cbTS.imeDirName, self.cbTS.ignorePrivateUseArea)
-                self.CinTable.cin = self.cbTS.cin
-                self.CinTable.curCinType = self.cbTS.cfg.selCinType
-
-            if not hasattr(self.cbTS, 'extendtable'):
-                if self.cbTS.cfg.userExtendTable:
-                    datadirs = (self.cbTS.cfg.getConfigDir(), self.cbTS.cfg.getDataDir())
-                    extendtablePath = self.cbTS.cfg.findFile(datadirs, "extendtable.dat")
-                    with io.open(extendtablePath, encoding='utf-8') as fs:
-                        self.cbTS.extendtable = extendtable(fs)
-                else:
-                    self.cbTS.extendtable = {}
-            self.cbTS.cin.updateCinTable(self.cbTS.cfg.userExtendTable, self.cbTS.cfg.priorityExtendTable, self.cbTS.extendtable, self.cbTS.cfg.ignorePrivateUseArea)
-            self.CinTable.userExtendTable = self.cbTS.cfg.userExtendTable
-            self.CinTable.priorityExtendTable = self.cbTS.cfg.priorityExtendTable
-            self.CinTable.ignorePrivateUseArea = self.cbTS.cfg.ignorePrivateUseArea
+            if not hasattr(cbTS, 'extendtable'):
+                cbTS.extendtable = CinBase.loadDataFile(cfg, "extendtable.dat", extendtable)
+            cbTS.cin.updateCinTable(cfg.userExtendTable, cfg.priorityExtendTable, cbTS.extendtable, cfg.ignorePrivateUseArea)
+            self.CinTable.userExtendTable = cfg.userExtendTable
+            self.CinTable.priorityExtendTable = cfg.priorityExtendTable
+            self.CinTable.ignorePrivateUseArea = cfg.ignorePrivateUseArea
         except Exception:
             pass
         finally:
@@ -3753,26 +3781,33 @@ class LoadRCinTable(threading.Thread):
 
         self.RCinTable.loading = True
         selCinFile = None
+        cfg = self.cbTS.cfg
         try:
-            selCinFile = self.rcinFileList[self.cbTS.cfg.selRCinType]
+            cfg.selRCinType = tableIndex(cfg.selRCinType, len(self.rcinFileList))
+            selCinFile = self.rcinFileList[cfg.selRCinType]
             jsonPath = os.path.join(self.cbTS.jsondir, selCinFile)
 
             if self.RCinTable.cin is not None and hasattr(self.RCinTable.cin, '__del__'):
                 self.RCinTable.cin.__del__()
 
             self.RCinTable.cin = None
-
-            if os.path.exists(jsonPath):
-                self.cbTS.RCinFileNotExist = False
-                with io.open(jsonPath, 'r', encoding='utf8') as fs:
-                    self.RCinTable.cin = RCin(fs, self.cbTS.imeDirName)
+            # 記錄在共用的表格物件上，所有實例都看得到（以前只設在觸發載入的實例）
+            self.RCinTable.fileNotExist = not os.path.exists(jsonPath)
+            if self.RCinTable.fileNotExist:
+                # 預設安裝只附大易/倉頡系列碼表；缺檔時不要每個請求都再試一次
+                self.RCinTable.lastLoadFailure = time.time()
             else:
-                self.cbTS.RCinFileNotExist = True
-
-            self.RCinTable.curCinType = self.cbTS.cfg.selRCinType
+                try:
+                    with io.open(jsonPath, 'r', encoding='utf8') as fs:
+                        self.RCinTable.cin = RCin(fs, self.cbTS.imeDirName)
+                except Exception:
+                    self.RCinTable.lastLoadFailure = time.time()
+                    raise
+            self.RCinTable.curCinType = cfg.selRCinType
         except Exception:
             pass
         finally:
+            self.cbTS.RCinFileNotExist = getattr(self.RCinTable, 'fileNotExist', False)
             self.RCinTable.loading = False
 
         if DEBUG_MODE and selCinFile:
@@ -3792,18 +3827,24 @@ class LoadHCinTable(threading.Thread):
 
         self.HCinTable.loading = True
         selCinFile = None
+        cfg = self.cbTS.cfg
         try:
-            selCinFile = CinBase.hcinFileList[self.cbTS.cfg.selHCinType]
+            cfg.selHCinType = tableIndex(cfg.selHCinType, len(CinBase.hcinFileList))
+            selCinFile = CinBase.hcinFileList[cfg.selHCinType]
             jsonPath = os.path.join(self.cbTS.jsondir, selCinFile)
 
             if self.HCinTable.cin is not None and hasattr(self.HCinTable.cin, '__del__'):
                 self.HCinTable.cin.__del__()
 
             self.HCinTable.cin = None
-
-            with io.open(jsonPath, 'r', encoding='utf8') as fs:
-                self.HCinTable.cin = HCin(fs, self.cbTS.imeDirName)
-            self.HCinTable.curCinType = self.cbTS.cfg.selHCinType
+            self.HCinTable.fileNotExist = not os.path.exists(jsonPath)
+            try:
+                with io.open(jsonPath, 'r', encoding='utf8') as fs:
+                    self.HCinTable.cin = HCin(fs, self.cbTS.imeDirName)
+            except Exception:
+                # 缺檔或損毀：記下時間，checkConfigChange 過一陣子才重試
+                self.HCinTable.lastLoadFailure = time.time()
+            self.HCinTable.curCinType = cfg.selHCinType
         except Exception:
             pass
         finally:
