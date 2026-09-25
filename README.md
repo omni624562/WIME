@@ -58,7 +58,6 @@ For a detailed Traditional Chinese summary of the changes made after the project
 *   [Visual Studio 2022](https://visualstudio.microsoft.com/vs)
 *   [Rust Toolchain](https://rustup.rs/) (Stable channel with `i686-pc-windows-msvc` target)
 *   [git](http://windows.github.com/)
-*   [Node.js](https://nodejs.org/) (Required for some backends like McBopomofo)
 
 ## How to Build
 *   Get source from github.
@@ -104,7 +103,6 @@ For a detailed Traditional Chinese summary of the changes made after the project
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x86\.
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x64\.
 *   Copy the folder `python` to `C:\Program Files (X86)\PIME\`
-*   Copy the folder `node` to `C:\Program Files (X86)\PIME\`
 *   Use `regsvr32` to register `PIMETextService.dll`. 64-bit system need to register both 32-bit and 64-bit `PIMETextService.dll`
 
         regsvr32 "C:\Program Files (X86)\PIME\x86\PIMETextService.dll" (run as administrator)

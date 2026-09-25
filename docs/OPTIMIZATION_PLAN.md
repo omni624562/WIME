@@ -31,6 +31,7 @@
 
 ### 4. backends.json 與實際建置脫節 + go-backend 零 CI 覆蓋
 - [x] 完成（移除 node 與 go-backend 條目，僅保留 python 後端）
+- [x] 2026-09-25：`go-backend/`、`node/` 目錄與 `McBopomofoWeb` 子模組也已自 repo 移除，安裝程式的 node 區段一併刪除（需要時可從 git 歷史取回）。
 - 問題：
   - `backends.json` 註冊 `go-backend\server.exe`，但 build.bat 與 CI 都不建置 go-backend，該檔案不存在 → runtime 載入失敗。
   - `backends.json` 仍註冊 `node` 後端，但 build.bat 已註明 node 不再建置。

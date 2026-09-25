@@ -2,8 +2,9 @@
 build
 build64
 build_arm64/
-node/input_methods/McBopomofo
 installer/*.exe
+# node backend was removed from the repo; ignore any local build output left behind
+/node/
 PIMELauncher/target/
 .claude/
 cleanup_x64.ps1

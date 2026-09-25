@@ -24,9 +24,6 @@
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP "Python 输入法模块"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP "中文繁体"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP "中文简体"
-!insertmacro LANG_STRING NODE_SECTION_GROUP "Node 输入法模块"
-!insertmacro LANG_STRING NODE_CHT_SECTION_GROUP "中文繁体"
-!insertmacro LANG_STRING NODE_CHS_SECTION_GROUP "中文简体"
 
 !insertmacro LANG_STRING CHEWING 新酷音
 !insertmacro LANG_STRING CHECJ 酷仓
@@ -38,8 +35,6 @@
 !insertmacro LANG_STRING CHEPHONETIC 注音
 !insertmacro LANG_STRING CHEEZ 轻松
 !insertmacro LANG_STRING RIME 中州韵
-!insertmacro LANG_STRING MCBOPOMOFO 小麦注音
-!insertmacro LANG_STRING EMOJIME emojime
 !insertmacro LANG_STRING CHEENG 英数
 !insertmacro LANG_STRING BRAILLE_CHEWING "盲文酷音"
 
@@ -50,9 +45,6 @@
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP_DESC "Python 输入法模块"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP_DESC "中文繁体"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP_DESC "中文简体"
-!insertmacro LANG_STRING NODE_SECTION_GROUP_DESC "NODE 输入法模块"
-!insertmacro LANG_STRING NODE_CHT_SECTION_GROUP_DESC "中文繁体"
-!insertmacro LANG_STRING NODE_CHS_SECTION_GROUP_DESC "中文简体"
 !insertmacro LANG_STRING chewing_DESC "安装新酷音输入法模块。"
 !insertmacro LANG_STRING checj_DESC "安装酷仓输入法模块。"
 !insertmacro LANG_STRING cheliu_DESC "安装虾米输入法模块。"
@@ -63,8 +55,6 @@
 !insertmacro LANG_STRING chephonetic_DESC "安装注音输入法模块。"
 !insertmacro LANG_STRING cheez_DESC "安装轻松输入法模块。"
 !insertmacro LANG_STRING rime_DESC "安装中州韵输入法引擎，内含拼音、注音、仓颉、五笔、粤拼、吴语等数种输入方案。"
-!insertmacro LANG_STRING mcbopomofo_DESC "安装小麦注音输入法模块。"
-!insertmacro LANG_STRING emojime_DESC "安装 emojime 输入法模块。"
 !insertmacro LANG_STRING cheeng_DESC "安装英数输入法模块。"
 !insertmacro LANG_STRING braille_chewing_DESC "安装盲文酷音输入法模块。"
 

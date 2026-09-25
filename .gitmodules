@@ -8,6 +8,3 @@
 [submodule "libchewing"]
 	path = libchewing
 	url = https://github.com/chewing/libchewing.git
-[submodule "McBopomofoWeb"]
-	path = McBopomofoWeb
-	url = https://github.com/openvanilla/McBopomofoWeb.git

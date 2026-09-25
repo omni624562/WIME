@@ -115,7 +115,6 @@ var UPDATEARM64DLL
 
 var INST_PYTHON
 var INST_CINBASE
-var INST_NODE
 
 ; The table file of Liu input method
 !ifndef ONLY_DAYI_CHEWING_CHECJ
@@ -290,7 +289,7 @@ Function uninstallOldVersion
 			; No /REBOOTOK on anything we are about to reinstall: a boot-time delete
 			; would wipe the new files, and the reboot flag aborts the upgrade.
 			RMDir /r "$INSTDIR\python"
-			RMDir /r "$INSTDIR\node"
+			RMDir /r "$INSTDIR\node" ; node backend is no longer shipped; clean up old installs
 
 			; Only exist in earlier versions, but need to delete it.
 			RMDir /r "$INSTDIR\server"
@@ -440,7 +439,6 @@ Function .onInit
 
 	StrCpy $INST_PYTHON "False"
 	StrCpy $INST_CINBASE "False"
-	StrCpy $INST_NODE "False"
 
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 	; The component page is skipped during /S installs, so explicitly select the
@@ -742,24 +740,6 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 		SectionEnd
 	SectionGroupEnd
 SectionGroupEnd
-
-SectionGroup /e $(NODE_SECTION_GROUP) node_section_group
-	SectionGroup /e $(NODE_CHT_SECTION_GROUP) node_cht_section_group
-		Section $(MCBOPOMOFO) McBopomofo
-				SectionIn 2
-				SetOutPath "$INSTDIR\node\input_methods\McBopomofo"
-				File /r "..\node\input_methods\McBopomofo\*.*"
-				StrCpy $INST_NODE "True"
-		SectionEnd
-
-		Section $(EMOJIME) emojime
-				SectionIn 2
-				SetOutPath "$INSTDIR\node\input_methods\emojime"
-				File /r "..\node\input_methods\emojime\*.*"
-				StrCpy $INST_NODE "True"
-		SectionEnd
-	SectionGroupEnd
-SectionGroupEnd
 !endif
 
 !ifdef ONLY_DAYI_CHEWING_CHECJ
@@ -822,14 +802,6 @@ Section "" Register
         ${EndIf}
 !endif
 	${EndIf}
-
-	; Install the node.js backend and input method modules along with an embedable version of node v6.
-!ifndef ONLY_DAYI_CHEWING_CHECJ
-	${If} $INST_NODE == "True"
-		SetOutPath "$INSTDIR\node"
-		File /r /x "input_methods" "..\node\*.*"
-	${EndIf}
-!endif
 
 	; Install the text service dlls
 	${If} ${RunningX64} ; This is a 64-bit Windows system
@@ -938,9 +910,6 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
 !else
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_chs_section_group} $(PYTHON_CHS_SECTION_GROUP_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${node_section_group} $(NODE_SECTION_GROUP_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${node_cht_section_group} $(NODE_CHT_SECTION_GROUP_DESC)
-	;!insertmacro MUI_DESCRIPTION_TEXT ${node_chs_section_group} $(NODE_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${cheliu} $(cheliu_DESC)
@@ -951,8 +920,6 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${chephonetic} $(chephonetic_DESC)
     !insertmacro MUI_DESCRIPTION_TEXT ${cheez} $(cheez_DESC)
     !insertmacro MUI_DESCRIPTION_TEXT ${rime} $(rime_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${mcbopomofo} $(mcbopomofo_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${emojime} $(emojime_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${cheeng} $(cheeng_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${braille_chewing} $(braille_chewing_DESC)
 !endif
@@ -1007,7 +974,7 @@ Section "Uninstall"
 	Call un.moveAsideIfLocked
 	RMDir /REBOOTOK /r "$INSTDIR\x86"
 	RMDir /REBOOTOK /r "$INSTDIR\python"
-	RMDir /REBOOTOK /r "$INSTDIR\node"
+	RMDir /REBOOTOK /r "$INSTDIR\node" ; only present in old installs (node backend removed)
     Delete "$INSTDIR\backends.json"
 
 	; Delete shortcuts in Start Menu
