@@ -59,23 +59,22 @@ class DayiSymbolsInitTests(unittest.TestCase):
         self.assertFalse(hasattr(svc, "dsymbols"))
 
 
-class SyncLoadFallbackTests(unittest.TestCase):
-    """回歸測試：碼表首次載入採同步；若同步載入失敗（檔案缺失/損毀/被鎖，
-    LoadCinTable.run() 內部吞例外並使 self.cin 留在 None），__init__ 不得
-    崩潰，且須回退為非同步 .start() 重載，避免停在「無碼表卻不重試」。
+class SyncLoadFailureTests(unittest.TestCase):
+    """碼表首次載入採同步；同步載入失敗（檔案缺失/損毀/被鎖）時 __init__ 不得
+    崩潰。重試由 checkConfigChange 節流進行（見 test_cinbase_config_and_loading）；
+    以前 __init__ 另開的非同步回退其實無效：LoadCinTable 看到 cin 屬性已存在
+    （值為 None）就不載入。
     """
 
-    def test_sync_failure_falls_back_to_async(self):
+    def test_sync_failure_does_not_break_init(self):
         mod = load_ime_module("chedayi", "chedayi_ime.py")
-        # LoadCinTable 被 mock：run() 為 no-op（不設 self.cin，模擬失敗）。
         with mock.patch("cinbase.ime_base.LoadCinTable") as MockLoad, \
              mock.patch("cinbase.LoadPhraseData"):
+            MockLoad.return_value.run.side_effect = OSError("table missing")
             svc = getattr(mod, "CheDayiTextService")(DummyClient())
             self.assertTrue(MockLoad.return_value.run.called,
                             "首次載入應先嘗試同步 run()")
-            self.assertTrue(MockLoad.return_value.start.called,
-                            "同步後 self.cin 仍為 None 時應回退非同步 start()")
-        self.assertIsNone(getattr(svc, "cin", None))  # mock 未載入，仍為 None，但無崩潰
+        self.assertIsNone(getattr(svc, "cin", None))
 
 
 class CheckConfigChangeResilienceTests(unittest.TestCase):

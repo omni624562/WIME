@@ -825,6 +825,10 @@ function updateConfig() {
             var inputValue = inputItem.value;
             if ($.isNumeric(inputValue)) {
                 inputValue = parseInt(inputValue);
+            } else if (typeof checjConfig[inputItem.name] === "number") {
+                // 數字欄位被清空或打了非數字：沿用原值。以前會存成 ""，輸入法
+                // 建立時 candidatePerRow 等設定變成字串，排版計算直接丟 TypeError
+                break;
             }
             checjConfig[inputItem.name] = inputValue;
             break;

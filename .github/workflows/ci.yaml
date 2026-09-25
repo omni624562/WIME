@@ -25,6 +25,13 @@ jobs:
 
       # Use the embedded 32-bit Python that ships in the installer: it is what the
       # backends actually run on, and the bundled chewing.dll / tornado need it.
+      # The CinBase keystroke/loading tests (tests/cinbase_harness.py) drive the
+      # real 大易/酷倉 tables and are skipped without them; build.bat generates the
+      # same files again later (it skips tables that are already up to date).
+      - name: Generate CinBase tables
+        run: |
+          .\python\python3\python.exe python\cinbase\tools\cintojson.py
+
       - name: Run Python backend tests
         run: |
           .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v

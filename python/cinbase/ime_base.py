@@ -18,7 +18,7 @@ import os.path
 import sys
 
 from textService import TextService
-from cinbase import CinBase, LoadCinTable
+from cinbase import CinBase, LoadCinTable, tableLoadRecentlyFailed
 from cinbase.config import CinBaseConfig
 
 
@@ -78,22 +78,20 @@ class CinBaseTextService(TextService):
         self.ignorePrivateUseArea = self.cfg.ignorePrivateUseArea
         self.cinbase.initCinBaseContext(self)
 
-        if not cin_table.curCinType == self.cfg.selCinType and not cin_table.loading:
+        if (not cin_table.curCinType == self.cfg.selCinType and not cin_table.loading
+                and not tableLoadRecentlyFailed(cin_table)):
             # 首次載入採「同步」：碼表 JSON 不大（最大約 5.8MB / 0.16 秒，
             # 預設大易 0.05 秒、酷倉 0.10 秒），直接同步解析可讓 self.cin 在
             # 啟用後第一個按鍵前就緒，避免出現「正在載入輸入法碼表，請稍候」。
             # 這不是 busy-wait（無輪詢），只是把解析放在 init 完成前。
             # 設定變更觸發的重載（checkConfigChange）仍維持非同步，不阻塞。
+            # 檔案缺失/損毀/暫時被鎖而失敗時，由 checkConfigChange 隔
+            # TABLE_RETRY_INTERVAL 秒在背景重試（剛失敗過就不在這裡同步重讀，
+            # 以免每次切換到新的應用程式都卡一下）。
             try:
                 LoadCinTable(self, cin_table).run()
             except Exception:
                 pass
-            # 同步失敗回退：檔案缺失/損毀/暫時被鎖時，LoadCinTable.run() 會
-            # 讓 self.cin / CinTable.cin 留在 None。此時改用非同步重載——不再
-            # 阻塞 init，由背景執行緒重試，第一個按鍵則走既有的「正在載入」
-            # 訊息路徑，避免停在「無碼表卻不重試」的退化狀態。
-            if getattr(self, 'cin', None) is None and not cin_table.loading:
-                LoadCinTable(self, cin_table).start()
         else:
             if not cin_table.loading:
                 self.cin = cin_table.cin

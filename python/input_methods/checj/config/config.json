@@ -37,7 +37,7 @@
   "candidateEdgeAvoidance": true,
   "candidatePositionMode": 0,
   "candidateOpacity": 100,
-  "candidateTheme": "Night Comfort",
+  "candidateTheme": "System",
   "candidateKeyStyle": "keycap",
   "candidateMessageStyle": "badge",
   "candidateMessageBehavior": "progressive",

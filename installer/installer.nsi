@@ -792,6 +792,11 @@ Section "" Register
 		File "..\python\cinbase\json\thdayi.json"
 		File "..\python\cinbase\json\dayi4.json"
 		File "..\python\cinbase\json\dayi3.json"
+		; 大易/酷倉設定頁的「同音字查詢」三個選項（與注音反查）用的注音碼表；
+		; 沒附的話該功能開了也完全沒反應
+		File "..\python\cinbase\json\thphonetic.json"
+		File "..\python\cinbase\json\CnsPhonetic.json"
+		File "..\python\cinbase\json\bpmf.json"
 !else
 		File /r /x "__pycache__" /x "cin" "..\python\cinbase"
         ${If} ${SectionIsSelected} ${cheliu}

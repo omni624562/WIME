@@ -77,6 +77,15 @@ def buildToggleItems(cbTS):
     return labels, attrs
 
 
+def toggleIndex(labels, itemName):
+    """功能開關項目 -> buildToggleItems 的索引；找不到回 None。
+    以 ☑/☐ 之後的文字比對：清單顯示後，設定可能已在設定頁被改掉（☐ 變 ☑），
+    直接用整個字串 index() 會丟 ValueError。"""
+    names = [label[2:] for label in labels]
+    name = itemName[2:]
+    return names.index(name) if name in names else None
+
+
 def withBack(items):
     """子頁面候選清單：固定以「↩ 返回」開頭。"""
     return [BACK_ITEM] + list(items)

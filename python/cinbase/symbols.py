@@ -10,22 +10,30 @@ class symbols(object):
 
         self.keynames = []
         self.chardefs = {}
+        seen = set()
 
         for line in fs:
-
-            line = line.strip()
+            # 使用者可編輯的檔案：去掉 UTF-8 BOM（否則第一個分類永遠比對不到），
+            # 跳過空行，以及沒有名稱或沒有內容的分類——「名稱=」這種行原本會列進
+            # 選單，選到時 getCharDef KeyError，整條管道被重置
+            line = line.lstrip('﻿').strip()
+            if not line:
+                continue
 
             key, root = safeSplit(line)
             key = key.strip()
             root = root.strip()
-            
+            if not key or not root:
+                continue
+
             for rootstr in root:
                 try:
                     self.chardefs[key].append(rootstr)
                 except KeyError:
                     self.chardefs[key] = [rootstr]
 
-            if key not in self.keynames:
+            if key not in seen:
+                seen.add(key)
                 self.keynames.append(key)
 
     def __del__(self):
@@ -41,7 +49,7 @@ class symbols(object):
         """ 
         will return a list conaining all possible result
         """
-        return self.chardefs[key]
+        return self.chardefs.get(key, [])
 
     def getKeyNames(self):
         return self.keynames
