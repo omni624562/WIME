@@ -40,11 +40,27 @@ def systemPrefersLightTheme():
     return light
 
 
+# 與 PIMETextService/PIMEClient.cpp candidateThemeColors() 及設定頁
+# candidate_appearance.js canonicalCandidateThemeName() 相同的別名集合
+# （正規化為去空白、小寫後比對）。
+KNOWN_CANDIDATE_THEMES = frozenset((
+    'system', 'followsystem', 'auto',
+    'graphite', 'dark', 'night',
+    'sepiadim', 'sepia',
+    'plum',
+    'light',
+    'pureblack', 'black', 'oled',
+    'highcontrast', 'contrast',
+))
+
+
 def resolveCandidateTheme(cfg):
-    """把「跟隨系統」主題解析成實際主題名，其餘原樣傳回。"""
+    """把「跟隨系統」主題解析成實際主題名，其餘已知主題原樣傳回。
+    已不存在的舊主題（如早期的 "Olive"）視同 System：設定頁會把它顯示成
+    System，這裡若原樣傳給 C++，C++ 會退回淺色，兩邊就對不上。"""
     theme = str(getattr(cfg, 'candidateTheme', '') or '')
     normalized = ''.join(ch.lower() for ch in theme if ch.isalnum())
-    if normalized in ('system', 'followsystem', 'auto'):
+    if normalized not in KNOWN_CANDIDATE_THEMES or normalized in ('system', 'followsystem', 'auto'):
         return "Light" if systemPrefersLightTheme() else "Graphite"
     return theme
 

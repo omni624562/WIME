@@ -15,24 +15,24 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import tornado.ioloop
+import tornado.escape
 import tornado.web
 import sys
-import io
 import os
-import uuid  # use to generate a random auth token
-import random
 import json
-import threading
-import hmac  # constant-time token comparison
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
+# python/ 頂層（共用的 config_server）；放最後，避免蓋過同目錄的 config.py
+python_dir = os.path.dirname(current_dir)
+if python_dir not in sys.path:
+    sys.path.append(python_dir)
 
 from config import CinBaseConfig
 from cin import Cin
-from ctypes import c_uint, byref, create_string_buffer
+from config_server import BaseHandler, NoCacheStaticFileHandler, ConfigServerApp
+
 
 cfg = CinBaseConfig
 cfg.imeDirName = sys.argv[2]
@@ -49,56 +49,12 @@ else:
     tool_name = "config"
 
 COOKIE_ID = "cinbase_config_token"
-SERVER_TIMEOUT = 120
 
 
 # syspath 參數可包含多個路徑，用 ; 分隔
 # 此處把 user 設定檔目錄插入到 system-wide 資料檔路徑前
 # 如此使用者變更設定後，可以比系統預設值有優先權
 search_paths = ";".join((cfg.getConfigDir(), data_dir)).encode("UTF-8")
-
-class BaseHandler(tornado.web.RequestHandler):
-
-    def get_current_user(self):  # override the login check
-        # 認證：cookie 值必須與本次啟動產生的 access_token 完全相符（常數時間比對），
-        # 而非只檢查 cookie 是否存在，否則任何非空 cookie 都能通過。
-        token = self.get_cookie(COOKIE_ID)
-        expected = self.settings.get("access_token")
-        if token and expected and hmac.compare_digest(token, expected):
-            return token
-        return None
-
-    def get_login_url(self):
-        # There is no interactive login page - auth only happens via the
-        # one-time token URL from launch_browser(). @tornado.web.authenticated
-        # would otherwise redirect unauthenticated GETs to the settings-value
-        # "login_url", which points nowhere and previously 404'd instead of
-        # cleanly rejecting the request.
-        raise tornado.web.HTTPError(403)
-
-    def prepare(self):  # called before every request
-        # 只接受來自本機迴路的 Host，阻擋 DNS rebinding（惡意網頁把自身網域指向 127.0.0.1）
-        host = self.request.host.rsplit(":", 1)[0].strip("[]").lower()
-        if host not in ("127.0.0.1", "localhost", "::1"):
-            raise tornado.web.HTTPError(403)
-        self.application.reset_timeout()  # reset the quit server timeout
-
-
-class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
-
-    def set_extra_headers(self, path):
-        self.set_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-        self.set_header("Pragma", "no-cache")
-        self.set_header("Expires", "0")
-
-
-class KeepAliveHandler(BaseHandler):
-
-    @tornado.web.authenticated
-    def get(self):
-        # the actual keep-alive is done inside BaseHandler.prepare()
-        self.write('{"return":true}')
-
 
 class ConfigHandler(BaseHandler):
 
@@ -235,36 +191,9 @@ class ConfigHandler(BaseHandler):
             pass
 
 
-
-class LoginHandler(BaseHandler):
-
-    def login(self, page_name):
-        token = self.get_argument("token", "")
-        if hmac.compare_digest(token, self.settings["access_token"]):
-            # HttpOnly：前端不需讀取此 cookie；SameSite=Strict：阻擋跨站請求夾帶 cookie（CSRF）
-            self.set_cookie(COOKIE_ID, token, httponly=True, samesite="Strict")
-            if page_name != "user_phrase_editor":
-                page_name = "config"
-            self.redirect("/{}.html?v={}".format(page_name, self.settings["access_token"][:8]))
-
-    def get(self, page_name):
-        self.login(page_name)
-
-    def post(self, page_name):
-        self.login(page_name)
-
-
-
-class ConfigApp(tornado.web.Application):
+class ConfigApp(ConfigServerApp):
 
     def __init__(self):
-        # generate a new auth token using UUID
-        self.access_token = uuid.uuid4().hex
-        settings = {
-            "access_token": self.access_token, # our custom setting
-            # 正式環境關閉 debug：避免未攔截例外把 Python traceback（含路徑）回傳瀏覽器
-            "debug": False
-        }
         handlers = [
             (r"/(.*\.html|config.js)", NoCacheStaticFileHandler, {"path": current_ime_config_dir}),
             (r"/(.*\.htm)", NoCacheStaticFileHandler, {"path": os.path.join(current_dir, "config")}),
@@ -273,74 +202,8 @@ class ConfigApp(tornado.web.Application):
             (r"/(icon.ico)", NoCacheStaticFileHandler, {"path": current_ime_dir}),
             (r"/(version.txt)", NoCacheStaticFileHandler, {"path": os.path.join(current_dir, "../../")}),
             (r"/config", ConfigHandler),  # main configuration handler
-            (r"/keep_alive", KeepAliveHandler),  # keep the api server alive
-            (r"/login/(.*)", LoginHandler)  # authentication
         ]
-        super().__init__(handlers, **settings)
-        self.timeout_handler = None
-        self.port = 0
-
-    def launch_browser(self, tool_name):
-        url = "http://127.0.0.1:{PORT}/login/{PAGE_NAME}?token={TOKEN}".format(
-            PORT=self.port, PAGE_NAME=tool_name, TOKEN=self.access_token)
-        try:
-            os.startfile(url)
-            return
-        except Exception:
-            pass
-
-        user_html = """<html>
-    <form id="auth" action="http://127.0.0.1:{PORT}/login/{PAGE_NAME}" method="POST">
-        <input type="hidden" name="token" value="{TOKEN}">
-    </form>
-    <script type="text/javascript">
-        document.getElementById("auth").submit();
-    </script>
-    </html>""".format(PORT=self.port, PAGE_NAME=tool_name, TOKEN=self.access_token)
-        # use a local html file to send access token to our service via http POST for authentication.
-        os.makedirs(localdata_dir, exist_ok=True)
-        filename = os.path.join(localdata_dir, "launch_{}.html".format(tool_name))
-
-        with open(filename, "w") as f:
-            f.write(user_html)
-            os.startfile(filename)
-
-    def run(self, tool_name):
-        # find a port number that's available
-        random.seed()
-        while True:
-            port = random.randint(1025, 65535)
-            try:
-                self.listen(port, "127.0.0.1")
-                break
-            except OSError:  # it's possible that the port we want to use is already in use
-                continue
-        self.port = port
-
-        self.launch_browser(tool_name)
-
-        # setup the main event loop
-        loop = tornado.ioloop.IOLoop.current()
-        self.timeout_handler = loop.call_later(SERVER_TIMEOUT, self.quit)
-        loop.start()
-
-    def reset_timeout(self):
-        loop = tornado.ioloop.IOLoop.current()
-        if self.timeout_handler:
-            loop.remove_timeout(self.timeout_handler)
-            self.timeout_handler = loop.call_later(SERVER_TIMEOUT, self.quit)
-
-    def quit(self):
-        # terminate the server process
-        # stop(), not close(): this runs as a callback inside the running loop, and
-        # closing a running asyncio loop raises RuntimeError, so the old code never
-        # reached sys.exit() - every settings session leaked a python.exe (holding
-        # the installed python files open and blocking installer upgrades).
-        tornado.ioloop.IOLoop.current().stop()
-        filename = os.path.join(localdata_dir, "launch_{}.html".format(tool_name))
-        if os.path.exists(filename):
-            os.remove(filename)
-        sys.exit(0)
+        super().__init__(handlers, cookie_id=COOKIE_ID, main_page="config", localdata_dir=localdata_dir)
 
 
 def main():
