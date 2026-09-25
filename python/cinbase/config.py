@@ -286,6 +286,8 @@ class CinBaseConfig:
             # truncated config.json (which the next load would treat as broken)
             with open(tmp_filename, "w", encoding="utf-8") as f:
                 json.dump(self.toJson(), f, sort_keys=True, indent=4)
+                f.flush()
+                os.fsync(f.fileno())   # 斷電後才不會留下 0 位元組的 config.json
             os.replace(tmp_filename, filename)
             self.update()
         except Exception:
