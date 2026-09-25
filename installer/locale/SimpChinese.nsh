@@ -14,6 +14,7 @@
 !insertmacro LANG_STRING AtLeastWinVista_MESSAGE "抱歉，本程序目前只能支持 Windows Vista 以上版本"
 !insertmacro LANG_STRING REBOOT_QUESTION "安装发生错误，无法完成。$\r$\n有时是有文件正在使用中，暂时无法删除或覆写。$\n$\n建议重新开机后，再次执行安装程序。$\r$\n你要立即重新开机吗？ (若你想要在稍后才重新开机请选择「否」)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "安装发生错误，无法完成。$\n$\n有时是有文件正在使用中，暂时无法删除或覆写。$\n$\n建议重新开机后，再次执行安装程序。"
+!insertmacro LANG_STRING PENDING_DELETE_MESSAGE "先前的卸载或升级已安排在下次开机时删除 WIME 的文件。若现在安装，新装的文件会在下次开机时被删掉。$\r$\n请先重新开机，再执行安装程序。"
 !insertmacro LANG_STRING UNINSTALL_OLD "侦测到已安装旧版，是否要移除旧版后继续安装新版？"
 !insertmacro LANG_STRING DOWNLOAD_VCREDIST_QUESTION "这个程序需要 微软 VC++ Redistributable 更新才能运作，要自动下载安装？"
 !insertmacro LANG_STRING DOWNLOAD_VCREDIST_FAILED_MESSAGE "无法正确下载，请稍后再试，或手动安装 VC++ Redistributable"

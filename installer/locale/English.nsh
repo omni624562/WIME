@@ -14,6 +14,7 @@
 !insertmacro LANG_STRING AtLeastWinVista_MESSAGE "Sorry，this program currently only supports Windows Vista or later"
 !insertmacro LANG_STRING REBOOT_QUESTION "The installation failed and could no be completed.$\r$\nA file may be in use, that prevents it from being deleted or overwritten.$\n$\nIt is recommended that you reboot the system and run the installer again.$\r$\nDo you want to reboot now? (Select $\"No$\" if you want to reboot at a later time)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "The installation failed and could no be completed.$\n$\rA file may be in use, that prevents it from being deleted or overwritten.$\n$\nIt is recommended that you reboot the system and run the installer again."
+!insertmacro LANG_STRING PENDING_DELETE_MESSAGE "A previous uninstall or upgrade scheduled WIME files for deletion at the next reboot. Installing now would have the newly installed files deleted at that reboot.$\r$\nPlease reboot first, then run the installer again."
 !insertmacro LANG_STRING UNINSTALL_OLD "An older version of WIME has been detected. Do you want to remove the old version and continue installing the new version?"
 !insertmacro LANG_STRING DOWNLOAD_VCREDIST_QUESTION "This program requires the VC++ Redistributable to run. Would you like to automatically download and install it?"
 !insertmacro LANG_STRING DOWNLOAD_VCREDIST_FAILED_MESSAGE "Failed to download VC++ Redistributable try again later, or install it manually"

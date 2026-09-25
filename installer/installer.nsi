@@ -132,7 +132,9 @@ var LIU_UNI_TAB_FILE
 ; Deliberately no /REBOOTOK here: it sets the reboot flag, which made the upgrade abort
 ; half-way (old version removed, new one never installed), and a boot-time delete
 ; scheduled on the ORIGINAL path would also delete the freshly installed file.
-Function moveAsideIfLocked
+; Emitted twice (installer and "un." uninstaller copies), as NSIS requires.
+!macro DEFINE_MOVE_ASIDE_IF_LOCKED UN
+Function ${UN}moveAsideIfLocked
 	Exch $0 ; path of the file
 	Push $1
 	Delete "$0"
@@ -153,18 +155,49 @@ Function moveAsideIfLocked
 	Pop $1
 	Pop $0
 FunctionEnd
+!macroend
+!insertmacro DEFINE_MOVE_ASIDE_IF_LOCKED ""
+!insertmacro DEFINE_MOVE_ASIDE_IF_LOCKED "un."
 
 ; Force-terminate anything still running from the install dir after the graceful
 ; "PIMELauncher.exe /quit": the launcher's worker kill does not reach its python
 ; backends, and settings-tool servers (configtool.py) could outlive their idle timeout
 ; in older versions. Any of them keeps python\python3\*.dll mapped, which blocks
-; removing the old python tree.
-Function killProcessesInInstDir
+; removing the old python tree. (The uninstaller itself runs from a %TEMP% copy, so
+; it is never matched.)
+!macro DEFINE_KILL_PROCESSES_IN_INSTDIR UN
+Function ${UN}killProcessesInInstDir
 	Push $0
 	nsExec::ExecToLog `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '$INSTDIR\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
 	Pop $0 ; exit code, ignored: best effort
 	Pop $0
 	Sleep 500
+FunctionEnd
+!macroend
+!insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR ""
+!insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR "un."
+
+; Refuse to install while an earlier uninstall/upgrade still has boot-time deletes
+; pending for files in the install dir: Windows deletes by path at the next boot, so
+; the files we are about to install would silently disappear then (this is how
+; "uninstall, then reinstall without rebooting" used to lose the x64 DLL).
+; Read-only on purpose: PendingFileRenameOperations is a list of (source, target)
+; pairs shared with other software (Edge/Chrome updates live there too), and a
+; mis-parsed empty target would shift the pairs and corrupt their pending updates.
+; Renamed-aside *.old files and directories (scheduled by RMDir /REBOOTOK and only
+; removed at boot if empty) are harmless and ignored.
+Function checkPendingDeletesInInstDir
+	Push $0
+	Push $1
+	nsExec::ExecToStack `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$$v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations; $$p = ('\??\' + '$INSTDIR' + '\').ToLower(); $$hit = @($$v | Where-Object { $$_ -and $$_.ToLower().StartsWith($$p) } | Where-Object { $$leaf = Split-Path $$_ -Leaf; $$leaf.Contains('.') -and -not $$leaf.ToLower().Contains('.old') }); if ($$hit.Count) { $$hit[0].Substring(4); exit 3 } else { exit 0 }"`
+	Pop $0 ; exit code
+	Pop $1 ; first offending path, if any
+	${If} $0 == 3
+		MessageBox MB_ICONSTOP|MB_OK "$(PENDING_DELETE_MESSAGE)$\r$\n$\r$\n$1" /SD IDOK
+		Abort
+	${EndIf}
+	Pop $1
+	Pop $0
 FunctionEnd
 
 ; Uninstall old versions
@@ -417,6 +450,9 @@ Function .onInit
 		Call selectLimitedSilentSections
 	${EndIf}
 !endif
+
+	; must run before anything is removed or installed
+	Call checkPendingDeletesInInstDir
 
 	; check if old version is installed and uninstall it first
 	Call uninstallOldVersion
@@ -937,24 +973,38 @@ Section "Uninstall"
 	DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher"
 	DeleteRegKey HKLM "Software\PIME"
 
+	; Stop the launcher and anything else still running from the install dir first,
+	; so the files below can really be deleted now.
+	ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
+	Sleep 1000
+	Call un.killProcessesInInstDir
+
+	; Files that are still mapped (the TSF DLL in explorer etc.) are renamed aside
+	; before /REBOOTOK: the boot-time delete then targets the unique *.oldN name, never
+	; the original path - otherwise reinstalling before the next reboot would have the
+	; freshly installed file deleted at boot.
 	; Unregister COM objects (NSIS UnRegDLL command is broken and cannot be used)
 	ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x86\PIMETextService.dll"'
 	${If} ${RunningX64}
 		ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x64\PIMETextService.dll"'
+		Push "$INSTDIR\x64\PIMETextService.dll"
+		Call un.moveAsideIfLocked
 		RMDir /REBOOTOK /r "$INSTDIR\x64"
 	${EndIf}
 
 	${If} ${IsNativeARM64}
 		ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\arm64\PIMETextService.dll"'
+		Push "$INSTDIR\arm64\PIMETextService.dll"
+		Call un.moveAsideIfLocked
 		RMDir /REBOOTOK /r "$INSTDIR\arm64"
 	${EndIf}
 
-	; Try to terminate running PIMELauncher and the server process
-	; Otherwise we cannot replace it.
-	ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
-	Sleep 1000
-	Delete /REBOOTOK "$INSTDIR\PIMELauncher.exe"
+	Push "$INSTDIR\PIMELauncher.exe"
+	Call un.moveAsideIfLocked
+	Delete /REBOOTOK "$INSTDIR\PIMELauncher.exe.old*"
 
+	Push "$INSTDIR\x86\PIMETextService.dll"
+	Call un.moveAsideIfLocked
 	RMDir /REBOOTOK /r "$INSTDIR\x86"
 	RMDir /REBOOTOK /r "$INSTDIR\python"
 	RMDir /REBOOTOK /r "$INSTDIR\node"
@@ -967,10 +1017,11 @@ Section "Uninstall"
 	Delete "$INSTDIR\Uninstall.exe"
 	RMDir /REBOOTOK "$INSTDIR"
 
+	; Everything is already removed or renamed aside; a reboot only cleans up the
+	; leftover *.old files. Declining must not report the uninstall as failed (the old
+	; code jumped to Abort, making silent uninstalls exit with an error).
 	${If} ${RebootFlag}
-		MessageBox MB_YESNO "$(MB_REBOOT_REQUIRED)" /SD IDNO IDNO +3
+		MessageBox MB_YESNO "$(MB_REBOOT_REQUIRED)" /SD IDNO IDNO +2
 		Reboot
-		Quit
-		Abort
 	${EndIf}
 SectionEnd
