@@ -4,7 +4,6 @@
 [submodule "libIME2"]
 	path = libIME2
 	url = https://github.com/omni624562/libIME2.git
-	branch = wime-master
 [submodule "libchewing"]
 	path = libchewing
 	url = https://github.com/chewing/libchewing.git
