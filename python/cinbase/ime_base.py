@@ -18,7 +18,7 @@ import os.path
 import sys
 
 from textService import TextService
-from cinbase import CinBase, LoadCinTable, tableLoadRecentlyFailed
+from cinbase import CinBase, LoadCinTable, tableIndex, tableLoadRecentlyFailed
 from cinbase.config import CinBaseConfig
 
 
@@ -78,7 +78,10 @@ class CinBaseTextService(TextService):
         self.ignorePrivateUseArea = self.cfg.ignorePrivateUseArea
         self.cinbase.initCinBaseContext(self)
 
-        if (not cin_table.curCinType == self.cfg.selCinType and not cin_table.loading
+        # 超出範圍的索引實際載入 0 號碼表；比較時要用同樣的值，否則每個新實例都重新解析
+        # 一次碼表（每開一個應用程式都卡一下），還把其他實例共用的碼表清掉
+        selCinType = tableIndex(self.cfg.selCinType, len(self.cinFileList))
+        if (not cin_table.curCinType == selCinType and not cin_table.loading
                 and not tableLoadRecentlyFailed(cin_table)):
             # 首次載入採「同步」：碼表 JSON 不大（最大約 5.8MB / 0.16 秒，
             # 預設大易 0.05 秒、酷倉 0.10 秒），直接同步解析可讓 self.cin 在
