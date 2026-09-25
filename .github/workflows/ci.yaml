@@ -10,6 +10,12 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# 同一個 PR 又推新 commit 時，自動取消還在跑的舊 run（它的結果已經沒有用）。
+# master 的 run 不取消：每個合併都要有自己的結果。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: windows-latest
