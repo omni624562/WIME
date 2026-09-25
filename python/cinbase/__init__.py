@@ -436,6 +436,19 @@ class CinBase:
                 return False
             return cbTS.langMode == CHINESE_MODE and keyEvent.isPrintableChar()
 
+        # 只開著聯想字清單（沒有組字）時，應用程式的 Ctrl/Alt 快捷鍵（Ctrl+S、Alt+F4）
+        # 要關掉清單並交給應用程式；以前清單算「候選窗開著」一律攔下，快捷鍵被吃掉、
+        # 清單還留著。Ctrl+符號鍵在中文模式仍是輸入法的符號輸入
+        if (cbTS.showPhrase and cbTS.phrasemode and cbTS.isShowPhraseCandidates and cbTS.compositionString == ""
+                and (keyEvent.isKeyDown(VK_MENU) or keyEvent.isKeyDown(VK_CONTROL))
+                and not (keyEvent.isKeyDown(VK_CONTROL) and self.isCtrlSymbolsChar(keyEvent.keyCode)
+                         and cbTS.langMode == CHINESE_MODE)):
+            cbTS.phrasemode = False
+            cbTS.isShowPhraseCandidates = False
+            cbTS.setCandidateList([])
+            cbTS.setShowCandidates(False)
+            return False
+
         # 使用者開始輸入，還沒送出前的編輯區內容稱 composition string
         # isComposing() 是 False，表示目前編輯區是空的
         # 若正在編輯中文，則任何按鍵我們都需要送給輸入法處理，直接 return True
@@ -885,8 +898,9 @@ class CinBase:
                         self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
                     cbTS.resetMenuCand = self.closeMenuCand(cbTS)
                 elif cbTS.menutype == 1: # 切換功能開關（留在本頁，更新 ☑/☐）
-                    i = cbTS.smenucandidates.index(itemName)
-                    self.onMenuCommand(cbTS, i, 1)
+                    i = menu.toggleIndex(cbTS.smenucandidates, itemName)
+                    if i is not None:
+                        self.onMenuCommand(cbTS, i, 1)
                     cbTS.smenucandidates, cbTS.smenuitems = menu.buildToggleItems(cbTS)
                     cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                     pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
@@ -1199,9 +1213,14 @@ class CinBase:
             if keyCode == VK_RETURN or keyCode == VK_BACK:
                 return False
 
-        # 若按下 Shift 鍵,且沒有按下其它的按鍵
+        # 若按下 Shift 鍵,且沒有按下其它的按鍵（或是輸入法不處理的鍵，如 Shift+Insert）。
+        # 組字中的 Shift+Backspace/Enter/Esc/方向鍵要照一般按鍵處理：以前一律放行，
+        # 候選窗還開著時應用程式就刪了字或換了行
         if keyEvent.isKeyDown(VK_SHIFT) and not keyEvent.isPrintableChar():
-            return False
+            if not (cbTS.isComposing() and keyCode in (
+                    VK_BACK, VK_RETURN, VK_ESCAPE, VK_DELETE, VK_LEFT, VK_RIGHT,
+                    VK_UP, VK_DOWN, VK_HOME, VK_END, VK_PRIOR, VK_NEXT)):
+                return False
 
         # 若按下 Ctrl 鍵
         self._handleCtrlSymbols(cbTS, keyEvent, charStr, keyCode, cin_has_charStrLow)
@@ -1212,6 +1231,10 @@ class CinBase:
                 selkeys.applyDayiSelKeys(cbTS)
 
         if self.shouldRestartNoCandidateComposition(cbTS, charStrLow, keyEvent):
+            # 組字緩衝模式下字根也顯示在緩衝裡，重新組字前要一併拿掉（Esc 那條路
+            # 有做），否則查無字的字根會留在緩衝、之後跟著 Enter 一起送出
+            if cbTS.compositionBufferMode:
+                self.removeCompositionBufferString(cbTS, self.calcRemoveStringLength(cbTS), True)
             self.resetComposition(cbTS)
 
         # pre-compute shared guard used by the three-way input dispatch below
@@ -1395,8 +1418,9 @@ class CinBase:
                                 cbTS.menusymbolsmode = False
         # 按下的鍵不存在於 CIN 所定義的字根
         elif not cin_has_charStrLow and in_normal_input_mode:
-            # 若按下 Shift 鍵
-            if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE:
+            # 若按下 Shift 鍵（加可見字元；Shift+Backspace/Enter 等往下照一般按鍵處理，
+            # 不能在這裡把控制字元當成符號送出）
+            if keyEvent.isKeyDown(VK_SHIFT) and cbTS.langMode == CHINESE_MODE and keyEvent.isPrintableChar():
                 # 如果按鍵及萬用字元為*
                 if self.isWildcardInputKey(cbTS, charStr, keyEvent):
                     self.appendWildcardComposition(cbTS)
@@ -1517,8 +1541,16 @@ class CinBase:
                 if cbTS.homophoneQuery and cbTS.homophonemode:
                     self.resetHomophoneMode(cbTS)
 
+                # 大易符號（＝ 加一個鍵）的組字區顯示的是查到的符號本身，不是字根名稱，
+                # 不能照字根名稱長度裁切：以前第一次 Backspace 就把組字區裁成空字串，
+                # 之後 compositionString 為空、Backspace 全部失效，只能按 Esc；組字
+                # 緩衝模式下則會多刪掉緩衝裡前一個字
+                dayiSymbolBack = cbTS.dayisymbolsmode and cbTS.compositionChar != "" and not cbTS.selcandmode
                 if not cbTS.compositionBufferMode:
-                    if cbTS.compositionString != "":
+                    if dayiSymbolBack:
+                        cbTS.setCompositionString(cbTS.DayiSymbolString if len(cbTS.compositionChar) > 1 else "")
+                        cbTS.keyUsedState = True
+                    elif cbTS.compositionString != "":
                         if cbTS.cin.isInKeyName(cbTS.compositionChar[len(cbTS.compositionChar)-1:]):
                             keyLength = len(cbTS.cin.getKeyName(cbTS.compositionChar[len(cbTS.compositionChar)-1:]))
                         else:
@@ -1526,7 +1558,13 @@ class CinBase:
                         cbTS.setCompositionString(cbTS.compositionString[:-keyLength])
                         cbTS.keyUsedState = True
                 else:
-                    if cbTS.compositionBufferString != "" and cbTS.compositionChar != "":
+                    if dayiSymbolBack and cbTS.compositionBufferString != "":
+                        if len(cbTS.compositionChar) > 1:
+                            self.setCompositionBufferString(cbTS, cbTS.DayiSymbolString, 1)   # 符號換回「＝」
+                        else:
+                            self.removeCompositionBufferString(cbTS, len(cbTS.DayiSymbolString), True)
+                        cbTS.keyUsedState = True
+                    elif cbTS.compositionBufferString != "" and cbTS.compositionChar != "":
                         if not cbTS.selcandmode:
                             if cbTS.cin.isInKeyName(cbTS.compositionChar[len(cbTS.compositionChar)-1:]):
                                 keyLength = len(cbTS.cin.getKeyName(cbTS.compositionChar[len(cbTS.compositionChar)-1:]))
@@ -2004,11 +2042,16 @@ class CinBase:
                                     cbTS.canSetCommitString = True
                                     cbTS.isShowCandidates = False
                         else:
-                            i = cbTS.selKeys.index(charStr)
+                            # 與上面選字相同：大易的第一個選字鍵對應第 2 個項目（第 1 個用空白鍵），
+                            # 且要加上頁數位移；以前兩者都沒算，大易按 ' 選到第 1 個讀音、
+                            # 讀音超過一頁（如「和」）時第 2 頁永遠選到第 1 頁的讀音
+                            local = cbTS.selKeys.index(charStr) + (1 if cbTS.imeDirName == "chedayi" else 0)
+                            i = currentCandPage * cbTS.candPerPage + local
                             # 讀音清單長度可能小於選字鍵數量（多數多音字只有 2-4 個讀音），
                             # 未做邊界檢查會在使用者按下超出範圍的選字鍵時丟出 IndexError，
                             # 且下面幾行狀態已切換到 homophonemode，會讓輸入法卡在不一致狀態。
-                            if i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr)):
+                            if (HCinTable.cin is not None and local < len(cbTS.candidateList)
+                                    and i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr))):
                                 candCursor = 0
                                 currentCandPage = 0
                                 cbTS.homophoneselpinyinmode = False
@@ -2111,7 +2154,7 @@ class CinBase:
                             # currentCandPage 的位移才是讀音清單裡的絕對索引，否則第 2 頁以後會
                             # 選到錯誤的讀音；同時補邊界檢查避免 IndexError。
                             i = currentCandPage * cbTS.candPerPage + candCursor
-                            if i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr)):
+                            if HCinTable.cin is not None and i < len(HCinTable.cin.getKeyList(cbTS.homophoneStr)):
                                 cbTS.homophoneselpinyinmode = False
                                 cbTS.homophonemode = True
                                 cbTS.homophoneChar = cbTS.compositionChar
@@ -2377,10 +2420,14 @@ class CinBase:
                             else:
                                 cbTS.setCommitString(charStr)
 
-                # 更新選字視窗游標位置及頁數
-                cbTS.setCandidateCursor(candCursor)
-                cbTS.setCandidatePage(currentCandPage)
-                cbTS.setCandidateList(pagecandidates[currentCandPage])
+                # 更新選字視窗游標位置及頁數。已離開聯想字模式（選了字，或按字根開始
+                # 新的組字）就不能再把聯想字清單送回去：以前新組字底下仍顯示上一輪
+                # 的聯想字（直接顯示候選字關閉時），且可以被選字鍵選走
+                if cbTS.phrasemode:
+                    cbTS.setCandidateCursor(candCursor)
+                    cbTS.setCandidatePage(currentCandPage)
+                    cbTS.setCandidateList(pagecandidates[currentCandPage])
+                    self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
 
                 if cbTS.showPhrase and cbTS.phrasemode:
                     cbTS.isShowPhraseCandidates = True
@@ -2529,17 +2576,11 @@ class CinBase:
         if cbTS.isLangModeChanged and keyCode == VK_SHIFT:
             self.toggleLanguageMode(cbTS)  # 切換中英文模式
             cbTS.isLangModeChanged = False
-            cbTS.showmenu = False
-            cbTS.multifunctionmode = False
             if not cbTS.hidePromptMessages and not cbTS.client.isUiLess:
                 message = '中文模式' if cbTS.langMode == CHINESE_MODE else '英數模式'
                 cbTS.isShowMessage = True
                 cbTS.showMessage(message, cbTS.messageDurationTime)
-            if cbTS.showCandidates or len(cbTS.compositionChar) > 0 or len(cbTS.compositionBufferString) > 0:
-                if cbTS.compositionBufferMode and not cbTS.selcandmode:
-                    RemoveStringLength = self.calcRemoveStringLength(cbTS)
-                    self.removeCompositionBufferString(cbTS, RemoveStringLength, True)
-                self.resetComposition(cbTS)
+            self.abandonComposition(cbTS)
 
         # 若放開 CapsLock 鍵
         if keyEvent.keyCode == VK_CAPITAL:
@@ -2551,11 +2592,7 @@ class CinBase:
                 message = '半形模式' if cbTS.shapeMode == HALFSHAPE_MODE else '全形模式'
                 cbTS.isShowMessage = True
                 cbTS.showMessage(message, cbTS.messageDurationTime)
-            if cbTS.showCandidates or len(cbTS.compositionChar) > 0:
-                if cbTS.compositionBufferMode and not cbTS.selcandmode:
-                    RemoveStringLength = self.calcRemoveStringLength(cbTS)
-                    self.removeCompositionBufferString(cbTS, RemoveStringLength, True)
-                self.resetComposition(cbTS)
+            self.abandonComposition(cbTS)
 
         if cbTS.isSelKeysChanged:
             cbTS.setCandidateList(cbTS.candidateList)
@@ -2595,8 +2632,10 @@ class CinBase:
 
     def onCommand(self, cbTS, commandId, commandType):
         if commandId == ID_SWITCH_LANG and commandType == 0:  # 切換中英文模式
+            self.abandonComposition(cbTS)
             self.toggleLanguageMode(cbTS)
         elif commandId == ID_SWITCH_SHAPE and commandType == 0:  # 切換全形/半形
+            self.abandonComposition(cbTS)
             self.toggleShapeMode(cbTS)
         elif commandId == ID_SETTINGS:  # 開啟設定工具
             tool_name = "config"
@@ -2606,6 +2645,7 @@ class CinBase:
             # 此處也可以用 subprocess，不過使用 windows API 比較方便
             r = windll.shell32.ShellExecuteW(None, "open", python_exe, config_tool, self.cinbasecurdir, 0)  # SW_HIDE = 0 (hide the window)
         elif commandId == ID_MODE_ICON: # windows 8 mode icon
+            self.abandonComposition(cbTS)
             self.toggleLanguageMode(cbTS)  # 切換中英文模式
         elif commandId == ID_WEBSITE: # visit chewing website
             os.startfile("https://github.com/omni624562/WIME")
@@ -2652,11 +2692,11 @@ class CinBase:
     # 鍵盤開啟/關閉時會被呼叫 (在 Windows 10 Ctrl+Space 時)
     def onKeyboardStatusChanged(self, cbTS, opened):
         if opened: # 鍵盤開啟
-            self.resetComposition(cbTS)
+            self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
             self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=True)
         else: # 鍵盤關閉，輸入法停用
-            self.resetComposition(cbTS)
+            self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
 
         # Windows 8 systray IME mode icon
@@ -2714,6 +2754,23 @@ class CinBase:
                     elif cbTS.supportWildcard and cbTS.selWildcardChar == "*" and cStr == "*":
                         cbTS.compositionString += "＊"
             cbTS.setCompositionCursor(len(cbTS.compositionString))
+
+
+    # 切換中英文/全半形、鍵盤開關時放棄進行中的組字、功能選單與聯想字詞。
+    # 以前只有 Shift 切換會清：從語言列或系統匣圖示切到英數時組字還在，之後
+    # 每個鍵都被吃掉；聯想字詞狀態也沒清，切換後空的候選窗又冒出來，鍵盤
+    # 關閉再開啟後按選字鍵會送出看不見的聯想字
+    def abandonComposition(self, cbTS):
+        if cbTS.showCandidates or len(cbTS.compositionChar) > 0 or len(cbTS.compositionBufferString) > 0:
+            if cbTS.compositionBufferMode and not cbTS.selcandmode and getattr(cbTS, 'cin', None) is not None:
+                RemoveStringLength = self.calcRemoveStringLength(cbTS)
+                self.removeCompositionBufferString(cbTS, RemoveStringLength, True)
+            self.resetComposition(cbTS)
+        if cbTS.showmenu:
+            self.closeMenuCand(cbTS)
+        cbTS.multifunctionmode = False
+        cbTS.phrasemode = False
+        cbTS.isShowPhraseCandidates = False
 
 
     # 切換中英文模式
@@ -2958,9 +3015,10 @@ class CinBase:
             char = chr(charCode).upper() if cbTS.capsStates else chr(charCode).lower()
             charCode = ord(char)
 
-        charStr = ''
+        # ASCII 以外（英、德、法鍵盤的 £、ä…）沒有對應的全形字，原樣輸出；
+        # 以前少了 return，照樣 +0xFEE0，£ 變成半形片假名 ﾃ
         if charCode < 0x0020 or charCode > 0x7e:
-            charStr = chr(charCode)
+            return chr(charCode)
         if charCode == 0x0020: # Spacebar
             charStr = chr(0x3000)
         else:
@@ -2972,7 +3030,7 @@ class CinBase:
     def SymbolscharCodeToFullshape(self, charCode):
         charStr = ''
         if charCode < 0x0020 or charCode > 0x7e:
-            charStr = chr(charCode)
+            return chr(charCode)
         if charCode == 0x0020: # Spacebar
             charStr = chr(0x3000)
         elif charCode == 0x0022: # char(") to char(、)

@@ -235,6 +235,9 @@ class Cin(object):
             matchchardefs = [self.chardefs[key] for key in sortedchardefs if len(key) == keyLength and pattern.match(key)]
 
         if matchchardefs:
+            # 同一個字常出現在多個相符的碼（例如 a*b 同時符合 aab、acb），
+            # 常用字以前沒去重，候選清單重複佔掉名額
+            highFrequencySeen = set()
             for chardef in matchchardefs:
                 for matchstr in chardef:
                     if len(matchstr) > 1:
@@ -243,6 +246,9 @@ class Cin(object):
                         charSet = self.getCharSet(matchstr)
 
                     if charSet in highFrequencyCharSetList:
+                        if matchstr in highFrequencySeen:
+                            continue
+                        highFrequencySeen.add(matchstr)
                         wildcardchardefs.append(matchstr)
                         if len(wildcardchardefs) >= candMaxItems:
                             return wildcardchardefs
@@ -252,7 +258,6 @@ class Cin(object):
                             lowFrequencyChardefs[i].append(matchstr)
                             lowFrequencySeen.add(matchstr)
 
-            highFrequencySeen = set(wildcardchardefs)
             for key in lowFrequencyChardefs:
                 for char in lowFrequencyChardefs[key]:
                     if char not in highFrequencySeen:

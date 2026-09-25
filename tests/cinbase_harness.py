@@ -148,6 +148,7 @@ _NAMED = {
     "BACK": (0x08, VK_BACK), "LEFT": (0, VK_LEFT), "RIGHT": (0, VK_RIGHT),
     "UP": (0, VK_UP), "DOWN": (0, VK_DOWN), "HOME": (0, VK_HOME), "END": (0, VK_END),
     "PGUP": (0, VK_PRIOR), "PGDN": (0, VK_NEXT), "DEL": (0, VK_DELETE),
+    "SHIFT": (0, VK_SHIFT),   # Shift pressed and released on its own
 }
 
 
