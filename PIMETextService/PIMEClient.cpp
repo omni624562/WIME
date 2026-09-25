@@ -54,6 +54,9 @@ static constexpr int kFocusPingConnectAttempts = 2;
 static constexpr int kFocusLostRpcTimeoutMs = 250;
 static constexpr ULONGLONG kColdKeyEventIdleMs = 30000;
 static constexpr ULONGLONG kFocusPingMinIntervalMs = 1000;
+// Largest backend reply line accepted. Real replies (candidate lists, menus, UI
+// settings) are a few KB, so this only bounds a misbehaving or hostile peer.
+static constexpr size_t kMaxRpcReplyBytes = 16 * 1024 * 1024;
 
 static std::string uuidToString(const UUID& uuid) {
 	std::string result;
@@ -1125,13 +1128,22 @@ bool Client::callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std:
 
 	char buf[8192];
 	DWORD rlen = 0;
+	size_t scanned = 0; // prefix of readBuffer_ already known to contain no newline
 	while (true) {
 		// Check if we already have a full line in the buffer
-		size_t pos = readBuffer_.find('\n');
+		size_t pos = readBuffer_.find('\n', scanned);
 		if (pos != std::string::npos) {
 			serializedReply = readBuffer_.substr(0, pos); // exclude the newline for easier parsing
 			readBuffer_.erase(0, pos + 1);
 			return true;
+		}
+		scanned = readBuffer_.size();
+
+		// A peer that keeps writing without a newline would otherwise grow this
+		// buffer without bound inside the host process (explorer, browsers...).
+		// Failing makes the caller close the connection, which clears the buffer.
+		if (readBuffer_.size() > kMaxRpcReplyBytes) {
+			return false;
 		}
 
 		if (!callPipeIO(true, buf, sizeof(buf), &rlen, timeoutMs) || rlen == 0) {
