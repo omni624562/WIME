@@ -84,6 +84,19 @@ def tableIndex(value, count):
     return value
 
 
+# 反查字根可選的碼表（設定頁 selRCins 的順序）
+RCIN_FILE_LIST = (
+    "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json",
+    "thphonetic.json", "CnsPhonetic.json", "bpmf.json",
+    "tharray.json", "array30.json", "ar30-big.json", "array40.json",
+    "thdayi.json", "dayi4.json", "dayi3.json",
+    "ez.json", "ezsmall.json", "ezmid.json", "ezbig.json",
+    "thpinyin.json", "pinyin.json", "roman.json",
+    "simplecj.json", "simplex.json", "simplex5.json",
+    "liu.json",
+)
+
+
 def tableLoadRecentlyFailed(table):
     return time.time() - getattr(table, 'lastLoadFailure', 0.0) < TABLE_RETRY_INTERVAL
 
@@ -1607,7 +1620,7 @@ class CinBase:
                 candidates = self.sortByIntelligentSelect(cbTS, cbTS.compositionChar, candidates)
                 if cbTS.compositionBufferMode and not cbTS.selcandmode:
                     cbTS.compositionBufferType = "default"
-            elif cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[cbTS.cfg.selCinType] == "thpinyin.json" and not cbTS.ctrlsymbolsmode:
+            elif cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[tableIndex(cbTS.cfg.selCinType, len(cbTS.cinFileList))] == "thpinyin.json" and not cbTS.ctrlsymbolsmode:
                 if cbTS.cin.isInCharDef(cbTS.compositionChar + "1") and cbTS.closemenu and not cbTS.ctrlsymbolsmode:
                     candidates = cbTS.cin.getCharDef(cbTS.compositionChar + '1')
                     if cbTS.sortByPhrase and candidates:
@@ -1643,7 +1656,7 @@ class CinBase:
                         cbTS.candMaxItems,
                         self.isVariableWildcardQuery(cbTS)
                     )
-                    if cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[cbTS.cfg.selCinType] == "thpinyin.json":
+                    if cbTS.imeDirName == "chepinyin" and cbTS.cinFileList[tableIndex(cbTS.cfg.selCinType, len(cbTS.cinFileList))] == "thpinyin.json":
                         if not cbTS.wildcardcandidates:
                             cbTS.wildcardcandidates = cbTS.cin.getWildcardCharDefs(cbTS.compositionChar + "1", cbTS.selWildcardChar, cbTS.candMaxItems)
                     cbTS.wildcardpagecandidates = []
@@ -3647,12 +3660,41 @@ class CinBase:
             cbTS.selDayiSymbolCharType = cfg.selDayiSymbolCharType
 
 
+    # 共用的碼表是否和這個實例的設定不同（只看已載入、沒在載入、也不是剛載入失敗的表）
+    def sharedTablesDisagree(self, cbTS, CinTable, RCinTable, HCinTable):
+        cfg = cbTS.cfg
+        if (CinTable.curCinType is not None and not CinTable.loading
+                and not tableLoadRecentlyFailed(CinTable)):
+            if (CinTable.curCinType != tableIndex(cfg.selCinType, len(cbTS.cinFileList))
+                    or CinTable.ignorePrivateUseArea != cfg.ignorePrivateUseArea
+                    or CinTable.userExtendTable != cfg.userExtendTable
+                    or (cfg.userExtendTable and CinTable.priorityExtendTable != cfg.priorityExtendTable)):
+                return True
+        for table, enabled, selected, fileList in (
+                (RCinTable, cfg.imeReverseLookup, cfg.selRCinType, RCIN_FILE_LIST),
+                (HCinTable, cfg.homophoneQuery, cfg.selHCinType, self.hcinFileList)):
+            if (enabled and table.curCinType is not None and not table.loading
+                    and not tableLoadRecentlyFailed(table)
+                    and table.curCinType != tableIndex(selected, len(fileList))):
+                return True
+        return False
+
     # 檢查設定檔是否有被更改，是否需要套用新設定
     def checkConfigChange(self, cbTS, CinTable, RCinTable, HCinTable):
-        cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
+        cfg = cbTS.cfg # 每個實例各有一份設定副本（ime_base 以 deepcopy 建立）
+        # 每份副本各自最多每 3 秒才重讀一次 config.json。共用碼表和這份副本不一致，
+        # 多半是別的實例已依新設定換了碼表、這份還沒重讀：先不節流地重讀再判斷。
+        # 以前這時會把碼表換回舊的，幾個實例輪流把碼表換來換去、重載好幾次
+        if self.sharedTablesDisagree(cbTS, CinTable, RCinTable, HCinTable):
+            cfg._lastUpdateTime = 0.0
         cfg.update() # 更新設定檔狀態
         reLoadCinTable = False
         updateExtendTable = False
+        # 超出範圍的索引實際載入的是 0 號碼表，比較時要用同樣的值，否則每個實例
+        # （每個新開的應用程式）都判定「碼表不符」而重新解析一次
+        selCinType = tableIndex(cfg.selCinType, len(cbTS.cinFileList))
+        selRCinType = tableIndex(cfg.selRCinType, len(RCIN_FILE_LIST))
+        selHCinType = tableIndex(cfg.selHCinType, len(self.hcinFileList))
 
         if hasattr(cbTS, 'cin'):
             if hasattr(cbTS.cin, 'cincount'):
@@ -3661,7 +3703,7 @@ class CinBase:
         # 如果有更換輸入法碼表，就重新載入碼表資料
         # （剛載入失敗就先別重試：失敗時下面的條件都還成立，每個請求都會再開一次）
         if not CinTable.loading and not tableLoadRecentlyFailed(CinTable):
-            if not CinTable.curCinType == cfg.selCinType:
+            if not CinTable.curCinType == selCinType:
                 reLoadCinTable = True
 
             if not CinTable.ignorePrivateUseArea == cfg.ignorePrivateUseArea:
@@ -3684,14 +3726,14 @@ class CinBase:
         if cfg.imeReverseLookup or cbTS.imeReverseLookup:
             # 載入反查輸入法碼表
             if not RCinTable.loading and not CinTable.loading and not tableLoadRecentlyFailed(RCinTable):
-                if not RCinTable.curCinType == cfg.selRCinType or RCinTable.cin is None:
+                if not RCinTable.curCinType == selRCinType or RCinTable.cin is None:
                     loadRCinFile = LoadRCinTable(cbTS, RCinTable)
                     loadRCinFile.start()
 
         if cfg.homophoneQuery or cbTS.homophoneQuery:
             # 載入同音字碼表
             if not HCinTable.loading and not CinTable.loading and not tableLoadRecentlyFailed(HCinTable):
-                if not HCinTable.curCinType == cfg.selHCinType or HCinTable.cin is None:
+                if not HCinTable.curCinType == selHCinType or HCinTable.cin is None:
                     loadHCinFile = LoadHCinTable(cbTS, HCinTable)
                     loadHCinFile.start()
 
@@ -3822,16 +3864,7 @@ class LoadRCinTable(threading.Thread):
         threading.Thread.__init__(self)
         self.cbTS = cbTS
         self.RCinTable = RCinTable
-        self.rcinFileList = ([
-                                "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json",
-                                "thphonetic.json", "CnsPhonetic.json", "bpmf.json",
-                                "tharray.json", "array30.json", "ar30-big.json", "array40.json",
-                                "thdayi.json", "dayi4.json", "dayi3.json",
-                                "ez.json", "ezsmall.json", "ezmid.json", "ezbig.json",
-                                "thpinyin.json", "pinyin.json", "roman.json",
-                                "simplecj.json", "simplex.json", "simplex5.json",
-                                "liu.json"
-                            ])
+        self.rcinFileList = RCIN_FILE_LIST
 
     def run(self):
         if DEBUG_MODE:
