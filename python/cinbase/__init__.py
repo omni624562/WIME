@@ -1044,8 +1044,12 @@ class CinBase:
             if keyEvent.keyCode >= VK_NUMPAD0 and keyEvent.keyCode <= VK_DIVIDE:
                 if self.isWildcardInputKey(cbTS, charStr, keyEvent):
                     pass
-                elif not cbTS.compositionBufferMode or cbTS.showCandidates:
-                    return True # bypass IME
+                else:
+                    handled = self.numpadWhileComposing(cbTS, RCinTable, charStr)
+                    if handled is not None:
+                        return handled
+                    if not cbTS.compositionBufferMode or cbTS.showCandidates:
+                        return True # 功能選單、符號輸入等特殊模式維持原本：輸入法吃掉
 
         if cbTS.compositionBufferMode and not cbTS.isComposing():
             cbTS.compositionBufferType = "default"
@@ -3193,6 +3197,68 @@ class CinBase:
             cbTS.ctrlsymbolsmode or cbTS.dayisymbolsmode or cbTS.fullsymbolsmode or
             cbTS.homophonemode or cbTS.isWildcardChardefs
         )
+
+    # 數字鍵盤不論中英文都直接輸入數字（filterKeyDown 沒在組字時直接交給應用程式）。
+    # 組字中按下時：先送出游標所在的候選字（候選窗沒開則是組字的第一個候選字，查無字
+    # 就放棄字根），再輸出按下的字元；只開著聯想字清單時關掉清單、交給應用程式。
+    # 以前組字中一律吃掉，按了沒有任何反應。回傳 onKeyDown 的回傳值，None 表示不適用
+    def numpadWhileComposing(self, cbTS, RCinTable, charStr):
+        if not charStr.isprintable():
+            return None
+        if cbTS.compositionChar == "" and cbTS.phrasemode and cbTS.isShowPhraseCandidates:
+            cbTS.phrasemode = False
+            cbTS.isShowPhraseCandidates = False
+            cbTS.setCandidateList([])
+            cbTS.setShowCandidates(False)
+            return False
+        inNormalComposition = (
+            cbTS.compositionChar != "" and cbTS.langMode == CHINESE_MODE and cbTS.closemenu
+            and not (cbTS.multifunctionmode or cbTS.menumode or cbTS.ctrlsymbolsmode or cbTS.dayisymbolsmode
+                     or cbTS.fullsymbolsmode or cbTS.homophonemode or cbTS.selcandmode
+                     or cbTS.tempEnglishMode or cbTS.phrasemode)
+        )
+        if not inNormalComposition:
+            return None
+
+        commitStr = self.highlightedCandidate(cbTS)
+        if commitStr:
+            if cbTS.compositionBufferMode:
+                cbTS.compositionBufferType = "default"
+            self.commitSingleCandidate(cbTS, RCinTable, commitStr)
+        else:
+            if cbTS.compositionBufferMode:
+                self.removeCompositionBufferString(cbTS, self.calcRemoveStringLength(cbTS), True)
+            self.resetComposition(cbTS)
+
+        if cbTS.compositionBufferMode:
+            self.setCompositionBufferString(cbTS, charStr, 0)
+            cbTS.compositionBufferType = "english"
+            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, charStr, cbTS.compositionBufferCursor)
+        else:
+            cbTS.setCommitString(cbTS.currentReply.get("commitString", "") + charStr)
+        # 打了數字之後，剛送出那個字的聯想字詞與「前一字」脈絡都不再適用
+        cbTS.phrasemode = False
+        cbTS.isShowPhraseCandidates = False
+        cbTS.lastCommitString = charStr
+        return True
+
+    # 游標所在的候選字；候選窗沒開時（直接顯示候選字關閉）依顯示時的排序取第一個
+    def highlightedCandidate(self, cbTS):
+        if cbTS.showCandidates and cbTS.candidateList:
+            cursor = cbTS.candidateCursor if 0 <= cbTS.candidateCursor < len(cbTS.candidateList) else 0
+            return cbTS.candidateList[cursor]
+        key = cbTS.compositionChar
+        if cbTS.supportWildcard and cbTS.selWildcardChar in key:
+            candidates = cbTS.cin.getWildcardCharDefs(key, cbTS.selWildcardChar, cbTS.candMaxItems,
+                                                      self.isVariableWildcardQuery(cbTS))
+        elif cbTS.cin.isInCharDef(key):
+            candidates = cbTS.cin.getCharDef(key)
+        else:
+            return ""
+        if cbTS.sortByPhrase and candidates:
+            candidates = self.sortByPhrase(cbTS, list(candidates))
+        candidates = self.sortByIntelligentSelect(cbTS, key, candidates)
+        return candidates[0] if candidates else ""
 
     def commitSingleCandidate(self, cbTS, RCinTable, commitStr):
         self.addIntelligentSelectCount(cbTS, cbTS.compositionChar, commitStr)
