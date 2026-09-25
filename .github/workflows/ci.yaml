@@ -1,9 +1,14 @@
 name: Build
 
+# 功能分支由 pull_request 檢查；以前 push 不限分支，同一個 commit 會在分支 push
+# 與 PR 各跑一次，推 tag 又把 master 已建置過的 commit 再建一次。只設 branches
+# 時 tag push 不會觸發。沒開 PR 的分支或 tag 需要時從 Actions 頁手動執行。
 on:
   push:
+    branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
