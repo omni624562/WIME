@@ -14,6 +14,19 @@ $(function () {
         KEEP_ALIVE_URL = "debug" + KEEP_ALIVE_URL;
     }
 
+    // 設定工具伺服器回應失敗時的說明。403 = 工作階段已失效（在別處重新開了設定、
+    // 或伺服器已重啟換了 token）；0 = 連不到伺服器（已結束）。
+    function serverErrorMessage(xhr, action) {
+        var status = xhr ? xhr.status : 0;
+        if (status === 403) {
+            return action + "失敗：設定工具的工作階段已失效。\n請關閉此頁，再從輸入法的「設定」重新開啟。";
+        }
+        if (!status) {
+            return action + "失敗：無法連線到設定工具（可能已關閉）。\n請關閉此頁，再從輸入法的「設定」重新開啟。";
+        }
+        return action + "失敗（HTTP " + status + "）。\n請關閉此頁後重新開啟設定再試一次。";
+    }
+
     function loadConfig() {
         $.get(
             CONFIG_URL,
@@ -28,7 +41,15 @@ $(function () {
                 setTimeout(function () { chewingConfigReady = true; }, 0);
             },
             "json"
-        );
+        ).fail(function (xhr) {
+            // 載入失敗時欄位全是空的，放一條固定橫幅說明原因，而不是留一頁空白
+            $("<div>", { id: "configLoadError", role: "alert" })
+                .css({ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10000, padding: "12px 16px",
+                       background: "#b42318", color: "#fff", fontWeight: "bold", textAlign: "center",
+                       whiteSpace: "pre-line" })
+                .text(serverErrorMessage(xhr, "載入設定"))
+                .prependTo("body");
+        });
     }
 
     function applyCandidateDefaults() {
@@ -47,19 +68,9 @@ $(function () {
         if (typeof chewingConfig.candidateMaxWidth === "undefined" || chewingConfig.candidateMaxWidth < 220) {
             chewingConfig.candidateMaxWidth = 300;
         }
-        if (typeof chewingConfig.candidateTheme === "undefined") {
-            chewingConfig.candidateTheme = "System";
-        }
-        else if (chewingConfig.candidateTheme === "dark") {
-            chewingConfig.candidateTheme = "Graphite";
-        }
-        else if (chewingConfig.candidateTheme === "light") {
-            chewingConfig.candidateTheme = "Light";
-        }
-        // 配色已精簡；若存的是被移除的主題，退回 System（跟隨系統）
-        else if (candidateThemeNames.indexOf(chewingConfig.candidateTheme) === -1) {
-            chewingConfig.candidateTheme = "System";
-        }
+        // 別名（大小寫/空白不同、舊分支的命名、舊的 dark/light）對回正式名稱；
+        // 被移除的主題退回 System（跟隨系統）
+        chewingConfig.candidateTheme = canonicalCandidateThemeName(chewingConfig.candidateTheme);
         // 選字符樣式只提供 Word First，一律固定為 word-first
         chewingConfig.candidateKeyStyle = "word-first";
         if (typeof chewingConfig.candidateMessageStyle === "undefined") {
@@ -567,6 +578,15 @@ $(function () {
             url: CONFIG_URL,
             method: "POST",
             success: callbackFunc,
+            error: function (xhr) {
+                // 儲存失敗一定要讓使用者知道，否則會以為已經存好了
+                var message = serverErrorMessage(xhr, "儲存設定") + "\n這次的變更尚未儲存。";
+                if (window.swal) {
+                    swal.fire({ title: "儲存失敗", html: $("<div>").text(message).html().replace(/\n/g, "<br>"), icon: "error" });
+                } else {
+                    alert(message);
+                }
+            },
             contentType: "application/json",
             data: JSON.stringify(data),
             dataType: "json"

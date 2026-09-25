@@ -99,6 +99,26 @@ var candidateThemePalette = {
     "High Contrast": ["#0a0a0c", "#6b7280", "#33373d", "#ffffff", "#c9ced6", "#ffd75e", "#8a6d00", "#c7a83c", "#fff8dc", "#d6dae2"]
 };
 
+// 把設定檔裡的主題名稱對到上面的正式名稱。別名規則與
+// PIMETextService/PIMEClient.cpp 的 candidateThemeColors() 一致（去掉空白、
+// 不分大小寫），例如舊分支存的 "pureblack"、"sepia"、"dark" 也能對上；
+// 對不上的舊主題（如 "Olive"）一律視為 System——後端
+// python/candidate_theme.py 也做同樣處理，頁面顯示與實際候選窗才會一致。
+var candidateThemeAliases = {
+    system: "System", followsystem: "System", auto: "System",
+    graphite: "Graphite", dark: "Graphite", night: "Graphite",
+    sepiadim: "Sepia Dim", sepia: "Sepia Dim",
+    plum: "Plum",
+    light: "Light",
+    pureblack: "Pure Black", black: "Pure Black", oled: "Pure Black",
+    highcontrast: "High Contrast", contrast: "High Contrast"
+};
+
+function canonicalCandidateThemeName(name) {
+    var key = String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return candidateThemeAliases[key] || "System";
+}
+
 // 「System」跟隨 Windows 深淺色：預覽以瀏覽器的 prefers-color-scheme 對應
 candidateThemePalette["System"] = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
     ? candidateThemePalette["Graphite"]

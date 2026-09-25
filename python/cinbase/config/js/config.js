@@ -65,6 +65,52 @@ var debugMode = false;
 var checjConfig = {};
 var cinCount = {};
 var configLoaded = false;
+var configLoadFailed = false;
+
+// 設定工具伺服器回應失敗時的說明。403 = 工作階段已失效（在別處重新開了設定、
+// 或伺服器已重啟換了 token）；0 = 連不到伺服器（已結束）。
+function serverErrorMessage(xhr, action) {
+    var status = xhr ? xhr.status : 0;
+    if (status === 403) {
+        return action + "失敗：設定工具的工作階段已失效。<br>請關閉此頁，再從輸入法的「設定」重新開啟。";
+    }
+    if (!status) {
+        return action + "失敗：無法連線到設定工具（可能已關閉）。<br>請關閉此頁，再從輸入法的「設定」重新開啟。";
+    }
+    return action + "失敗（HTTP " + status + "）。<br>請關閉此頁後重新開啟設定再試一次。";
+}
+
+// 載入失敗時頁面欄位全是空的，放一條固定橫幅說明原因，而不是留一頁空白。
+function showConfigLoadError(xhr) {
+    $(function() {
+        if (document.getElementById("configLoadError")) {
+            return;
+        }
+        $("<div>", { id: "configLoadError", role: "alert" })
+            .css({ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10000, padding: "12px 16px",
+                   background: "#b42318", color: "#fff", fontWeight: "bold", textAlign: "center" })
+            .html(serverErrorMessage(xhr, "載入設定"))
+            .prependTo("body");
+    });
+}
+
+// 儲存失敗一定要讓使用者知道，否則會以為已經存好了。
+function showConfigSaveError(xhr) {
+    var message = serverErrorMessage(xhr, "儲存設定") + "<br>這次的變更尚未儲存。";
+    if ($.jAlert) {
+        $.jAlert({
+            'title': '儲存失敗',
+            'content': message,
+            'theme': 'dark_red',
+            'size': 'md',
+            'blurBackground': true,
+            'closeOnClick': true,
+            'btns': {'text': '關閉', 'theme': 'blue'}
+        });
+    } else {
+        alert(message.replace(/<br>/g, "\n"));
+    }
+}
 var CONFIG_URL = '/config';
 var VERSION_URL = '/version.txt';
 var KEEP_ALIVE_URL = '/keep_alive';
@@ -142,7 +188,10 @@ function loadConfig() {
         flangsData = data.flangs;
         extendtableData = data.extendtable;
         configLoaded = true;
-    }, "json");
+    }, "json").fail(function(xhr) {
+        configLoadFailed = true;
+        showConfigLoadError(xhr);
+    });
 }
 loadConfig();
 
@@ -205,13 +254,8 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.candidateMaxWidth === "undefined" || checjConfig.candidateMaxWidth < 220) {
         checjConfig.candidateMaxWidth = 300;
     }
-    if (typeof checjConfig.candidateTheme === "undefined") {
-        checjConfig.candidateTheme = "System";
-    }
-    // 配色已精簡；若存的是被移除的主題，退回 System（跟隨系統）
-    else if (candidateThemeNames.indexOf(checjConfig.candidateTheme) === -1) {
-        checjConfig.candidateTheme = "System";
-    }
+    // 別名（大小寫/空白不同、舊分支的命名）對回正式名稱；被移除的主題退回 System
+    checjConfig.candidateTheme = canonicalCandidateThemeName(checjConfig.candidateTheme);
     if (typeof checjConfig.candidatePerRow === "undefined") {
         checjConfig.candidatePerRow = 6;
     }
@@ -716,6 +760,9 @@ function saveConfig(callbackFunc) {
                 callbackFunc();
             }
         },
+        error: function(xhr) {
+            showConfigSaveError(xhr);
+        },
         contentType: "application/json",
         data: JSON.stringify(data),
         dataType:"json"
@@ -1069,6 +1116,9 @@ $(function() {
 });
 
 function pageWait() {
+    if (configLoadFailed) {
+        return; // 橫幅已說明原因；不要再無限輪詢
+    }
     if (document.getElementById("ok") && configLoaded) {
         pageReady();
     }
