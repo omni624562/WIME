@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 # CMake 4 refuses cmake_minimum_required(VERSION < 3.5), which the vendored
 # googletest 1.10 (libIME2/lib) and libIME2 still declare, so a fresh configure -
