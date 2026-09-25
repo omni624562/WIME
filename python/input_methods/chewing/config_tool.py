@@ -347,7 +347,11 @@ class ConfigApp(tornado.web.Application):
 
     def quit(self):
         # terminate the server process
-        tornado.ioloop.IOLoop.current().close()
+        # stop(), not close(): this runs as a callback inside the running loop, and
+        # closing a running asyncio loop raises RuntimeError, so the old code never
+        # reached sys.exit() - every settings session leaked a python.exe (holding
+        # the installed python files open and blocking installer upgrades).
+        tornado.ioloop.IOLoop.current().stop()
         sys.exit(0)
 
 
