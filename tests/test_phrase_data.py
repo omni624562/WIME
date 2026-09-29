@@ -169,6 +169,10 @@ REMOVED_KMT = {
                     "黨義 黨證 黨校 黨性 黨法 黨人 黨友 黨爭 入黨 建黨 脫黨 跨黨 革命軍 革命黨 總裁 副總裁 領袖",
 }
 
+# Chinese political figures (emperors, officials, generals), deleted the same day.
+# 汪洋 stays: in this dictionary it is the ordinary word (汪洋大海), not the politician
+REMOVED_POLITICIANS = "始皇 忽必烈 順治 嘉慶 道光 同治 榮祿 衛青 蒙恬 包青天 柳宗元"
+
 
 def removed_pairs():
     for line in REMOVED.strip().splitlines():
@@ -199,6 +203,12 @@ class PhraseDictionaryTests(unittest.TestCase):
     def test_removed_kmt_related_phrases_are_absent(self):
         words = " ".join(REMOVED_KMT.values()).split()
         self.assertEqual(len(words), 90)
+        present = [w for w in words if w[1:] in self.chardefs.get(w[0], [])]
+        self.assertEqual(present, [])
+
+    def test_removed_political_figures_are_absent(self):
+        words = REMOVED_POLITICIANS.split()
+        self.assertEqual(len(words), 11)
         present = [w for w in words if w[1:] in self.chardefs.get(w[0], [])]
         self.assertEqual(present, [])
 
