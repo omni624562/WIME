@@ -19,8 +19,8 @@ from keycodes import *  # for VK_XXX constants
 from textService import *
 import os.path
 import time
-from libchewing import ChewingContext, CHEWING_DATA_DIR, CHINESE_MODE, \
-    ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE
+from libchewing import ChewingContext, ChewingError, ChewingFault, CHEWING_DATA_DIR, \
+    CHINESE_MODE, ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE, encodeDataPath
 
 import sys
 import copy
@@ -95,9 +95,27 @@ def splitTrailingBopomofo(text):
     return text[:rootStart], text[rootStart:]
 
 
+# libchewing 回傳的是 UTF-8 bytes。資料檔有問題時可能不是合法的 UTF-8 (symbols.dat 一行
+# 超過 511 bytes 會被 libchewing 截斷在字的中間、或檔案存成 ANSI)，以前嚴格解碼會讓之後
+# 每個按鍵都丟例外，連 Esc 都清不掉
+def decodeText(data):
+    return data.decode("UTF-8", "replace") if data else ""
+
+
+# 無法開啟使用者詞庫時只提示一次 (每次切換視窗都會重新啟用輸入法)
+_userPhraseWarningShown = False
+
+
 # from libchewing/include/global.h
 AUTOLEARN_ENABLED = 0
 AUTOLEARN_DISABLED = 1
+
+# libchewing 編輯區的上限 (MAX_CHI_SYMBOL_LEN)，超過的值會被忽略
+MAX_CHI_SYMBOL_LEN = 39
+
+# 掃描碼：分辨放開的是左邊還是右邊的 Shift
+LEFT_SHIFT_SCAN_CODE = 0x2A
+RIGHT_SHIFT_SCAN_CODE = 0x36
 
 
 class ChewingTextService(TextService):
@@ -123,27 +141,90 @@ class ChewingTextService(TextService):
         self.hasLangButtons = False
         self.updateSwitchLangIcon = False  # 更新 中/英 切換 icon
 
+        # 無法開啟使用者詞庫，暫時改用記憶體中的詞庫 (學到的詞不會存檔)
+        self.userPhraseFallback = False
+
+        # 切換中英文後畫面上的組字還沒更新 (見 toggleLanguageMode)
+        self.compositionSyncPending = False
+
+    def handleRequest(self, msg):
+        try:
+            return TextService.handleRequest(self, msg)
+        except ChewingFault as err:
+            # 內附的舊版 chewing.dll 在少數按鍵序列會存取違規 (例如許氏鍵盤的
+            # 「k 空白 4 k 空白」)。以前例外一路丟到 server.py，C++ 端會重設整條連線，
+            # 之後每個空白鍵、Enter 都再出錯一次。丟掉壞掉的 context、重建一個新的，
+            # 並清掉組字狀態 (這個按鍵和正在組的字會遺失)
+            return self.recoverFromEngineFault(msg, err)
+
+    def recoverFromEngineFault(self, msg, err):
+        print("chewing: chewing.dll fault in %s: %s" % (msg.get("method"), err), file=sys.stderr)
+        self.currentReply = {}
+        self.closeChewingContext()
+        if self.isActivated and self.keyboardOpen:
+            self.rememberModes()
+            self.initChewingContext()
+        self.clearCompositionState()
+        if msg.get("method") not in ("onKeyDown", "onKeyUp"):
+            # 這個回覆沒有 edit session，畫面上的組字等下一個按鍵再清掉
+            self.compositionSyncPending = True
+        self.showMessage("新酷音引擎發生錯誤，已自動重新啟動", 3)
+        reply = self.currentReply
+        self.currentReply = {}
+        if msg.get("method") in ("filterKeyDown", "onKeyDown"):
+            reply["return"] = True  # 這個按鍵已經處理過了 (丟棄)，不要再送給應用程式
+        elif msg.get("method") in ("filterKeyUp", "onKeyUp", "onPreservedKey"):
+            reply["return"] = False
+        reply["success"] = True
+        reply["seqNum"] = msg.get("seqNum", 0)
+        return reply
+
     # 檢查設定檔是否有被更改，是否需要套用新設定
     def checkConfigChange(self):
         cfg = chewingConfig
         cfg.update()  # 更新設定檔狀態
+        if not self.chewingContext:
+            return  # 鍵盤關閉中；重新開啟時會建立新的 context 並套用設定
 
         # 比較我們先前存的版本號碼，和目前設定檔的版本號
         if cfg.isFullReloadNeeded(self.configVersion):
-            # 資料改變需整個 reload，重建一個新的 chewing context
-            self.chewingContext = None
-            self.initChewingContext()
+            # 資料改變需整個 reload，重建一個新的 chewing context。
+            # 組字中先不重建 (會丟掉正在組的字)，等組字結束後的下一個請求再做
+            if not self.isComposing():
+                self.rebuildChewingContext()
         elif cfg.isConfigChanged(self.configVersion):
             # 只有偵測到設定檔變更，需要套用新設定
             self.applyConfig()
 
+    # 重建 chewing context 時保留目前的中/英、全/半形模式 (以前每次儲存特殊符號設定，
+    # 所有程式都被切回預設模式，圖示卻沒更新)
+    def rememberModes(self):
+        if self.langMode in (CHINESE_MODE, ENGLISH_MODE):
+            self.lastLangMode = self.langMode
+        if self.shapeMode in (FULLSHAPE_MODE, HALFSHAPE_MODE):
+            self.lastShapeMode = self.shapeMode
+
+    def rebuildChewingContext(self):
+        self.rememberModes()
+        self.closeChewingContext()
+        self.clearCompositionState()
+        self.initChewingContext()
+
+    # 清掉 Python 端的組字與選字狀態 (新的 context 裡什麼都沒有)
+    def clearCompositionState(self):
+        self.compositionSyncPending = False
+        if self.showCandidates or self.candidateList:
+            self.setCandidateList([])
+            self.setCandidateCursor(0)
+            self.setShowCandidates(False)
+        if self.compositionString:
+            self.setCompositionString("")
+            self.setCompositionCursor(0)
+
     def customizeCandidateUI(self, force=False):
         cfg = chewingConfig
         modernStyle = getattr(cfg, 'candidateModernStyle', False)
-        if modernStyle and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
-            uiCandPerRow = getattr(cfg, 'candidatePerRow', 6)
-        else:
-            uiCandPerRow = 1 if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical' else cfg.candPerRow
+        uiCandPerRow = self.candidatesPerUiRow()
         ui_args = {
             "candFontName": 'Microsoft JhengHei' if modernStyle else 'MingLiu',
             "candFontSize": cfg.fontSize,
@@ -189,8 +270,10 @@ class ChewingTextService(TextService):
 
     def applyConfig(self):
         cfg = chewingConfig  # globally shared config object
-        self.configVersion = cfg.getVersion()
         chewingContext = self.chewingContext
+        if not chewingContext:
+            return  # 鍵盤關閉中 (以前會在 None 上呼叫而丟例外)；重新開啟時會再套用
+        self.configVersion = cfg.getVersion()
 
         # 按下 Ctrl+ 數字加入游標前方/後方的詞
         chewingContext.set_addPhraseDirection(cfg.addPhraseForward)
@@ -222,23 +305,51 @@ class ChewingTextService(TextService):
         # 設定向後詞彙選字模式
         chewingContext.set_phraseChoiceRearward(cfg.phraseChoiceRearward)
 
+    # 建立 libchewing context；失敗時傳回 None
+    def createChewingContext(self):
+        global _userPhraseWarningShown
+        cfg = chewingConfig  # 所有 ChewingTextService 共享一份設定物件
+        # syspath 參數可包含多個路徑，用 ; 分隔
+        # 此處把 user 設定檔目錄插入到 system-wide 資料檔路徑前
+        # 如此使用者變更設定後，可以比系統預設值有優先權
+        search_paths = b";".join(
+            path for path in (encodeDataPath(cfg.getConfigDir()), encodeDataPath(CHEWING_DATA_DIR)) if path)
+        # 使用者詞庫由 sqlite 開啟，路徑用 UTF-8
+        user_phrase = cfg.getUserPhrase().encode("UTF-8")
+
+        self.userPhraseFallback = False
+        try:
+            return ChewingContext(syspath=search_paths, userpath=user_phrase)
+        except ChewingError:
+            # 詞庫被其他程式鎖住、損毀或唯讀時 libchewing 會失敗。以前沒有檢查，
+            # 所有按鍵都被吃掉卻打不出字
+            print("chewing: cannot open the user phrase database %s" % cfg.getUserPhrase(), file=sys.stderr)
+        try:
+            chewingContext = ChewingContext(syspath=search_paths, userpath=b":memory:")
+        except ChewingError:
+            print("chewing: cannot create a libchewing context (data: %s)" % CHEWING_DATA_DIR, file=sys.stderr)
+            return None
+        self.userPhraseFallback = True
+        if not _userPhraseWarningShown:
+            _userPhraseWarningShown = True
+            self.showMessage("無法開啟新酷音使用者詞庫，這次學到的詞不會儲存", 5)
+        return chewingContext
+
     # 初始化新酷音輸入法引擎
     def initChewingContext(self):
+        if self.chewingContext and self.userPhraseFallback and not self.isComposing():
+            # 上次無法開啟使用者詞庫而暫時改用記憶體中的詞庫，重新啟用時再試一次
+            self.rebuildChewingContext()
+            return
         # load libchewing context
         if not self.chewingContext:
             cfg = chewingConfig  # 所有 ChewingTextService 共享一份設定物件
-            # syspath 參數可包含多個路徑，用 ; 分隔
-            # 此處把 user 設定檔目錄插入到 system-wide 資料檔路徑前
-            # 如此使用者變更設定後，可以比系統預設值有優先權
-            search_paths = ";".join(
-                (cfg.getConfigDir(), CHEWING_DATA_DIR)).encode("UTF-8")
-            user_phrase = cfg.getUserPhrase().encode("UTF-8")
-
-            # 建立 ChewingContext，此處路徑需要 UTF-8 編碼
-            chewingContext = ChewingContext(
-                syspath=search_paths, userpath=user_phrase)
+            chewingContext = self.createChewingContext()
+            if not chewingContext:
+                # 按鍵都直接交給應用程式；下次啟用或開啟鍵盤時再試
+                return
             self.chewingContext = chewingContext
-            chewingContext.set_maxChiSymbolLen(50)  # 編輯區長度：50 bytes
+            chewingContext.set_maxChiSymbolLen(MAX_CHI_SYMBOL_LEN)  # 編輯區最多幾個字
 
             # 預設英數 or 中文模式
             if self.lastLangMode is not None:
@@ -264,6 +375,7 @@ class ChewingTextService(TextService):
 
         # 向系統宣告 Shift + Space 這個組合為特殊用途 (全半形切換)
         # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
+        # (設定停用時 onPreservedKey() 傳回 False，按鍵照常交給應用程式)
         self.addPreservedKey(VK_SPACE, TF_MOD_SHIFT,
                              SHIFT_SPACE_GUID)  # shift + space
 
@@ -335,7 +447,7 @@ class ChewingTextService(TextService):
     def onDeactivate(self):
         TextService.onDeactivate(self)
         # 釋放 libchewing context 的資源
-        self.chewingContext = None
+        self.closeChewingContext()
         self.lastKeyEvent = None
 
         # 丟棄輸入法狀態
@@ -347,6 +459,12 @@ class ChewingTextService(TextService):
 
         if self.client.isWindows8Above:
             self.removeButton("windows-mode-icon")
+
+    def closeChewingContext(self):
+        chewingContext = self.chewingContext
+        self.chewingContext = None
+        if chewingContext:
+            chewingContext.close()
 
     # 設定是否啟用自動學習功能
     def setAutoLearn(self, autoLearn):
@@ -372,13 +490,25 @@ class ChewingTextService(TextService):
         if self.lastKeyDownTime == 0.0:
             self.lastKeyDownTime = time.time()
 
+        # 無法建立新酷音引擎 (見 createChewingContext)：按鍵全部交給應用程式
+        if not self.chewingContext:
+            return False
+
         # 使用者開始輸入，還沒送出前的編輯區內容稱 composition string
         # isComposing() 是 False，表示目前沒有正在編輯中文
         # 另外，若使用 "`" key 輸入特殊符號，可能會有編輯區是空的，但選字清單開啟，輸入法需要處理的情況
         # 此時 isComposing() 也會是 True
         if self.isComposing():
+            # 組字中按 Ctrl/Alt + 字母等是應用程式的快速鍵 (Ctrl+C、Ctrl+Z、Alt+F…)，
+            # C++ 端送來的字元不含 Ctrl，以前會被當成注音 ('c' 變成ㄏ)
+            if keyEvent.isPrintableChar() and (keyEvent.isKeyDown(VK_CONTROL) or keyEvent.isKeyDown(VK_MENU)):
+                return self.isImeCtrlKey(keyEvent)
             return True
         # --------------   以下都是「沒有」正在輸入中文的狀況   --------------
+
+        # libchewing 只處理 ASCII 字元，é、ß、€ (非美式鍵盤、AltGr) 以前會被吃掉
+        if keyEvent.isPrintableChar() and keyEvent.charCode > 0x7E:
+            return False
 
         # 如果按下 Alt，可能是應用程式熱鍵，輸入法不做處理
         if keyEvent.isKeyDown(VK_MENU):
@@ -434,8 +564,71 @@ class ChewingTextService(TextService):
         # 其餘狀況一律不處理，原按鍵輸入直接送還給應用程式
         return False
 
+    # 組字中 Ctrl + 可見字元，輸入法要處理的只有 Ctrl + 數字 (加入自訂詞) 和
+    # 開啟「Ctrl 快速輸入符號」時的 Ctrl + 字母；按著 Alt (含 AltGr) 的都交給應用程式
+    def isImeCtrlKey(self, keyEvent):
+        if keyEvent.isKeyDown(VK_MENU) or not keyEvent.isKeyDown(VK_CONTROL):
+            return False
+        charStr = chr(keyEvent.charCode)
+        if charStr.isdigit():
+            return True
+        return bool(chewingConfig.easySymbolsWithCtrl) and self.langMode == CHINESE_MODE
+
+    # 目前的候選字視窗每一列顯示幾個候選字 (上下鍵移動游標的步幅)
+    def candidatesPerUiRow(self):
+        cfg = chewingConfig
+        layout = getattr(cfg, 'candidateLayout', 'horizontal')
+        if getattr(cfg, 'candidateModernStyle', False) and layout == 'horizontal':
+            return getattr(cfg, 'candidatePerRow', 6)
+        return 1 if layout == 'vertical' else cfg.candPerRow
+
+    # Ctrl + Del 刪除詞彙、Ctrl + PageUp 提昇 / Ctrl + PageDown 降低詞頻
+    def maintainUserPhrase(self, keyCode, target_phrase):
+        phraseConnect = None
+        try:
+            # 詞庫被設定工具等鎖住時不能等太久：後端只有一個執行緒，預設的 5 秒會讓
+            # 所有程式的輸入法一起卡住 (C++ 端 2 秒就逾時)
+            phraseConnect = sqlite3.connect(chewingConfig.getUserPhrase(), timeout=0.2)
+            cursor = phraseConnect.cursor()
+            cursor.execute("SELECT * FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
+            result = cursor.fetchone()
+            if (result is None):
+                if keyCode == VK_DELETE:
+                    self.showMessage("詞彙「" + target_phrase + "」不存在，無法刪除", 2)
+                elif keyCode == VK_NEXT:
+                    self.showMessage("詞彙「" + target_phrase + "」不存在，無法降低詞頻", 2)
+                elif keyCode == VK_PRIOR:
+                    self.showMessage("詞彙「" + target_phrase + "」不存在，無法提昇詞頻", 2)
+            else:
+                if keyCode == VK_DELETE:
+                    cursor.execute("DELETE FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
+                    phraseConnect.commit()
+                    self.showMessage("刪除「" + target_phrase + "」成功", 2)
+                elif keyCode == VK_NEXT:
+                    cursor.execute("UPDATE userphrase_v1 SET user_freq = 0 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
+                    phraseConnect.commit()
+                    self.showMessage("↓降低「" + target_phrase + "」詞頻成功", 2)
+                elif keyCode == VK_PRIOR:
+                    cursor.execute("UPDATE userphrase_v1 SET user_freq = 5000 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
+                    phraseConnect.commit()
+                    self.showMessage("↑提昇「" + target_phrase + "」詞頻成功", 2)
+            cursor.close()
+        except Exception as err:
+            self.showMessage(str(err), 2)
+        finally:
+            if phraseConnect is not None:
+                phraseConnect.close()
+
     def onKeyDown(self, keyEvent):
         chewingContext = self.chewingContext
+        if not chewingContext:
+            return False
+        if self.compositionSyncPending:
+            # 用語言列按鈕切換中英文之後的第一個按鍵：先更新畫面；組字因此結束時，
+            # 這個按鍵要照沒有組字的情況重新判斷是否交給應用程式
+            self.syncComposition()
+            if not self.isComposing() and not self.filterKeyDown(keyEvent):
+                return False
         cfg = chewingConfig
         charCode = keyEvent.charCode
         keyCode = keyEvent.keyCode
@@ -446,13 +639,8 @@ class ChewingTextService(TextService):
         oldLangMode = chewingContext.get_ChiEngMode()
         ignoreKey = False  # 新酷音是否須忽略這個按鍵
         keyHandled = False  # 輸入法是否有處理這個按鍵
-        candidateSelectionKey = False
-        if getattr(cfg, 'candidateModernStyle', False) and self.showCandidates and self.candidateList:
-            if keyCode == VK_RETURN:
-                candidateSelectionKey = True
-            elif keyEvent.isChar():
-                selKeys = cfg.getSelKeys()
-                candidateSelectionKey = chr(charCode) in selKeys[:len(self.candidateList)]
+        # 選字視窗有候選字 (只有注音字根時視窗也是開著的，但清單是空的)
+        hasCandidates = self.showCandidates and bool(self.candidateList)
 
         # 使用 Ctrl 或 Shift 鍵做快速符號輸入 (easy symbol input)
         # 這裡的 easy symbol input，是定義在 swkb.dat 設定檔中的符號
@@ -513,8 +701,8 @@ class ChewingTextService(TextService):
                         charCode = ord(charStr.lower())
                     chewingContext.handle_Default(charCode)
                 elif keyEvent.keyCode == VK_SPACE:  # 空白鍵
-                    # 選字時接收到空白鍵
-                    if self.showCandidates and cfg.spaceKeyCandidatesAction == 1:
+                    # 選字時接收到空白鍵 (只有注音字根、還沒有候選字時，空白鍵是一聲)
+                    if hasCandidates and cfg.spaceKeyCandidatesAction == 1:
                         candCursor = self.candidateCursor  # 目前的游標位置
                         candCount = len(self.candidateList)  # 目前選字清單項目數
                         # 還沒到選字視窗底部，移動游標
@@ -532,7 +720,7 @@ class ChewingTextService(TextService):
 
                         self.setCandidateCursor(candCursor)
                     # 設定使用空白鍵輸出空格，在選字時直接處理空白才能翻頁
-                    elif self.showCandidates and cfg.spaceKeyAction == 0:
+                    elif hasCandidates and cfg.spaceKeyAction == 0:
                         chewingContext.handle_Space()
 
                     # NOTE: libchewing 有 bug: 當啟用 "使用空白鍵選字" 時，chewing_handle_Space()
@@ -551,46 +739,16 @@ class ChewingTextService(TextService):
                 else:  # 其他按鍵不需要特殊處理
                     chewingContext.handle_Default(charCode)
         else:  # 不可見字元 (方向鍵、Enter、PageDown...等等)
-            # 如果有啟用選字視窗
-            if self.showCandidates:
-                candCursor = self.candidateCursor  # 目前的游標位置
+            # 如果選字視窗有候選字。只有注音字根時視窗也開著但清單是空的，按鍵要交給
+            # libchewing (以前 Enter 會送出 selKeys[0] 把ㄋ變成ㄅ、End 讓游標變成 -1)
+            if hasCandidates:
                 candCount = len(self.candidateList)  # 目前選字清單項目數
+                candCursor = min(max(self.candidateCursor, 0), candCount - 1)  # 目前的游標位置
 
                 # 處理詞彙 Ctrl + Del、刪除詞彙、Ctrl + PageUp 提昇/ Ctrl + PageDown 降低詞頻
                 if keyEvent.isKeyDown(VK_CONTROL) and (keyCode == VK_DELETE or keyCode == VK_NEXT or keyCode == VK_PRIOR):
-                    target_phrase = self.candidateList[candCursor]
-                    try:
-                        phraseConnect = sqlite3.connect(chewingConfig.getUserPhrase())
-                        cursor = phraseConnect.cursor()
-                        cursor.execute("SELECT * FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                        result = cursor.fetchone()
-                        if (result is None):
-                            phraseConnect.close()
-                            if keyCode == VK_DELETE:
-                                self.showMessage("詞彙「" + target_phrase + "」不存在，無法刪除", 2)
-                            elif keyCode == VK_NEXT:
-                                self.showMessage("詞彙「" + target_phrase + "」不存在，無法降低詞頻", 2)
-                            elif keyCode == VK_PRIOR:
-                                self.showMessage("詞彙「" + target_phrase + "」不存在，無法提昇詞頻", 2)
-                        else:
-                            if keyCode == VK_DELETE:
-                                cursor.execute("DELETE FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                                phraseConnect.commit()
-                                phraseConnect.close()
-                                self.showMessage("刪除「" + target_phrase + "」成功", 2)
-                            elif keyCode == VK_NEXT:
-                                cursor.execute("UPDATE userphrase_v1 SET user_freq = 0 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                                phraseConnect.commit()
-                                phraseConnect.close()
-                                self.showMessage("↓降低「" + target_phrase + "」詞頻成功", 2)
-                            elif keyCode == VK_PRIOR:
-                                cursor.execute("UPDATE userphrase_v1 SET user_freq = 5000 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                                phraseConnect.commit()
-                                phraseConnect.close()
-                                self.showMessage("↑提昇「" + target_phrase + "」詞頻成功", 2)
-                        ignoreKey = keyHandled = True
-                    except Exception as err:
-                        self.showMessage(str(err), 2)
+                    self.maintainUserPhrase(keyCode, self.candidateList[candCursor])
+                    ignoreKey = keyHandled = True
 
                 # 處理 Home、End 鍵，移到選字視窗的第一和最後一個字
                 if keyCode == VK_HOME:
@@ -617,14 +775,16 @@ class ChewingTextService(TextService):
                             candCursor = 0
 
                 # 使用上下鍵游標選字，因上下鍵需要作為組字模式切換，所以不設定循環
+                # 步幅是候選窗一列的字數 (新式橫排一列是 candidatePerRow 個，不是 candPerRow)
                 if cfg.upDownAction == 0:
+                    perRow = self.candidatesPerUiRow()
                     if keyCode == VK_UP:
-                        if candCursor >= cfg.candPerRow:
-                            candCursor -= cfg.candPerRow
+                        if candCursor >= perRow:
+                            candCursor -= perRow
                             ignoreKey = keyHandled = True
                     elif keyCode == VK_DOWN:
-                        if (candCursor + cfg.candPerRow) < candCount:
-                            candCursor += cfg.candPerRow
+                        if (candCursor + perRow) < candCount:
+                            candCursor += perRow
                             ignoreKey = keyHandled = True
 
                 # 使用上下鍵翻頁，左右鍵新酷音預設為翻頁動作
@@ -640,7 +800,7 @@ class ChewingTextService(TextService):
                 # 按下 Enter 鍵
                 if keyCode == VK_RETURN:
                     # 找出目前游標位置的選字鍵 (1234..., asdf...等等)
-                    selKey = cfg.getSelKeys()[self.candidateCursor]
+                    selKey = cfg.getSelKeys()[candCursor]
                     # 代替使用者送出選字鍵給新酷音引擎，進行選字
                     chewingContext.handle_Default(ord(selKey))
                     keyHandled = True
@@ -674,19 +834,20 @@ class ChewingTextService(TextService):
                     if not chewingContext.cand_hasNext():
                         break
                     # 新酷音返回的是 UTF-8 byte string，須轉成 python 字串
-                    cand = chewingContext.cand_String().decode("UTF-8")
+                    cand = decodeText(chewingContext.cand_String())
                     candidates.append(cand)
 
                 # 檢查選字清單是否改變 (沒效率但是簡單)
                 if candidates != self.candidateList:
                     self.setCandidateList(candidates)  # 更新候選字清單
                     self.setShowCandidates(True)
-                    if cfg.leftRightAction == 0 or cfg.upDownAction == 0:  # 如果啟用選字清單內使用游標選字
-                        if keyCode == VK_LEFT:  # 如果按下左鍵，設定游標為選字清單前一頁最後一個
-                            self.setCandidateCursor(
-                                len(self.candidateList) - 1)
-                        else:  # 其他按鍵重設游標為第一個
-                            self.setCandidateCursor(0)
+                    # 換了清單一定要重設游標：以前上下左右都設成翻頁時不重設，游標停在
+                    # 上一頁的位置 (超出清單)，Enter 送出的字和反白的不一樣或完全沒反應
+                    if keyCode == VK_LEFT and cfg.leftRightAction == 0:
+                        # 左鍵循環移動到前一頁，游標設為最後一個
+                        self.setCandidateCursor(len(candidates) - 1)
+                    else:  # 其他按鍵重設游標為第一個
+                        self.setCandidateCursor(0)
 
                 if not self.showCandidates:  # 如果目前沒有顯示選字視窗
                     self.setShowCandidates(True)  # 顯示選字視窗
@@ -697,20 +858,19 @@ class ChewingTextService(TextService):
 
             # 有輸入完成的中文字串要送出 (commit) 到應用程式
             if chewingContext.commit_Check():
-                commitStr = chewingContext.commit_String().decode("UTF-8")
+                commitStr = decodeText(chewingContext.commit_String())
 
                 self.setCommitString(commitStr)  # 設定要輸出的 commit string
 
             # 編輯區正在輸入中，尚未送出的中文字串 (composition string)
             compStr = ""
             if chewingContext.buffer_Check():
-                compStr = chewingContext.buffer_String().decode("UTF-8")
+                compStr = decodeText(chewingContext.buffer_String())
 
             # 輸入到一半，還沒組成字的注音符號 (bopomofo)
             bopomofoStr = ""
             if chewingContext.bopomofo_Check():
-                bopomofoStr = chewingContext.bopomofo_String(
-                    None).decode("UTF-8")
+                bopomofoStr = decodeText(chewingContext.bopomofo_String(None))
             compositionCursor = chewingContext.cursor_Current()
 
             # libchewing 有時會把注音從 bopomofo buffer 移到 composition buffer。
@@ -718,43 +878,11 @@ class ChewingTextService(TextService):
             visibleCompStr, compRootStr = splitTrailingBopomofo(compStr)
             rootStr = bopomofoStr or compRootStr
 
-            # Esc 剛把選字模式關掉，不能又自動重開，否則永遠離不開選字窗
-            if getattr(cfg, 'candidateModernStyle', False) and visibleCompStr and not rootStr and not candidates and not candidateSelectionKey and keyCode != VK_ESCAPE:
-                chewingContext.handle_Space()
-                if chewingContext.cand_TotalChoice() > 0:
-                    candidates = []
-                    chewingContext.cand_Enumerate()
-                    for i in range(chewingContext.cand_ChoicePerPage()):
-                        if not chewingContext.cand_hasNext():
-                            break
-                        candidates.append(chewingContext.cand_String().decode("UTF-8"))
-                    self.setCandidateList(candidates)
-                    self.setShowCandidates(True)
-                    self.setCandidateCursor(0)
-
-            committedCandidateSelection = False
-            if getattr(cfg, 'candidateModernStyle', False) and candidateSelectionKey and visibleCompStr and not rootStr and chewingContext.cand_TotalChoice() == 0:
-                commitStr = visibleCompStr
-                if chewingContext.buffer_Check():
-                    chewingContext.clean_preedit_buf()
-                self.setCandidateList([])
-                self.setCandidateCursor(0)
-                self.setShowCandidates(False)
-                self.currentReply["candidateHeader"] = ""
-                self.currentReply["candidatePageInfo"] = ""
-                self.setCompositionString("")
-                self.setCompositionCursor(0)
-                self.setCommitString(commitStr)
-                committedCandidateSelection = True
-
-            if committedCandidateSelection:
-                pass
-            elif getattr(cfg, 'candidateModernStyle', False) and (visibleCompStr or rootStr):
-                self.currentReply["compositionString"] = "\u200b"
-                self.compositionString = "\u200b"
-                self.setCompositionCursor(0)
-                self.updateCandidateHeader(rootStr, forceWindow=True)
-            elif rootStr:
+            # 新式與傳統候選窗的打字方式相同 (傳統新酷音)：組好的字顯示在輸入欄位、
+            # 由 libchewing 自動選詞，按 ↓ 或空白鍵才開選字窗，Enter 送出。
+            # 以前新式樣式每打完一個音就自動開選字窗，聲調鍵 3/4/6/7 變成選字鍵
+            # (你是 → 禰)、Backspace 刪不掉字、組字只顯示在候選窗裡
+            if rootStr:
                 self.setCompositionString(visibleCompStr)
                 if not visibleCompStr:
                     self.currentReply["compositionString"] = "\u200b"
@@ -768,7 +896,7 @@ class ChewingTextService(TextService):
 
             # 顯示額外提示訊息 (例如：Ctrl+ 數字加入自訂詞之後，會顯示提示)
             if chewingContext.aux_Check():
-                message = chewingContext.aux_String().decode("UTF-8")
+                message = decodeText(chewingContext.aux_String())
                 # FIXME: sometimes libchewing shows the same aux info
                 # for subsequent key events... I think this is a bug.
                 self.showMessage(message, 2)
@@ -792,7 +920,9 @@ class ChewingTextService(TextService):
     # return False，表示我們不需要這個鍵，系統會原封不動把按鍵傳給應用程式
     def filterKeyUp(self, keyEvent):
         # 最後按下和放開都是 Shift 鍵
-        if self.lastKeyEvent and self.lastKeyEvent.keyCode == VK_SHIFT and keyEvent.keyCode == VK_SHIFT:
+        # (Ctrl + Shift、Alt + Shift 是切換輸入法 / 鍵盤配置的快速鍵，不能切換中英文)
+        if self.lastKeyEvent and self.lastKeyEvent.keyCode == VK_SHIFT and keyEvent.keyCode == VK_SHIFT \
+                and not self.isModifierHeld(keyEvent) and not self.isModifierHeld(self.lastKeyEvent):
             # 若啟用使用 Shift 在打字時移動游標，呼叫 onKeyUp()
             if chewingConfig.shiftMoveCursor:
                 return True
@@ -802,10 +932,10 @@ class ChewingTextService(TextService):
                 # 檢查使用者當前的設定，是使用哪一邊的 Shift 來切換中英文模式
                 if chewingConfig.switchLangWithWhichShift == SWITCH_LANG_WITH_BOTH_SHIFT:
                     pass
-                elif chewingConfig.switchLangWithWhichShift == SWITCH_LANG_WITH_LEFT_SHIFT and not self.isPressed(VK_LSHIFT):
+                elif chewingConfig.switchLangWithWhichShift == SWITCH_LANG_WITH_LEFT_SHIFT and not self.isShiftSide(keyEvent, VK_LSHIFT):
                     self.lastKeyDownTime = 0.0
                     return False
-                elif chewingConfig.switchLangWithWhichShift == SWITCH_LANG_WITH_RIGHT_SHIFT and not self.isPressed(VK_RSHIFT):
+                elif chewingConfig.switchLangWithWhichShift == SWITCH_LANG_WITH_RIGHT_SHIFT and not self.isShiftSide(keyEvent, VK_RSHIFT):
                     self.lastKeyDownTime = 0.0
                     return False
 
@@ -813,6 +943,8 @@ class ChewingTextService(TextService):
                 # 按下和放開的時間相隔 < 0.5 秒
                 if pressedDuration < 0.5:
                     self.toggleLanguageMode()  # 切換中英文模式
+                    if self.compositionSyncPending:
+                        return True  # onKeyUp() 有 edit session，才能更新畫面上的組字
 
         # 按下 Capslcok 會切換圖示
         if chewingConfig.enableCapsLock and self.lastKeyEvent:
@@ -828,6 +960,19 @@ class ChewingTextService(TextService):
     def isPressed(self, keyCode):
         return windll.user32.GetAsyncKeyState(keyCode) >= 1
 
+    def isModifierHeld(self, keyEvent):
+        return keyEvent.isKeyDown(VK_CONTROL) or keyEvent.isKeyDown(VK_MENU)
+
+    # 放開的 Shift 是不是 sideVk (VK_LSHIFT/VK_RSHIFT) 那一邊。優先用按鍵事件的掃描碼：
+    # 放開時鍵已經彈起，isPressed() 只剩 GetAsyncKeyState「上次查詢後按過」的位元，
+    # 微軟文件說它不可靠 (用左 Shift 打過大寫後，按右 Shift 也會被當成左邊)。
+    # 掃描碼不是這兩個值 (SendInput 模擬的按鍵) 時退回原本的判斷
+    def isShiftSide(self, keyEvent, sideVk):
+        scanCode = getattr(keyEvent, 'scanCode', 0)
+        if scanCode in (LEFT_SHIFT_SCAN_CODE, RIGHT_SHIFT_SCAN_CODE):
+            return scanCode == (LEFT_SHIFT_SCAN_CODE if sideVk == VK_LSHIFT else RIGHT_SHIFT_SCAN_CODE)
+        return self.isPressed(sideVk)
+
     # 取得 Capslock 按鍵狀態
     def getCapslockState(self):
         if ((windll.user32.GetKeyState(VK_CAPITAL) & 0x0001) != 0):
@@ -836,6 +981,12 @@ class ChewingTextService(TextService):
             return False
 
     def onKeyUp(self, keyEvent):
+        if not self.chewingContext:
+            return False
+        if self.compositionSyncPending:  # 剛用 Shift 切換中英文
+            self.syncComposition()
+            self.lastKeyDownTime = 0.0
+            return True
         pressedDuration = time.time() - self.lastKeyDownTime
         if pressedDuration < 0.5 and self.isComposing() and not self.chewingContext.bopomofo_Check():
             if self.lastKeyEvent:
@@ -857,6 +1008,10 @@ class ChewingTextService(TextService):
         self.lastKeyEvent = None
         # some preserved keys registered are pressed
         if guid == SHIFT_SPACE_GUID:  # 使用者按下 shift + space
+            # 停用「Shift + 空白鍵切換全半形」時不處理，空白照常送給應用程式
+            # (以前傳回 True，按鍵被吃掉，什麼都沒發生)
+            if not chewingConfig.enableShiftSpace or not self.chewingContext:
+                return False
             self.toggleShapeMode()  # 切換全半形
             return True
         return False
@@ -977,19 +1132,41 @@ class ChewingTextService(TextService):
             else:
                 new_mode = CHINESE_MODE
             chewingContext.set_ChiEngMode(new_mode)
+            # 切換中英文時還沒組成字的注音要丟掉，只顯示注音字根的視窗也要關掉。以前
+            # 視窗一直開著，之後的 Enter 送出 "1"、Backspace 全被吃掉。
+            # filterKeyUp / onCommand 的回覆沒有 edit session，C++ 端不會更新組字，
+            # 所以畫面留到 onKeyUp 或下一個 onKeyDown 再更新 (syncComposition)
+            if chewingContext.bopomofo_Check():
+                chewingContext.clean_bopomofo_buf()
+            if self.showCandidates and not self.candidateList:
+                self.compositionSyncPending = True
             self.updateLangButtons()
 
-    # 切換全形/半形
+    # 把 Python 端與畫面上的組字狀態更新成 libchewing 目前的內容
+    def syncComposition(self):
+        self.compositionSyncPending = False
+        chewingContext = self.chewingContext
+        if not chewingContext:
+            return
+        compStr = decodeText(chewingContext.buffer_String()) if chewingContext.buffer_Check() else ""
+        visibleCompStr = splitTrailingBopomofo(compStr)[0]
+        if not self.candidateList:  # 只顯示注音字根的視窗 (或重建引擎前留下的視窗)
+            self.setShowCandidates(False)
+            self.setCandidateCursor(0)
+        self.setCompositionString(visibleCompStr)
+        self.setCompositionCursor(min(chewingContext.cursor_Current(), len(visibleCompStr)))
+
+    # 切換全形/半形 (Shift + 空白鍵是否可以切換，由 onPreservedKey() 檢查；
+    # 以前在這裡檢查，停用快速鍵時連語言列的全/半形按鈕也失效)
     def toggleShapeMode(self):
-        if (chewingConfig.enableShiftSpace):
-            chewingContext = self.chewingContext
-            if chewingContext:
-                if chewingContext.get_ShapeMode() == HALFSHAPE_MODE:
-                    new_mode = FULLSHAPE_MODE
-                else:
-                    new_mode = HALFSHAPE_MODE
-                chewingContext.set_ShapeMode(new_mode)
-                self.updateLangButtons()
+        chewingContext = self.chewingContext
+        if chewingContext:
+            if chewingContext.get_ShapeMode() == HALFSHAPE_MODE:
+                new_mode = FULLSHAPE_MODE
+            else:
+                new_mode = HALFSHAPE_MODE
+            chewingContext.set_ShapeMode(new_mode)
+            self.updateLangButtons()
 
     # 鍵盤開啟/關閉時會被呼叫 (在 Windows 10 Ctrl+Space 時)
     def onKeyboardStatusChanged(self, opened):
@@ -1007,7 +1184,7 @@ class ChewingTextService(TextService):
             self.lastShapeMode = self.shapeMode
 
             # self.hideMessage() # hide message window, if there's any
-            self.chewingContext = None  # 釋放新酷音引擎資源
+            self.closeChewingContext()  # 釋放新酷音引擎資源
             # disable 其他語言列按鈕
             self.removeLangButtons()
 
@@ -1022,6 +1199,7 @@ class ChewingTextService(TextService):
     # forced 參數會是 True，在這種狀況下，要清除一些 buffer
     def onCompositionTerminated(self, forced):
         TextService.onCompositionTerminated(self, forced)
+        self.compositionSyncPending = False
         if forced:
             # 中文組字到一半被系統強制關閉，清除編輯區內容
             chewingContext = self.chewingContext
@@ -1035,6 +1213,7 @@ class ChewingTextService(TextService):
                     chewingContext.commit_preedit_buf()
 
     def onKillFocus(self):
+        self.compositionSyncPending = False
         chewingContext = self.chewingContext
         wasShowingCandidates = self.showCandidates
         if chewingContext:

@@ -65,7 +65,8 @@ class IsolatedAppData:
     """Point APPDATA/HOME at a temp dir; restore on close()."""
 
     def __init__(self):
-        self._tmp = tempfile.TemporaryDirectory()
+        # libchewing keeps its user phrase database open until the context is freed
+        self._tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.path = self._tmp.name
         self._saved = {k: os.environ.get(k) for k in ("APPDATA", "USERPROFILE", "HOME")}
         for key in self._saved:

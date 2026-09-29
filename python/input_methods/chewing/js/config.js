@@ -5,7 +5,13 @@ $(function () {
         DEBUG = false,
         CONFIG_URL = "/config",
         VERSION_URL = "/version.txt",
-        KEEP_ALIVE_URL = "/keep_alive";
+        KEEP_ALIVE_URL = "/keep_alive",
+        // 與 config_tool.py 的 SYMBOLS_MAX_LINE_BYTES 相同
+        SYMBOLS_MAX_LINE_BYTES = 500;
+
+    function utf8ByteLength(text) {
+        return new TextEncoder().encode(text).length;
+    }
 
     if (DEBUG) {
         // load data from text file for testing or developing
@@ -519,6 +525,10 @@ $(function () {
         // Check easy symbols format
         var ez_symbols_array = $("#ez_symbols").val().split("\n");
         for (var i = 0; i < ez_symbols_array.length; i++) {
+            // 空行 (例如檔案結尾的換行) 新酷音會略過，不算錯誤
+            if (ez_symbols_array[i] === "") {
+                continue;
+            }
             if (!/^[A-Z][ ].{1,10}$/.test(ez_symbols_array[i])) {
                 // Select error range
                 $("#ez_symbols").select();
@@ -530,7 +540,7 @@ $(function () {
                 $("#ez_symbols").prop("selectionEnd", selectionStart + ez_symbols_array[i].length + 1);
                 swal.fire(
                     "輸入錯誤",
-                    "第 " + i + " 行格式錯誤：<br><b>" + ez_symbols_array[i] + "</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元",
+                    "快速符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(ez_symbols_array[i]).html() + "</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元",
                     "error"
                 );
                 return false;
@@ -551,7 +561,24 @@ $(function () {
                 $("#symbols").prop("selectionEnd", selectionStart + symbols_array[i].length);
                 swal.fire(
                     "輸入錯誤",
-                    "特殊符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + symbols_array[i] + "</b><br>單行不能超過一個字元，或是沒有 = 符號區隔",
+                    "特殊符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(symbols_array[i]).html() + "</b><br>單行不能超過一個字元，或是沒有 = 符號區隔",
+                    "error"
+                );
+                return false;
+            }
+            // 新酷音每行最多讀 511 bytes，更長的一行會被截斷在字的中間，選字清單出現亂碼
+            if (utf8ByteLength(symbols_array[i]) > SYMBOLS_MAX_LINE_BYTES) {
+                $("#symbols").select();
+                var lineStart = 0;
+                for (var k = 0; k < i; k++) {
+                    lineStart += symbols_array[k].length + 1;
+                }
+                $("#symbols").prop("selectionStart", lineStart);
+                $("#symbols").prop("selectionEnd", lineStart + symbols_array[i].length);
+                swal.fire(
+                    "輸入錯誤",
+                    "特殊符號設定第 " + (i + 1) + " 行太長：每行最多 " + SYMBOLS_MAX_LINE_BYTES +
+                    " bytes（約 160 個中文字或 120 個表情符號），請分成兩個類別",
                     "error"
                 );
                 return false;
@@ -600,6 +627,10 @@ $(function () {
 
         // Get values from checkboxes, text, hidden and radio
         $(".container input").each(function (index, inputItem) {
+            // 「測試輸入」框不是設定 (以前被存成 "test_input_text": null)
+            if (!inputItem.name || inputItem.id === "test_input_text") {
+                return;
+            }
             switch (inputItem.type) {
                 case "checkbox":
                     chewingConfig[inputItem.name] = inputItem.checked;
@@ -611,7 +642,19 @@ $(function () {
                         chewingConfig[inputItem.name] = inputItem.value;
                     }
                     else {
-                        chewingConfig[inputItem.name] = parseInt(inputItem.value, 10);
+                        var number = parseInt(inputItem.value, 10);
+                        // 清空的欄位 parseInt 是 NaN，存成 JSON 會變成 null，輸入法按上下鍵就出錯；
+                        // 保留原本的值。超出欄位 min/max 的值 (瀏覽器不會擋) 夾回範圍內
+                        if (isNaN(number)) {
+                            break;
+                        }
+                        if (inputItem.min !== "" && number < Number(inputItem.min)) {
+                            number = Number(inputItem.min);
+                        }
+                        if (inputItem.max !== "" && number > Number(inputItem.max)) {
+                            number = Number(inputItem.max);
+                        }
+                        chewingConfig[inputItem.name] = number;
                     }
                     break;
                 case "radio":

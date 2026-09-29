@@ -1,3 +1,40 @@
+// 詞彙和注音來自使用者詞庫 (可能是匯入的檔案)，放進 HTML 之前一定要跳脫，
+// 否則詞彙裡的 <img onerror=...> 會在設定工具的頁面裡執行
+function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, function(c) {
+        return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c];
+    });
+}
+
+// 讀回表格裡的詞彙和注音 (用 attr 而不是 data()：jQuery 的 data() 會把 "123" 轉成數字)
+function phraseOf(item) {
+    return $(item).attr("data-phrase");
+}
+
+function bopomofoOf(item) {
+    return $(item).attr("data-bopomofo");
+}
+
+function serverErrorText(xhr, action) {
+    let status = xhr ? xhr.status : 0;
+    if (status === 403) {
+        return action + "失敗：設定工具的工作階段已失效，請關閉此頁再重新開啟詞庫編輯器。";
+    }
+    if (!status) {
+        return action + "失敗：無法連線到設定工具（可能已關閉），請關閉此頁再重新開啟詞庫編輯器。";
+    }
+    if (status === 503) {
+        return action + "失敗：無法開啟使用者詞庫（可能被其他程式使用中或已損毀）。";
+    }
+    return action + "失敗（HTTP " + status + "）。";
+}
+
+// 漢字 (含擴充 A、相容表意文字與擴充 B 之後的字)
+function isHanCodePoint(cp) {
+    return (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x4E00 && cp <= 0x9FFF) ||
+        (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x20000 && cp <= 0x3134F);
+}
+
 // Load user phrases
 function loadUserPhrases() {
     $("#add_dialog").dialog("close");
@@ -14,9 +51,11 @@ function loadUserPhrases() {
     $.get("/user_phrases", function(data, status) {
         if (data.data != undefined) {
             let user_phrase_html = data.data.map(function(user_phrase) {
+                let phrase = escapeHtml(user_phrase.phrase);
+                let bopomofo = escapeHtml(user_phrase.bopomofo);
                 return `<tr>
-                <td><input type="checkbox" data-phrase="${user_phrase.phrase}" data-bopomofo="${user_phrase.bopomofo}">${user_phrase.phrase}</td>
-                <td>${user_phrase.bopomofo}</td>
+                <td><input type="checkbox" data-phrase="${phrase}" data-bopomofo="${bopomofo}">${phrase}</td>
+                <td>${bopomofo}</td>
                 </tr>`;
             }).join("");
 
@@ -65,7 +104,14 @@ function loadUserPhrases() {
                 $("#delete_count").html("");
             }
         });
-    }, "json");
+    }, "json").fail(function(xhr) {
+        // 以前沒有處理錯誤，「載入詞彙中」的遮罩永遠不會消失
+        $.LoadingOverlay("hide", true);
+        jQueryDialogAlert({
+            message: escapeHtml(serverErrorText(xhr, "載入詞彙")),
+            icon: "error"
+        });
+    });
 }
 
 // called when the OK button of the "add phrase" dialog is clicked
@@ -85,15 +131,20 @@ function onAddPhrase() {
         return;
     }
 
-    // Check phrase is chinese
-    for (let i = 0; i < phrase.length; i++) {
-        if (phrase.charCodeAt(i) < 0x4E00 || phrase.charCodeAt(i) > 0x9FFF) {
+    // Check phrase is chinese (逐個字碼檢查：擴充 B 之後的字在 JavaScript 裡佔兩個 UTF-16 單位)
+    let phrase_chars = Array.from(phrase);
+    let offset = 0;
+    for (let i = 0; i < phrase_chars.length; i++) {
+        let start = offset;
+        let end = offset + phrase_chars[i].length;
+        offset = end;
+        if (!isHanCodePoint(phrase_chars[i].codePointAt(0))) {
             jQueryDialogAlert({
                 message: "詞彙錯誤，有不是中文的字",
                 icon: "error",
                 close: () => {
                     $("#phrase_input").select();
-                    $("#phrase_input")[0].setSelectionRange(i, i + 1);
+                    $("#phrase_input")[0].setSelectionRange(start, end);
                 }
             });
             return;
@@ -130,7 +181,7 @@ function onAddPhrase() {
 
     // Check bopomofo and phrase count are equal
     let bopomofo_array = bopomofo.split(" ");
-    if (bopomofo_array.length != phrase.length && phrase.length > 1 && bopomofo.length > 1) {
+    if (bopomofo_array.length != phrase_chars.length && phrase_chars.length > 1 && bopomofo.length > 1) {
         jQueryDialogAlert({
             message: "注音符號跟詞彙字數不符",
             icon: "error",
@@ -141,11 +192,11 @@ function onAddPhrase() {
         return;
     }
 
-    // Check phrase not exist
+    // Check phrase not exist (同一個詞可以有不同的讀音，所以詞彙和注音都要相同才算重複)
     let phrase_repeated;
     let phrase_repeated_index;
     $("#table_content input[type=checkbox]").each(function(idx, item) {
-        if (phrase == $(item).data("phrase")) {
+        if (phrase === phraseOf(item) && bopomofo === bopomofoOf(item)) {
             phrase_repeated = true;
             phrase_repeated_index = idx;
             return false;
@@ -183,7 +234,12 @@ function onAddPhrase() {
         }),
         dataType: "json",
         complete: function(response) {
-            if (response.responseJSON.result == 0) {
+            if (!response.responseJSON) {  // HTTP 錯誤或連不到設定工具
+                jQueryDialogAlert({
+                    message: escapeHtml(serverErrorText(response, "新增詞彙")),
+                    icon: "error"
+                });
+            } else if (response.responseJSON.result == 0) {
                 jQueryDialogAlert({
                     message: "新增失敗，請檢查詞彙跟注音格式是否正確",
                     icon: "error"
@@ -219,13 +275,13 @@ function onRemovePhrase() {
         confirm_text = `確定刪除以下 ${$("#table_content input[type=checkbox]:checked").length} 個詞彙？此動作無法復原<br><ul>`;
         $("#table_content input[type=checkbox]:checked").each(function(phrase_index, item) {
             if (phrase_index < 10) {
-                confirm_text += `<li>${$(item).data("phrase")}</li>`;
+                confirm_text += `<li>${escapeHtml(phraseOf(item))}</li>`;
             } else if (phrase_index === 10) {
                 confirm_text += "<li>………（以下省略）</li>";
             }
             phrases.push({
-                phrase: $(item).data("phrase"), // 詞彙
-                bopomofo: $(item).data("bopomofo") // 注音
+                phrase: phraseOf(item), // 詞彙
+                bopomofo: bopomofoOf(item) // 注音
             });
         });
         confirm_text += "</ul>";
@@ -244,13 +300,21 @@ function onRemovePhrase() {
                             remove: phrases
                         }),
                         dataType: "json",
-                        complete: function() {
+                        success: function(data) {
+                            // 以前不看結果，刪除失敗也顯示成功
+                            let ok = data && data.result != 0;
                             jQueryDialogAlert({
-                                message: "刪除詞彙成功！",
-                                icon: "success",
+                                message: ok ? "刪除詞彙成功！" : "有些詞彙刪除失敗，請重新載入後再試一次",
+                                icon: ok ? "success" : "error",
                                 close: () => {
                                     location.reload();
                                 }
+                            });
+                        },
+                        error: function(xhr) {
+                            jQueryDialogAlert({
+                                message: escapeHtml(serverErrorText(xhr, "刪除詞彙")),
+                                icon: "error"
                             });
                         }
                     });
