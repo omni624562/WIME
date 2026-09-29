@@ -5,6 +5,8 @@ The 197 phrases below used to be hidden by the default exclusion list
 dictionary itself at the user's request (2026-09-29), so they are gone on every
 computer the installer goes on, not only where the exclusion list is present.
 This test keeps them from coming back if phrase.json is ever regenerated.
+The same goes for the 119 China-related phrases in REMOVED_CHINA, deleted later
+the same day.
 """
 
 import json
@@ -134,6 +136,22 @@ REMOVED = """
 自=慰
 """
 
+# China-related phrases the user asked to delete (2026-09-29), by the categories
+# they were reviewed in; the first character is the lead, the rest the ending
+REMOVED_CHINA = {
+    "中共體制與政治用語": "常委 省委 市委 黨委 紅軍 神州 赤化 內地 自治區 邊區 土改 勞改 勞改營",
+    "中國城市": "青島 寧波 溫州 珠海 汕頭 揚州 紹興 泉州 漳州 延安 徐州 鎮江 九江 宜昌 岳陽 柳州 "
+                "敦煌 酒泉 承德 煙台 金陵 燕京",
+    "中國地理": "淮河 松花江 嵩山 衡山 洞庭湖 鄱陽湖 雲貴高原 崑崙 戈壁 絲路 圓明園 黃海",
+    "中國地區": "兩廣 關外 塞外",
+    "大陸用語": "音頻 默認",
+    "中國歷史": "漢朝 唐朝 宋朝 元朝 明朝 清朝 晉朝 周朝 商朝 三國 春秋 戰國 東漢 西漢 西晉 北宋 "
+                "南宋 滿清 清廷 皇帝 光緒 宣統 八國聯軍 甲午 辛亥 北伐 抗戰 抗日 七七",
+    "其他": "東北 西北 西南 書記 支部 統一 特區 祖國 同志 兩岸 淪陷區 閩南 人民團體 土豆 故宮 華山 "
+            "三峽 東海 南海 大同 衡陽 北海 泰安 長安 南京東路 程序 數據 渠道 摩托車 自行車 領導 "
+            "單位 愛人 水平 抓緊 落實 貫徹 師傅",
+}
+
 
 def removed_pairs():
     for line in REMOVED.strip().splitlines():
@@ -153,6 +171,12 @@ class PhraseDictionaryTests(unittest.TestCase):
         pairs = list(removed_pairs())
         self.assertEqual(len(pairs), 197)
         present = [lead + ending for lead, ending in pairs if ending in self.chardefs.get(lead, [])]
+        self.assertEqual(present, [])
+
+    def test_removed_china_related_phrases_are_absent(self):
+        words = " ".join(REMOVED_CHINA.values()).split()
+        self.assertEqual(len(words), 119)
+        present = [w for w in words if w[1:] in self.chardefs.get(w[0], [])]
         self.assertEqual(present, [])
 
     def test_structure(self):
