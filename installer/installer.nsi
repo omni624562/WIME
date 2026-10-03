@@ -31,10 +31,6 @@
 ; We need the MD5 plugin
 !addplugindir /x86-unicode "md5dll\UNICODE"
 
-; We need the INetC (internet client) plugin
-; https://nsis.sourceforge.io/Inetc_plug-in
-!addplugindir /x86-unicode "inetc\Plugins\x86-unicode"
-
 Unicode true ; turn on Unicode (This requires NSIS 3.0)
 SetCompressor /SOLID lzma ; use LZMA for best compression ratio
 SetCompressorDictSize 16 ; larger dictionary size for better compression ratio
@@ -470,94 +466,17 @@ Function .onInstFailed
 	${EndIf}
 FunctionEnd
 
-Function ensureVCRedist
-	; Check if we have latest VC++ Redistributable
-	; Reference: https://blogs.msdn.microsoft.com/vcblog/2015/03/03/introducing-the-universal-crt/
-	;            https://docs.python.org/3/using/windows.html#embedded-distribution
+Function ensureUCRT
+	; PIMELauncher.exe and PIMETextService.dll link the C runtime statically and
+	; python3\ carries its own vcruntime140.dll, so no VC++ redistributable is needed
+	; (the old check downloaded one, and on 64-bit Windows only the x64 package, which
+	; did not help the 32-bit launcher). The embedded Python still needs the Universal
+	; C Runtime: built into Windows 10 and later, an update (KB2999226) on Windows 8.1.
+	; $SYSDIR is SysWOW64 for this 32-bit installer, i.e. the 32-bit UCRT Python uses.
 	${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-	${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-		${If} ${RunningX64}
-			; In 64-bit environment, we need to check both x86 and x64 version of dlls,
-			; because we only need at least one of the x86 or x64 version is available,
-			; which means we need to check both these 2 directory:
-			;   1. C:\Windows\System32 (x64 64-bit version dlls are in here)
-			;   2. C:\Windows\SysWOW64 (x86 32-bit version dlls are in here) (already checked)
-
-			; Because X64 FS Redirection is enabled by default ($SYSDIR is pointed to C:\Windows\SysWOW64),
-			; now we just need to disable X64 FS Redirection (let $SYSDIR point to C:\Windows\System32)
-			; in order to check if we have x64 64-bit version of Universal CRT
-			${DisableX64FSRedirection}
-			${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-			${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-				MessageBox MB_YESNO|MB_ICONQUESTION $(DOWNLOAD_VCREDIST_QUESTION) IDYES +2
-					Abort ; this is skipped if the user select Yes
-				; Download latest VC++ Redistributable (x64 version)
-				inetc::get "https://aka.ms/vs/17/release/vc_redist.x64.exe" "$TEMP\vc_redist.x64.exe"
-				Pop $R0 ; Get the return value
-				${If} $R0 != "OK"
-					MessageBox MB_ICONSTOP|MB_OK $(DOWNLOAD_VCREDIST_FAILED_MESSAGE)
-					Abort
-				${EndIf}
-
-				; Run vcredist installer
-				ExecWait "$TEMP\vc_redist.x64.exe" $0
-
-				; Check again if we have latest VC++ Redistributable
-				${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-				${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-					MessageBox MB_ICONSTOP|MB_OK $(INST_VCREDIST_FAILED_MESSAGE)
-					ExecShell "open" "https://support.microsoft.com/en-us/kb/2999226"
-					Abort
-				${EndIf}
-			${EndIf}
-
-			; Change X64 FS Redirection back to default state
-			${EnableX64FSRedirection}
-
-		${ElseIf} ${IsNativeARM64}
-			${DisableX64FSRedirection}
-			${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-			${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-				MessageBox MB_YESNO|MB_ICONQUESTION $(DOWNLOAD_VCREDIST_QUESTION) IDYES +2
-					Abort
-				inetc::get "https://aka.ms/vs/17/release/vc_redist.arm64.exe" "$TEMP\vc_redist.arm64.exe"
-				Pop $R0
-				${If} $R0 != "OK"
-					MessageBox MB_ICONSTOP|MB_OK $(DOWNLOAD_VCREDIST_FAILED_MESSAGE)
-					Abort
-				${EndIf}
-				ExecWait "$TEMP\vc_redist.arm64.exe" $0
-				${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-				${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-					MessageBox MB_ICONSTOP|MB_OK $(INST_VCREDIST_FAILED_MESSAGE)
-					ExecShell "open" "https://support.microsoft.com/en-us/kb/2999226"
-					Abort
-				${EndIf}
-			${EndIf}
-			${EnableX64FSRedirection}
-
-		${Else}
-			MessageBox MB_YESNO|MB_ICONQUESTION $(DOWNLOAD_VCREDIST_QUESTION) IDYES +2
-				Abort ; this is skipped if the user select Yes
-			; Download latest VC++ Redistributable (x86 version)
-			inetc::get "https://aka.ms/vs/17/release/vc_redist.x86.exe" "$TEMP\vc_redist.x86.exe"
-			Pop $R0 ; Get the return value
-			${If} $R0 != "OK"
-				MessageBox MB_ICONSTOP|MB_OK $(DOWNLOAD_VCREDIST_FAILED_MESSAGE)
-				Abort
-			${EndIf}
-
-			; Run vcredist installer
-			ExecWait "$TEMP\vc_redist.x86.exe" $0
-
-			; Check again if we have latest VC++ Redistributable
-			${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
-			${OrIfNot} ${FileExists} "$SYSDIR\msvcp140.dll"
-				MessageBox MB_ICONSTOP|MB_OK $(INST_VCREDIST_FAILED_MESSAGE)
-				ExecShell "open" "https://support.microsoft.com/en-us/kb/2999226"
-				Abort
-			${EndIf}
-		${EndIf}
+		MessageBox MB_ICONSTOP|MB_OK $(UCRT_MISSING_MESSAGE)
+		ExecShell "open" "https://support.microsoft.com/kb/2999226"
+		Abort
 	${EndIf}
 FunctionEnd
 
@@ -568,8 +487,8 @@ InstType "$(INST_TYPE_FULL)"
 ;Installer Sections
 Section $(SECTION_MAIN) SecMain
 	SectionIn 1 2 RO
-	; Ensure that we have latest VC++ runtime (for python)
-	Call ensureVCRedist
+	; Ensure that the Universal C Runtime the embedded python needs is present
+	Call ensureUCRT
 
 	; TODO: may be we can automatically rebuild the dlls here.
 	; http://stackoverflow.com/questions/24580/how-do-you-automate-a-visual-studio-build
@@ -599,7 +518,12 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 		Section $(CHEWING) chewing
 			SectionIn 1 2
 			SetOutPath "$INSTDIR\python\input_methods\chewing"
-			File /r /x "__pycache__" /x "simC.ico" "..\python\input_methods\chewing\*.*"
+			; 不打包設定頁沒用到的檔案：原始碼對照 (*.map)、靜態預覽用的 debug\、沒引用的圖片，
+			; 以及 jquery-ui 完整下載包裡頁面沒載入的檔案（只用 *.min.js / *.min.css）
+			File /r /x "__pycache__" /x "simC.ico" /x "*.map" /x "debug" /x "keyborad_layouts_json" /x "logo.ico" \
+				/x "jquery-ui.js" /x "jquery-ui.css" /x "jquery-ui.structure.css" /x "jquery-ui.structure.min.css" \
+				/x "jquery-ui.theme.css" /x "external" /x "index.html" /x "package.json" /x "AUTHORS.txt" \
+				"..\python\input_methods\chewing\*.*"
 			StrCpy $INST_PYTHON "True"
 		SectionEnd
 
@@ -765,7 +689,19 @@ Section "" Register
 		SetOutPath "$INSTDIR\python"
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 		; .pytest_cache：在 python\ 下跑過 pytest 就會出現，不入 git 但會被 /r 一起打包
-		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" "..\python\*.*"
+		; python3\ 裡從不會被載入的檔案：沒用到的擴充模組、python3.dll（沒有程式匯入）、
+		; 簽章目錄 python.cat、不會被讀取的 PIME.pth、設定工具沒用到的 tornado 模組。
+		; 標準函式庫 zip 改用 build\ 裡精簡過的版本（build.bat 執行 installer\trim_python_zip.py 產生）
+		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" \
+			/x "python312.zip" /x "python3.dll" /x "python.cat" /x "PIME.pth" \
+			/x "_decimal.pyd" /x "_elementtree.pyd" /x "_msi.pyd" /x "_multiprocessing.pyd" /x "_zoneinfo.pyd" /x "pyexpat.pyd" \
+			/x "auth.py" /x "autoreload.py" /x "curl_httpclient.py" /x "httpclient.py" /x "locks.py" /x "options.py" \
+			/x "queues.py" /x "simple_httpclient.py" /x "tcpclient.py" /x "testing.py" /x "websocket.py" /x "wsgi.py" \
+			/x "speedups.c" /x "caresresolver.py" /x "twisted.py" \
+			"..\python\*.*"
+		SetOutPath "$INSTDIR\python\python3"
+		File "..\build\python312.zip"
+		SetOutPath "$INSTDIR\python"
 !else
 		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"
 !endif
@@ -777,7 +713,14 @@ Section "" Register
 	${If} $INST_CINBASE == "True"
 		SetOutPath "$INSTDIR\python"
 !ifdef ONLY_DAYI_CHEWING_CHECJ
-		File /r /x "__pycache__" /x "cin" /x "json" /x "sim_*.ico" "..\python\cinbase"
+		; 不打包：建置用的工具 tools\（與只在原始碼開啟 DEBUG_MODE 才用到、需要 tools 的
+		; debug.py）、圖示原始檔 *.pdn、設定頁沒載入的字型與舊版 / 未壓縮的 css、js、
+		; 只有注音（chephonetic）才用的 kblayout.htm，以及說明文件（授權檔照常打包）
+		File /r /x "__pycache__" /x "cin" /x "json" /x "sim_*.ico" /x "tools" /x "debug.py" /x "*.pdn" \
+			/x "fonts" /x "kblayout.htm" /x "bootstrap-theme.min.css" /x "jquery.bootstrap-touchspin.css" \
+			/x "jquery.bootstrap-touchspin.js" /x "jAlert-ie8.min.js" /x "jAlert-functions.min.js" \
+			/x "README.md" /x "readme.md" /x "AUTHORS.txt" \
+			"..\python\cinbase"
 		SetOutPath "$INSTDIR\python\cinbase\json"
 		File "..\python\cinbase\json\checj.json"
 		File "..\python\cinbase\json\mscj3.json"
@@ -853,7 +796,9 @@ Section "" Register
 
 	; Compile all installed python modules to *.pyc files
 	${If} $INST_PYTHON == "True"
-		nsExec::ExecToLog  '"$INSTDIR\python\python3\python.exe" -m compileall "$INSTDIR\python"'
+		; -o 0：設定工具 (不加 -O) 用的 .pyc；-o 1：後端 (python.exe -O server.py) 用的 .opt-1.pyc。
+		; 以前只產生前者，一般使用者又無權寫入 Program Files，後端每次啟動都重新編譯全部程式碼
+		nsExec::ExecToLog  '"$INSTDIR\python\python3\python.exe" -m compileall -o 0 -o 1 "$INSTDIR\python"'
 	${EndIf}
 
 	; Launch the python server as current user (non-elevated process)

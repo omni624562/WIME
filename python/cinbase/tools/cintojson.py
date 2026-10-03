@@ -300,8 +300,10 @@ class CinToJson(object):
     def saveJsonFile(self, file):
         filename = self.getJsonFile(file)
         try:
+            # 不縮排：縮排讓 17 個碼表裝好後從 12.9 MB 變成 40.9 MB，讀取時一律整份解析，
+            # 格式對程式沒有差別
             with open(filename, 'w', encoding='utf8') as f:
-                js = json.dump(self.toJson(), f, ensure_ascii=False, sort_keys=True, indent=4)
+                js = json.dump(self.toJson(), f, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
         except Exception:
             pass # FIXME: handle I/O errors?
 
@@ -475,8 +477,9 @@ def safeSplit(line):
 
 
 def _jsonUpToDate(cinFile, jsonFile):
+    # 轉換程式本身改了（例如輸出格式）也要重新產生
     try:
-        return os.path.getmtime(jsonFile) >= os.path.getmtime(cinFile)
+        return os.path.getmtime(jsonFile) >= max(os.path.getmtime(cinFile), os.path.getmtime(__file__))
     except OSError:
         return False
 

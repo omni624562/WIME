@@ -1,2 +1,10 @@
 [build]
 target = "i686-pc-windows-msvc"
+
+# Link the C runtime statically. PIMELauncher.exe is the only shipped binary that
+# needed the system Visual C++ runtime (the TSF DLLs already link it statically and
+# python3\ carries its own vcruntime140.dll); the installer had to download a
+# redistributable for it and on 64-bit Windows fetched only the x64 one, which does
+# not help this 32-bit executable.
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
