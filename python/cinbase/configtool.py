@@ -29,7 +29,7 @@ python_dir = os.path.dirname(current_dir)
 if python_dir not in sys.path:
     sys.path.append(python_dir)
 
-from config import CinBaseConfig
+from config import CinBaseConfig, RCIN_FILE_LIST
 from cin import Cin
 from config_server import BaseHandler, NoCacheStaticFileHandler, ConfigServerApp
 
@@ -67,6 +67,7 @@ class ConfigHandler(BaseHandler):
             "imename": cfg.imeDirName,
             "config": self.load_config(),
             "cincount": self.load_cindata(),
+            "rcinAvailable": self.load_rcin_available(),
             "symbols": self.load_data("symbols.dat"),
             "swkb": self.load_data("swkb.dat"),
             "fsymbols": self.load_data("fsymbols.dat"),
@@ -127,6 +128,12 @@ class ConfigHandler(BaseHandler):
         cfg.load()
         config = cfg.toJson()  # the current settings
         return config
+
+    @staticmethod
+    def load_rcin_available():
+        """反查碼表（selRCinType 的索引）中有安裝碼表檔的那些。精簡安裝檔只附大易、
+        倉頡、注音系列，設定頁只列出這些，選了沒有碼表檔的反查不到。"""
+        return [i for i, name in enumerate(RCIN_FILE_LIST) if os.path.exists(os.path.join(json_dir, name))]
 
     def load_cindata(self):
         CinDict ={}

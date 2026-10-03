@@ -160,6 +160,16 @@ class CinbaseConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
     MAIN_PAGE = "config"
     COOKIE_ID = "cinbase_config_token"
 
+    def test_7_only_installed_reverse_lookup_tables_are_offered(self):
+        if PYTHON_DIR not in sys.path:
+            sys.path.insert(0, PYTHON_DIR)
+        from cinbase.config import RCIN_FILE_LIST
+        opener, _ = self._logged_in_opener()
+        data = json.loads(_get(opener, self.base + "/config").body.decode("utf-8"))
+        json_dir = os.path.join(PYTHON_DIR, "cinbase", "json")
+        expected = [i for i, name in enumerate(RCIN_FILE_LIST) if os.path.exists(os.path.join(json_dir, name))]
+        self.assertEqual(data["rcinAvailable"], expected)
+
 
 class ChewingConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
     SCRIPT = "input_methods/chewing/config_tool.py"

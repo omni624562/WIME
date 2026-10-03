@@ -46,16 +46,29 @@ _INT_RANGES = (
     ("candidateMaxWidth", 0, 4000),
     ("selWildcardType", 0, 1),
     ("switchLangWithWhichShift", 0, 2),
-    ("messageDurationTime", 0, 60),
     ("selCinType", 0, 999),
     ("selRCinType", 0, 999),
     ("selHCinType", 0, 999),
 )
 
-# Settings removed in later versions (candidateModernStyle: the classic candidate
-# window is gone). Old config.json files still carry them; they are dropped on load
-# so they are not written back forever.
-_RETIRED_KEYS = ("candidateModernStyle",)
+# Settings removed in later versions. Old config.json files still carry them; they
+# are dropped on load so they are not written back forever.
+#   candidateModernStyle: the classic candidate window is gone
+#   messageDurationTime, hidePromptMessages: the candidate window shows messages until
+#     the next key (no timer), and the mode-switch prompts are never shown
+_RETIRED_KEYS = ("candidateModernStyle", "messageDurationTime", "hidePromptMessages")
+
+# 反查字根可選的碼表（設定頁 selRCins 的順序）
+RCIN_FILE_LIST = (
+    "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json",
+    "thphonetic.json", "CnsPhonetic.json", "bpmf.json",
+    "tharray.json", "array30.json", "ar30-big.json", "array40.json",
+    "thdayi.json", "dayi4.json", "dayi3.json",
+    "ez.json", "ezsmall.json", "ezmid.json", "ezbig.json",
+    "thpinyin.json", "pinyin.json", "roman.json",
+    "simplecj.json", "simplex.json", "simplex5.json",
+    "liu.json",
+)
 
 
 def _toInt(value, default):
@@ -94,8 +107,6 @@ class CinBaseConfig:
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT
         self.outputSmallLetterWithShift = False
         self.switchPageWithSpace = False
-        self.messageDurationTime = 3
-        self.hidePromptMessages = True
         self.playSoundWhenNonCand = False
         self.directShowCand = False
         self.autoCommitSingleCandidate = False
@@ -124,7 +135,6 @@ class CinBaseConfig:
         self.priorityExtendTable = False
         self.selRCinType = 0
         self.candMaxItems = 100
-        self.messageDurationTime = 3
         self.keyboardType = 0
         self.selDayiSymbolCharType = 0
         self.intelligentSelect = True

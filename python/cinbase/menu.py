@@ -67,9 +67,18 @@ def toggleAttrsFor(imeDirName):
     return list(TOGGLES_BY_IME.get(imeDirName, _DEFAULT_TOGGLES))
 
 
+def homophoneKeyIsRoot(cbTS):
+    """` 是目前碼表的字根（大易三碼的「巷」）時，同音字查詢用的 ` 鍵會先被當成字根，
+    只有打滿碼之後才查得到，所以整個功能停用。"""
+    cin = getattr(cbTS, "cin", None)
+    return cin is not None and cin.isInKeyName("`")
+
+
 def buildToggleItems(cbTS):
     """回傳 (顯示清單, 屬性清單)；顯示清單帶目前 ☑/☐ 狀態。"""
     attrs = toggleAttrsFor(getattr(cbTS, "imeDirName", ""))
+    if "homophoneQuery" in attrs and homophoneKeyIsRoot(cbTS):
+        attrs.remove("homophoneQuery")
     labels = []
     for attr in attrs:
         mark = "☑" if getattr(cbTS, attr, False) else "☐"

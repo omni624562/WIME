@@ -60,6 +60,22 @@ class ToggleMenuTests(unittest.TestCase):
         self.assertEqual(len(menu.toggleAttrsFor("cheez")), 5)
         self.assertEqual(len(menu.toggleAttrsFor("checj")), 8)
 
+    def test_homophone_toggle_hidden_when_backtick_is_a_root(self):
+        class FakeCin:
+            def __init__(self, keys):
+                self.keys = keys
+
+            def isInKeyName(self, key):
+                return key in self.keys
+
+        ts = self.make_ts("chedayi")
+        ts.cin = FakeCin("abc")
+        self.assertIn("homophoneQuery", menu.buildToggleItems(ts)[1])
+        ts.cin = FakeCin("abc`")   # 大易三碼：` 是字根「巷」
+        labels, attrs = menu.buildToggleItems(ts)
+        self.assertNotIn("homophoneQuery", attrs)
+        self.assertEqual(len(labels), len(attrs))
+
     def test_toggle_then_rebuild_updates_mark(self):
         ts = self.make_ts("checj")
         labels, attrs = menu.buildToggleItems(ts)
