@@ -8,6 +8,9 @@ REM may only have a newer one). Existing build dirs keep their cached generator.
 REM Generate the cinbase table JSON cache (cin/ -> json/; up-to-date files are skipped)
 python\python3\python.exe python\cinbase\tools\cintojson.py || exit /b 1
 
+REM Trimmed copy of the Python standard library zip for the installer (build\python312.zip)
+python\python3\python.exe installer\trim_python_zip.py || exit /b 1
+
 cmake . -Bbuild -A Win32 || exit /b 1
 cmake --build build --config Release || exit /b 1
 
