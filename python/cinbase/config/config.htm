@@ -58,7 +58,7 @@
                             <div class="setting-hint">啟動後一進入即為英文模式,不需先按 Shift 切換。</div>
 
                             <input type="checkbox" id="disableOnStartup" name="disableOnStartup" />
-                            <label for="disableOnStartup">預設以停用輸入法模式啟動 (Windows 8 以上適用)</label>
+                            <label for="disableOnStartup">預設以停用輸入法模式啟動</label>
                             <div class="setting-hint">啟動時先不啟用中文輸入,需要時再手動開啟。</div>
                         </div>
                     </div>
@@ -152,28 +152,6 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">提示訊息</h3>
-                        </div>
-                        <div class="card-body">
-                            <label>提示訊息顯示時間: </label>
-                            <select name="messageDurationTime" id="messageDurationTime"></select>
-                            <span class="hint-icon pointerCursor"
-                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="提示訊息顯示時間"
-                                data-bs-content="在打字行為功能頁面裡，您可以變更這個選項以設定提示訊息的顯示時間。<br /><br />0 為不顯示、1 ~ 5 為顯示秒數。<br /><br />此顯示時間設定會套用到所有的提示訊息。"
-                            ></span>
-                            <div class="setting-hint">0 為不顯示,1~5 為提示訊息顯示的秒數。</div>
-
-                            <input type="checkbox" id="hidePromptMessages" name="hidePromptMessages" />
-                            <label for="hidePromptMessages">隱藏不必要的提示訊息</label>
-                            <span class="hint-icon pointerCursor"
-                                data-bs-toggle="popover" data-bs-html="true" data-bs-trigger="hover" data-bs-placement="bottom" title="隱藏不必要的提示訊息"
-                                data-bs-content="在打字行為功能頁面裡，您可以啟用這個選項以隱藏不必要的提示訊息。<br /><br />啟用後將隱藏一些不必要的提示訊息，以避免輸入時造成干擾。<br /><br />此設定會套用到「多功能前導字元」、「中英文模式」及「半全形模式」的提示訊息。"
-                            ></span>
-                            <div class="setting-hint">隱藏中英文、半全形切換等不必要的提示訊息,減少干擾。</div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
                             <h3 class="card-title">查詢輔助</h3>
                         </div>
                         <div class="card-body">
@@ -251,10 +229,6 @@
                                 <select name="candidateTheme" id="candidateTheme" class="candidate-theme-select" data-value-type="string"></select>
                                 <div class="candidate-toolbar">
                                     <div class="candidate-option-row">
-                                        <div class="candidate-config-field candidate-config-check">
-                                            <input type="checkbox" id="candidateModernStyle" name="candidateModernStyle" />
-                                            <label for="candidateModernStyle">使用新版候選窗 UI</label>
-                                        </div>
                                         <div class="candidate-config-field candidate-config-check">
                                             <input type="checkbox" id="candidateStableWidth" name="candidateStableWidth" />
                                             <label for="candidateStableWidth">固定候選窗最小寬度</label>

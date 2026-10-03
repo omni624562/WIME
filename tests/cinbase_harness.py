@@ -111,7 +111,7 @@ def remove_user_config(ime):
 
 # The modern horizontal layout shows candidatePerRow (6) candidates per page, so
 # short codes already have 2+ pages; tests about paging pin it explicitly.
-MODERN_LAYOUT = dict(candidateModernStyle=True, candidateLayout="horizontal", candidatePerRow=6)
+MODERN_LAYOUT = dict(candidateLayout="horizontal", candidatePerRow=6)
 
 
 def make_service(ime="chedayi", user_config=None, **overrides):

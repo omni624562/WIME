@@ -53,6 +53,18 @@ class ModeSwitchTests(unittest.TestCase):
         self.assertFalse(service.phrasemode)
         self.assertFalse(service.showCandidates)
 
+    def test_mode_switch_shows_no_prompt(self):
+        # 「中文模式／英數模式」提示已移除：新版候選窗沒有計時器，切到英數模式後輸入法
+        # 不再處理按鍵，提示會一直留在畫面上。舊設定檔裡的 hidePromptMessages 不再有作用
+        service = h.make_service("chedayi", user_config={"hidePromptMessages": False})
+        up = h.key_event("SHIFT", down=False)
+        h._send(service, "filterKeyDown", h.key_event("SHIFT"), "SHIFT")
+        h._send(service, "filterKeyUp", up, "SHIFT")
+        reply = h._send(service, "onKeyUp", up, "SHIFT")
+        self.assertEqual(service.langMode, ENGLISH_MODE)
+        self.assertNotIn("showMessage", reply)
+        self.assertNotIn("candidateMessage", reply)
+
     def test_keyboard_reopen_forgets_the_phrase_list(self):
         service = show_phrases_after_commit()
         h.request(service, "onKeyboardStatusChanged", opened=False)
@@ -163,6 +175,27 @@ class HomophoneTests(unittest.TestCase):
         h.press(service, "'")        # 大易: the key labelled on the 2nd item
         self.assertEqual(service.homophonecandidates,
                          hcin.cin.getCharDef(hcin.cin.getKeyList(char)[1]))
+
+    def test_disabled_when_backtick_is_a_root(self):
+        # 大易三碼的 ` 是字根「巷」：打一、兩碼時 ` 是字根，打滿三碼後才會查同音字，
+        # 時有時無，所以三碼一律不查（設定頁也停用）
+        dayi3 = {"selCinType": 2}
+        service = h.make_service("chedayi", user_config=dayi3, homophoneQuery=True, directShowCand=True)
+        hcin = h._modules["chedayi"].HCinTable
+        if hcin.cin is None:
+            h.cinbase.LoadHCinTable(service, hcin).run()
+        for code in ("aaa", "aab", "abc", "abd"):
+            service = h.make_service("chedayi", user_config=dayi3, homophoneQuery=True, directShowCand=True)
+            h.type_keys(service, list(code))
+            if service.candidateList:
+                break
+        else:
+            self.skipTest("no full 3-root code with candidates found")
+        self.assertTrue(h.cinbase.menu.homophoneKeyIsRoot(service))
+        h.press(service, "`")
+        self.assertFalse(service.homophonemode)
+        labels, attrs = h.cinbase.menu.buildToggleItems(service)
+        self.assertNotIn("homophoneQuery", attrs)
 
 
 @h.requires_tables

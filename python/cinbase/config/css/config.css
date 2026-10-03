@@ -702,6 +702,12 @@ input[type="text"]:disabled {
     color: #ffffff;
 }
 
+/* 所有碼表都固定的值（例如大易的萬用字元鍵 ＊）以文字顯示，取代永遠反灰的下拉選單 */
+.config-fixed-value {
+    font-weight: 600;
+    margin: 0 4px;
+}
+
 .search-hidden {
     display: none !important;
 }

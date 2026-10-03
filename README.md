@@ -19,7 +19,7 @@ WIME is based on the original PIME project and includes the following fixes and 
 For a detailed Traditional Chinese summary of the changes made after the project references were renamed from PIME to WIME, see [docs/WIME_CHANGES.md](docs/WIME_CHANGES.md).
 
 **Modern candidate window**
-*   Added a modern candidate window UI with a stable header/body layout.
+*   Added a modern candidate window UI with a stable header/body layout. It is now the only candidate window: the classic window, its separate message popup, and the "use the new candidate window" setting were removed.
 *   Moved Dayi/CIN composition roots into the candidate window header instead of the active input field.
 *   Added configurable themes, selection-key styles, font size, minimum width, maximum-width wrapping, edge avoidance, and no-candidate message styles.
 *   Reworked Dayi, New Chewing, and New Cangjie settings pages toward live preview / WYSIWYG configuration.

@@ -64,6 +64,7 @@ var selHCins = [
 var debugMode = false;
 var checjConfig = {};
 var cinCount = {};
+var rcinAvailable = null; // 有安裝碼表檔的反查碼表索引（設定工具提供；沒有時全部列出）
 var configLoaded = false;
 var configLoadFailed = false;
 
@@ -180,6 +181,7 @@ function loadConfig() {
         checjConfig = data.config;
         applyCandidateDefaults();
         cinCount = data.cincount;
+        rcinAvailable = data.rcinAvailable || null;
         symbolsData = data.symbols;
         swkbData = data.swkb;
         fsymbolsData = data.fsymbols;
@@ -235,12 +237,13 @@ function applyCandidateDefaults() {
     }
     // 輸入法名稱標籤樣式只提供 Accent Name，一律固定為 accent
     checjConfig.candidateHeaderStyle = "accent";
+    // 已移除的設定（舊版候選窗開關、提示訊息顯示時間、隱藏提示訊息），存檔時不再寫回
+    ["candidateModernStyle", "messageDurationTime", "hidePromptMessages"].forEach(function(key) {
+        delete checjConfig[key];
+    });
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;
-    }
-    if (typeof checjConfig.candidateModernStyle === "undefined") {
-        checjConfig.candidateModernStyle = true;
     }
     if (typeof checjConfig.candidateStableWidth === "undefined") {
         checjConfig.candidateStableWidth = true;
@@ -308,27 +311,25 @@ function getCandidatePreviewSample() {
 // 色彩工具（hexToRgb / blendHex / colorLuma / colorContrastHex /
 // readableTextOnHex）已抽至 js/candidate_appearance.js（重構 A）。
 
-function applyCandidatePreviewTheme(preview, theme, modern) {
-    var selectedBg = modern ? blendHex(theme[0], theme[6], 28) : "#000000";
-    var selectedFg = modern ? readableTextOnHex(selectedBg, theme[8], theme[3]) : "#ffffff";
-    var selectedBorder = modern
-        ? (colorContrastHex(selectedBg, theme[7]) >= 38 ? blendHex(theme[7], selectedBg, 28) : blendHex(selectedFg, selectedBg, 40))
-        : "#000000";
+function applyCandidatePreviewTheme(preview, theme) {
+    var selectedBg = blendHex(theme[0], theme[6], 28);
+    var selectedFg = readableTextOnHex(selectedBg, theme[8], theme[3]);
+    var selectedBorder = colorContrastHex(selectedBg, theme[7]) >= 38 ? blendHex(theme[7], selectedBg, 28) : blendHex(selectedFg, selectedBg, 40);
     preview.css({
-        "background-color": modern ? theme[0] : "#ffffff",
-        "border-color": modern ? theme[1] : "#000000",
-        "border-radius": modern ? "6px" : "0",
-        "color": modern ? theme[3] : "#000000"
+        "background-color": theme[0],
+        "border-color": theme[1],
+        "border-radius": "6px",
+        "color": theme[3]
     });
-    preview.find(".candidate-preview-header").css("border-bottom-color", modern ? theme[2] : "#d0d0d0");
-    preview.find(".candidate-preview-name, .candidate-preview-page").css("color", modern ? theme[4] : "#0000b4");
-    preview.find(".candidate-preview-root").css("color", modern ? theme[5] : "#0000b4");
-    preview.find(".candidate-preview-key").css("color", modern ? theme[9] : "#0000ff");
-    preview.find(".candidate-preview-word").css("color", modern ? theme[3] : "#000000");
+    preview.find(".candidate-preview-header").css("border-bottom-color", theme[2]);
+    preview.find(".candidate-preview-name, .candidate-preview-page").css("color", theme[4]);
+    preview.find(".candidate-preview-root").css("color", theme[5]);
+    preview.find(".candidate-preview-key").css("color", theme[9]);
+    preview.find(".candidate-preview-word").css("color", theme[3]);
     preview.find(".candidate-preview-item.active").css({
         "background-color": selectedBg,
         "border-color": selectedBorder,
-        "border-radius": modern ? "6px" : "0",
+        "border-radius": "6px",
         "color": selectedFg
     });
     preview.find(".candidate-preview-item.active .candidate-preview-key, .candidate-preview-item.active .candidate-preview-word").css("color", selectedFg);
@@ -379,14 +380,10 @@ function createCandidatePreview(sample, keyStyle, headerStyle) {
     return preview;
 }
 
-function applyCandidatePreviewMessageTheme(preview, theme, modern) {
-    var accent = modern ? theme[7] : "#bf8643";
-    var messageBg = modern
-        ? (colorLuma(theme[0]) > 165 ? blendHex(theme[0], accent, 8) : blendHex(theme[0], accent, 13))
-        : "#fff3dd";
-    var messageText = modern
-        ? (colorLuma(theme[0]) > 165 ? "#7a430d" : blendHex(theme[3], accent, 38))
-        : "#7a430d";
+function applyCandidatePreviewMessageTheme(preview, theme) {
+    var accent = theme[7];
+    var messageBg = colorLuma(theme[0]) > 165 ? blendHex(theme[0], accent, 8) : blendHex(theme[0], accent, 13);
+    var messageText = colorLuma(theme[0]) > 165 ? "#7a430d" : blendHex(theme[3], accent, 38);
     var badgeText = colorLuma(accent) > 150 ? "#1b1c20" : "#ffffff";
     preview.css({
         "--candidate-message-accent": accent,
@@ -534,7 +531,6 @@ function updateCandidateThemeGallery() {
     }
 
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var stableWidth = $("#candidateStableWidth").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
@@ -556,7 +552,7 @@ function updateCandidateThemeGallery() {
         preview.find(".candidate-preview-root").text(sample.root);
         fillCandidatePreviewItems(preview, sample);
         applyCandidatePreviewKeyStyle(preview, selectedStyle);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -568,7 +564,6 @@ function updateCandidateKeyStyleGallery() {
 
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateKeyStyleCurrent").text(candidateKeyStyleOptions[selectedStyle] || "");
@@ -586,7 +581,7 @@ function updateCandidateKeyStyleGallery() {
         preview.find(".candidate-preview-root").text(sample.root);
         fillCandidatePreviewItems(preview, sample);
         applyCandidatePreviewKeyStyle(preview, styleValue);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -598,7 +593,6 @@ function updateCandidateMessageStyleGallery() {
 
     var selectedStyle = $("#candidateMessageStyle").val() || "badge";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateMessageStyleCurrent").text(candidateMessageStyleOptions[selectedStyle] || "");
 
@@ -612,8 +606,8 @@ function updateCandidateMessageStyleGallery() {
         card.find(".candidate-style-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root + sample.root + sample.root);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
-        applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
+        applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -626,7 +620,6 @@ function updateCandidateMessageBehaviorGallery() {
     var selectedBehavior = $("#candidateMessageBehavior").val() || "progressive";
     var selectedStyle = $("#candidateMessageStyle").val() || "badge";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateMessageBehaviorCurrent").text(candidateMessageBehaviorOptions[selectedBehavior] || "");
 
@@ -641,8 +634,8 @@ function updateCandidateMessageBehaviorGallery() {
         card.find(".candidate-preview").each(function() {
             var preview = $(this);
             preview.css("font-size", candidatePreviewFontSize() + "pt");
-            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
-            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
+            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
         });
     });
 }
@@ -655,7 +648,6 @@ function updateCandidateHeaderStyleGallery() {
 
     var selectedStyle = $("#candidateHeaderStyle").val() || "accent";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateHeaderStyleCurrent").text(candidateHeaderStyleOptions[selectedStyle] || "");
 
@@ -669,7 +661,7 @@ function updateCandidateHeaderStyleGallery() {
         card.find(".candidate-style-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -1177,21 +1169,6 @@ function pageReady() {
     }
     switchLangWithWhichShift.children().eq(checjConfig.switchLangWithWhichShift).prop("selected", true);
 
-    var selMessageTimes=[
-        "０　",
-        "１　",
-        "２　",
-        "３　",
-        "４　",
-        "５　"
-    ];
-    var messageDurationTime = $("#messageDurationTime");
-    for(var i = 0; i < selMessageTimes.length; ++i) {
-        var selMessageTime = selMessageTimes[i];
-        var item = '<option value="' + i + '">' + selMessageTime + '</option>';
-        messageDurationTime.append(item);
-    }
-    messageDurationTime.children().eq(checjConfig.messageDurationTime).prop("selected", true);
 
     var candidateTheme = $("#candidateTheme");
     for(var i = 0; i < candidateThemeNames.length; ++i) {
@@ -1227,11 +1204,19 @@ function pageReady() {
 
     var selRCinType = $("#selRCinType");
     for(var i = 0; i < selRCins.length; ++i) {
+        // 沒有安裝碼表檔的不列出（精簡安裝檔只附大易、倉頡、注音系列），選了也反查不到
+        if (rcinAvailable && rcinAvailable.length && rcinAvailable.indexOf(i) < 0) {
+            continue;
+        }
         var selRCin = selRCins[i];
         var item = '<option value="' + i + '">' + selRCin + '</option>';
         selRCinType.append(item);
     }
-    selRCinType.children().eq(checjConfig.selRCinType).prop("selected", true);
+    if (selRCinType.find('option[value="' + checjConfig.selRCinType + '"]').length) {
+        selRCinType.val(String(checjConfig.selRCinType));
+    } else {
+        selRCinType.children().first().prop("selected", true);
+    }
 
     var selHCinType = $("#selHCinType");
     for(var i = 0; i < selHCins.length; ++i) {
@@ -1481,6 +1466,18 @@ function pageReady() {
     renderCandidateThemeGallery();
     updateCandidateAppearanceGalleries();
 
+    // 某個碼表停用項目時，說明文字改成停用的原因；換回其他碼表時還原
+    function setDisabledReason(id, reason) {
+        var hint = $("#" + id).nextAll(".setting-hint").first();
+        if (!hint.length) {
+            return;
+        }
+        if (hint.data("originalText") === undefined) {
+            hint.data("originalText", hint.text());
+        }
+        hint.text(reason || hint.data("originalText"));
+    }
+
     function disableControlItem() {
         var disabled = []
         for(key in disableConfigItem) {
@@ -1490,6 +1487,7 @@ function pageReady() {
                         $('#' + disableConfigItem[key][0])[0].checked = disableConfigItem[key][1];
                     }
                     $('#' + disableConfigItem[key][0])[0].disabled = true;
+                    setDisabledReason(disableConfigItem[key][0], disableConfigItem[key][2]);
                     disabled.push(disableConfigItem[key][0])
                 }
             } else if (key > 100) {
@@ -1500,6 +1498,7 @@ function pageReady() {
             } else {
                 if (disabled.indexOf(disableConfigItem[key][0]) < 0) {
                     $('#' + disableConfigItem[key][0])[0].disabled = false;
+                    setDisabledReason(disableConfigItem[key][0], null);
                 }
             }
         }
@@ -1536,6 +1535,29 @@ function pageReady() {
     }
 
     disableControlItem();
+
+    // 所有碼表都停用的項目（例如大易的空白鍵換頁）直接藏起來，不留一個永遠反灰的選項；
+    // 下拉選單（例如大易固定用 ＊ 的萬用字元鍵）改成顯示固定的文字
+    function hideItemsDisabledForAllTables() {
+        for (var key in disableConfigItem) {
+            if (key <= 100) {
+                continue;
+            }
+            var elem = $("#" + disableConfigItem[key][0]);
+            if (!elem.length || elem.hasClass("config-item-hidden")) {
+                continue;
+            }
+            if (elem.is("select")) {
+                var text = $.trim(elem.find(":selected").text());
+                elem.addClass("config-item-hidden").hide();
+                $("<span>").addClass("config-fixed-value").text(text).insertAfter(elem);
+            } else {
+                // 核取方塊、它的標籤、說明圖示與說明文字（到下一個輸入項之前）
+                elem.add(elem.nextUntil("input")).addClass("config-item-hidden").hide();
+            }
+        }
+    }
+    hideItemsDisabledForAllTables();
 
     // 功能核取切換時，即時更新其相依下拉的停用狀態
     $("#supportWildcard, #imeReverseLookup, #homophoneQuery").on("click", disableControlItem);

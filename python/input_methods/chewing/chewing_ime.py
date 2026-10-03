@@ -223,14 +223,12 @@ class ChewingTextService(TextService):
 
     def customizeCandidateUI(self, force=False):
         cfg = chewingConfig
-        modernStyle = getattr(cfg, 'candidateModernStyle', False)
         uiCandPerRow = self.candidatesPerUiRow()
         ui_args = {
-            "candFontName": 'Microsoft JhengHei' if modernStyle else 'MingLiu',
+            "candFontName": 'Microsoft JhengHei',
             "candFontSize": cfg.fontSize,
             "candPerRow": uiCandPerRow,
             "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
-            "candidateModernStyle": modernStyle,
             "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
             "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
@@ -578,9 +576,7 @@ class ChewingTextService(TextService):
     def candidatesPerUiRow(self):
         cfg = chewingConfig
         layout = getattr(cfg, 'candidateLayout', 'horizontal')
-        if getattr(cfg, 'candidateModernStyle', False) and layout == 'horizontal':
-            return getattr(cfg, 'candidatePerRow', 6)
-        return 1 if layout == 'vertical' else cfg.candPerRow
+        return 1 if layout == 'vertical' else getattr(cfg, 'candidatePerRow', 6)
 
     # Ctrl + Del 刪除詞彙、Ctrl + PageUp 提昇 / Ctrl + PageDown 降低詞頻
     def maintainUserPhrase(self, keyCode, target_phrase):
