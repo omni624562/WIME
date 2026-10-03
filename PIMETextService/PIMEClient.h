@@ -103,7 +103,7 @@ private:
 
 	// Update text service and UI status based on RPC responses.
 	void updateSelectionKeys(nlohmann::json& msg);
-	void updateMessageWindow(nlohmann::json& msg, Ime::EditSession* session, bool& endComposition);
+	void routeMessageToCandidateWindow(nlohmann::json& msg, Ime::EditSession* session);
 	void updateCommitString(nlohmann::json& msg, Ime::EditSession* session);
 	void updateComposition(nlohmann::json& msg, Ime::EditSession* session, bool& endComposition);
 	void updateLanguageButtons(nlohmann::json& msg);

@@ -174,7 +174,7 @@ class EngineFaultTests(ChewingTestCase):
         cases = [
             (dict(keyboardLayout=1), ["k", "SPACE", "4", "k", "SPACE"]),
             (dict(keyboardLayout=5), ["j", "SPACE", "SPACE", "2", "s", "SPACE"]),
-            (dict(candidateModernStyle=False), list("8484") + ["HOME", "j", "6", "LEFT", "DEL", "DOWN", "3"]),
+            (dict(), list("8484") + ["HOME", "j", "6", "LEFT", "DEL", "DOWN", "3"]),
         ]
         for overrides, keys in cases:
             with self.subTest(keys=" ".join(keys)):

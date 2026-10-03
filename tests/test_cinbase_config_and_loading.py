@@ -53,7 +53,6 @@ class ConfigLoadingTests(unittest.TestCase):
         self.assertEqual(cfg.imeDisplayName, "大易")
         self.assertTrue(cfg.directShowCand)
         self.assertEqual(cfg.selWildcardType, 1)
-        self.assertTrue(cfg.candidateModernStyle)
 
         cfg = fresh_config("checj")
         self.assertEqual(cfg.imeDisplayName, "酷倉")
@@ -63,6 +62,14 @@ class ConfigLoadingTests(unittest.TestCase):
         h.write_user_config("chedayi", {"imeDisplayName": "我的大易", "candPerPage": 5})
         cfg = fresh_config("chedayi")
         self.assertEqual(cfg.imeDisplayName, "我的大易")
+        self.assertEqual(cfg.candPerPage, 5)
+
+    def test_retired_candidate_modern_style_is_dropped(self):
+        # the classic candidate window is gone; old config.json files still carry its switch
+        h.write_user_config("chedayi", {"candidateModernStyle": False, "candPerPage": 5})
+        cfg = fresh_config("chedayi")
+        self.assertFalse(hasattr(cfg, "candidateModernStyle"))
+        self.assertNotIn("candidateModernStyle", cfg.toJson())
         self.assertEqual(cfg.candPerPage, 5)
 
     def test_user_config_with_bom_is_loaded(self):

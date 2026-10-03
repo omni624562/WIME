@@ -36,8 +36,6 @@ namespace PIME {
 TextService::TextService(ImeModule* module):
 	Ime::TextService(module),
 	client_(nullptr),
-	messageWindow_(nullptr),
-	messageTimerId_(0),
 	validCandidateListElementId_(false),
 	candidateListElementId_(0),
 	candidateWindow_(nullptr),
@@ -47,7 +45,6 @@ TextService::TextService(ImeModule* module):
 	selKeys_(L"1234567890"),
 	candUseCursor_(false),
 	candFontSize_(12),
-	candidateModernStyle_(false),
 	candidateEdgeAvoidance_(true),
 	candidatePositionMode_(0),
 	candidateOpacity_(100),
@@ -92,9 +89,6 @@ TextService::~TextService(void) {
 		hideCandidates();
 	}
 
-	if(messageWindow_)
-		hideMessage();
-
 	if(font_)
 		::DeleteObject(font_);
 }
@@ -131,9 +125,6 @@ void TextService::onKillFocus() {
 		client_->onKillFocus();
 	if (showingCandidates())
 		hideCandidates();
-	hideMessage();
-	// drop the kept message window: its owner belongs to the field being left
-	messageWindow_ = nullptr;
 	// drop the remembered width when leaving the field so a wide window from
 	// one app doesn't carry over to the next
 	candidateStableWidthPx_ = 0;
@@ -233,7 +224,6 @@ void TextService::onKeyboardStatusChanged(bool opened) {
 		}
 		if(showingCandidates()) // disable candidate window if it's opened
 			hideCandidates();
-		hideMessage(); // hide message window, if there's any
 	}
 }
 
@@ -250,7 +240,6 @@ void TextService::onCompositionTerminated(bool forced) {
 		// our composition.
 		if (showingCandidates()) // disable candidate window if it's opened
 			hideCandidates();
-		hideMessage(); // hide message window, if there's any
 	}
 	if(client_)
 		client_->onCompositionTerminated(forced);
@@ -308,8 +297,6 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 			wcsncpy(lf.lfFaceName, candFontName_.c_str(), 31);
 		}
 		font_ = CreateFontIndirect(&lf); // create new font
-		// if (messageWindow_)
-		//	messageWindow_->setFont(font_);
 		if (candidateWindow_) {
 			// the window holds the same old handle and setFont() deletes it;
 			// deleting it here as well would double-delete the HFONT
@@ -397,7 +384,6 @@ void TextService::setCandidateSpacing(int contentMargin, int textMargin, int bor
 void TextService::applyCandidateWindowStyle() {
 	if (!candidateWindow_)
 		return;
-	candidateWindow_->setModernStyle(candidateModernStyle_);
 	candidateWindow_->setTheme(candidatePanelBackground_,
 		candidatePanelBorder_,
 		candidateTextPrimary_,
@@ -560,83 +546,6 @@ void TextService::hideCandidates() {
 	showingCandidates_ = false;
 }
 
-// message window
-void TextService::showMessage(Ime::EditSession* session, std::wstring message, int duration) {
-	// remove previous message if there's any
-	hideMessage();
-	// reuse the previous window only while it is still alive and owned by the
-	// same app window: the owner destroys its owned popups together with itself
-	if (messageWindow_) {
-		HWND hwnd = messageWindow_->hwnd();
-		if (!::IsWindow(hwnd) || ::GetWindow(hwnd, GW_OWNER) != compositionWindow(session)) {
-			messageWindow_ = nullptr;
-		}
-	}
-	if (!messageWindow_) {
-		messageWindow_ = make_unique<Ime::MessageWindow>(this, session);
-		// set the font only on a fresh window: ImeWindow::setFont() deletes the
-		// previous handle, and we hand every window the same shared HFONT
-		messageWindow_->setFont(font_);
-	}
-	messageWindow_->setText(message);
-
-	int x = 0, y = 0;
-	if(isComposing()) {
-		RECT rc;
-		if(cachedSelectionRect(session, &rc)) {
-			x = rc.left;
-			y = rc.bottom;
-		}
-	}
-	messageWindow_->move(x, y);
-	messageWindow_->show();
-
-	// clamp duration to avoid overflow when multiplying by 1000 for SetTimer (UINT)
-	messageTimerId_ = ::SetTimer(messageWindow_->hwnd(), 1,
-		static_cast<UINT>(std::min(duration, 3600) * 1000),
-		(TIMERPROC)TextService::onMessageTimeout);
-}
-
-void TextService::updateMessageWindow(Ime::EditSession* session) {
-    if (messageWindow_ && messageWindow_->isVisible()) {
-        RECT textRect;
-        if (cachedSelectionRect(session, &textRect)) {
-            messageWindow_->move(textRect.left, textRect.bottom);
-        }
-    }
-}
-
-void TextService::hideMessage() {
-	if(messageTimerId_) {
-		if (messageWindow_ && ::IsWindow(messageWindow_->hwnd()))
-			::KillTimer(messageWindow_->hwnd(), messageTimerId_);
-		messageTimerId_ = 0;
-	}
-	// keep the window for reuse; showMessage() drops it when the owner changed
-	if (messageWindow_ && ::IsWindow(messageWindow_->hwnd())) {
-		messageWindow_->hide();
-	}
-	else if (messageWindow_) {
-		messageWindow_ = nullptr; // owner already destroyed the window
-	}
-}
-
-// called when the message window timeout
-void TextService::onMessageTimeout() {
-	hideMessage();
-}
-
-// static
-void CALLBACK TextService::onMessageTimeout(HWND hwnd, UINT msg, UINT_PTR id, DWORD time) {
-	Ime::MessageWindow* messageWindow = (Ime::MessageWindow*)Ime::Window::fromHwnd(hwnd);
-	assert(messageWindow);
-	if(messageWindow) {
-		TextService* pThis = (PIME::TextService*)messageWindow->textService();
-		pThis->onMessageTimeout();
-	}
-}
-
-
 void TextService::updateLangButtons() {
 }
 
@@ -692,7 +601,6 @@ void TextService::closeClient() {
 		client_->onDeactivate();
 		client_ = nullptr;
 		// detroy UI resources
-		hideMessage();
 		hideCandidates();
 	}
 }

@@ -235,12 +235,11 @@ function applyCandidateDefaults() {
     }
     // 輸入法名稱標籤樣式只提供 Accent Name，一律固定為 accent
     checjConfig.candidateHeaderStyle = "accent";
+    // 舊版的「使用新版候選窗 UI」開關已移除，一律使用新版候選窗
+    delete checjConfig.candidateModernStyle;
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;
-    }
-    if (typeof checjConfig.candidateModernStyle === "undefined") {
-        checjConfig.candidateModernStyle = true;
     }
     if (typeof checjConfig.candidateStableWidth === "undefined") {
         checjConfig.candidateStableWidth = true;
@@ -308,27 +307,25 @@ function getCandidatePreviewSample() {
 // 色彩工具（hexToRgb / blendHex / colorLuma / colorContrastHex /
 // readableTextOnHex）已抽至 js/candidate_appearance.js（重構 A）。
 
-function applyCandidatePreviewTheme(preview, theme, modern) {
-    var selectedBg = modern ? blendHex(theme[0], theme[6], 28) : "#000000";
-    var selectedFg = modern ? readableTextOnHex(selectedBg, theme[8], theme[3]) : "#ffffff";
-    var selectedBorder = modern
-        ? (colorContrastHex(selectedBg, theme[7]) >= 38 ? blendHex(theme[7], selectedBg, 28) : blendHex(selectedFg, selectedBg, 40))
-        : "#000000";
+function applyCandidatePreviewTheme(preview, theme) {
+    var selectedBg = blendHex(theme[0], theme[6], 28);
+    var selectedFg = readableTextOnHex(selectedBg, theme[8], theme[3]);
+    var selectedBorder = colorContrastHex(selectedBg, theme[7]) >= 38 ? blendHex(theme[7], selectedBg, 28) : blendHex(selectedFg, selectedBg, 40);
     preview.css({
-        "background-color": modern ? theme[0] : "#ffffff",
-        "border-color": modern ? theme[1] : "#000000",
-        "border-radius": modern ? "6px" : "0",
-        "color": modern ? theme[3] : "#000000"
+        "background-color": theme[0],
+        "border-color": theme[1],
+        "border-radius": "6px",
+        "color": theme[3]
     });
-    preview.find(".candidate-preview-header").css("border-bottom-color", modern ? theme[2] : "#d0d0d0");
-    preview.find(".candidate-preview-name, .candidate-preview-page").css("color", modern ? theme[4] : "#0000b4");
-    preview.find(".candidate-preview-root").css("color", modern ? theme[5] : "#0000b4");
-    preview.find(".candidate-preview-key").css("color", modern ? theme[9] : "#0000ff");
-    preview.find(".candidate-preview-word").css("color", modern ? theme[3] : "#000000");
+    preview.find(".candidate-preview-header").css("border-bottom-color", theme[2]);
+    preview.find(".candidate-preview-name, .candidate-preview-page").css("color", theme[4]);
+    preview.find(".candidate-preview-root").css("color", theme[5]);
+    preview.find(".candidate-preview-key").css("color", theme[9]);
+    preview.find(".candidate-preview-word").css("color", theme[3]);
     preview.find(".candidate-preview-item.active").css({
         "background-color": selectedBg,
         "border-color": selectedBorder,
-        "border-radius": modern ? "6px" : "0",
+        "border-radius": "6px",
         "color": selectedFg
     });
     preview.find(".candidate-preview-item.active .candidate-preview-key, .candidate-preview-item.active .candidate-preview-word").css("color", selectedFg);
@@ -379,14 +376,10 @@ function createCandidatePreview(sample, keyStyle, headerStyle) {
     return preview;
 }
 
-function applyCandidatePreviewMessageTheme(preview, theme, modern) {
-    var accent = modern ? theme[7] : "#bf8643";
-    var messageBg = modern
-        ? (colorLuma(theme[0]) > 165 ? blendHex(theme[0], accent, 8) : blendHex(theme[0], accent, 13))
-        : "#fff3dd";
-    var messageText = modern
-        ? (colorLuma(theme[0]) > 165 ? "#7a430d" : blendHex(theme[3], accent, 38))
-        : "#7a430d";
+function applyCandidatePreviewMessageTheme(preview, theme) {
+    var accent = theme[7];
+    var messageBg = colorLuma(theme[0]) > 165 ? blendHex(theme[0], accent, 8) : blendHex(theme[0], accent, 13);
+    var messageText = colorLuma(theme[0]) > 165 ? "#7a430d" : blendHex(theme[3], accent, 38);
     var badgeText = colorLuma(accent) > 150 ? "#1b1c20" : "#ffffff";
     preview.css({
         "--candidate-message-accent": accent,
@@ -534,7 +527,6 @@ function updateCandidateThemeGallery() {
     }
 
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var stableWidth = $("#candidateStableWidth").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
@@ -556,7 +548,7 @@ function updateCandidateThemeGallery() {
         preview.find(".candidate-preview-root").text(sample.root);
         fillCandidatePreviewItems(preview, sample);
         applyCandidatePreviewKeyStyle(preview, selectedStyle);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[themeName] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -568,7 +560,6 @@ function updateCandidateKeyStyleGallery() {
 
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateKeyStyleCurrent").text(candidateKeyStyleOptions[selectedStyle] || "");
@@ -586,7 +577,7 @@ function updateCandidateKeyStyleGallery() {
         preview.find(".candidate-preview-root").text(sample.root);
         fillCandidatePreviewItems(preview, sample);
         applyCandidatePreviewKeyStyle(preview, styleValue);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -598,7 +589,6 @@ function updateCandidateMessageStyleGallery() {
 
     var selectedStyle = $("#candidateMessageStyle").val() || "badge";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateMessageStyleCurrent").text(candidateMessageStyleOptions[selectedStyle] || "");
 
@@ -612,8 +602,8 @@ function updateCandidateMessageStyleGallery() {
         card.find(".candidate-style-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root + sample.root + sample.root);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
-        applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
+        applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 
@@ -626,7 +616,6 @@ function updateCandidateMessageBehaviorGallery() {
     var selectedBehavior = $("#candidateMessageBehavior").val() || "progressive";
     var selectedStyle = $("#candidateMessageStyle").val() || "badge";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateMessageBehaviorCurrent").text(candidateMessageBehaviorOptions[selectedBehavior] || "");
 
@@ -641,8 +630,8 @@ function updateCandidateMessageBehaviorGallery() {
         card.find(".candidate-preview").each(function() {
             var preview = $(this);
             preview.css("font-size", candidatePreviewFontSize() + "pt");
-            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
-            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+            applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
+            applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
         });
     });
 }
@@ -655,7 +644,6 @@ function updateCandidateHeaderStyleGallery() {
 
     var selectedStyle = $("#candidateHeaderStyle").val() || "accent";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var modern = $("#candidateModernStyle").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateHeaderStyleCurrent").text(candidateHeaderStyleOptions[selectedStyle] || "");
 
@@ -669,7 +657,7 @@ function updateCandidateHeaderStyleGallery() {
         card.find(".candidate-style-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
         preview.find(".candidate-preview-root").text(sample.root);
-        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"], modern);
+        applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
     });
 }
 

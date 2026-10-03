@@ -186,7 +186,6 @@ class ChewingConfig:
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT
         self.upDownAction = 0
         self.upperCaseWithShift = True
-        self.candidateModernStyle = True
         self.candidateLayout = "horizontal"
         self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True

@@ -357,8 +357,6 @@ class CinBase:
         return pagecandidates, currentCandPage, candCursor
 
     def setModernCandidatePageInfo(self, cbTS, currentCandPage, pagecandidates):
-        if not getattr(cbTS.cfg, 'candidateModernStyle', False):
-            return
         totalPages = len(pagecandidates) if pagecandidates else 0
         if totalPages > 0:
             cbTS.currentReply["candidatePageInfo"] = f"{currentCandPage + 1}/{totalPages}"
@@ -366,9 +364,6 @@ class CinBase:
             cbTS.currentReply["candidatePageInfo"] = ""
 
     def ensureModernCandidateHeader(self, cbTS):
-        if not getattr(cbTS.cfg, 'candidateModernStyle', False):
-            return
-
         if cbTS.currentReply.get("showCandidates") is False:
             return
 
@@ -3585,13 +3580,11 @@ class CinBase:
 
     def customizeCandidateUI(self, cbTS, force=False):
         cfg = cbTS.cfg # 所有 TextService 共享一份設定物件
-        modernStyle = getattr(cfg, 'candidateModernStyle', False)
         ui_args = {
             "candFontSize": cfg.fontSize,
             "candFontName": 'Microsoft JhengHei',
             "candPerRow": cbTS.candPerRow,
             "candUseCursor": cfg.cursorCandList,
-            "candidateModernStyle": modernStyle,
             "candidateLayout": getattr(cfg, 'candidateLayout', 'horizontal'),
             "candidatePerRow": getattr(cfg, 'candidatePerRow', 6),
             "candidateEdgeAvoidance": getattr(cfg, 'candidateEdgeAvoidance', True),
@@ -3622,12 +3615,10 @@ class CinBase:
         cbTS.configVersion = cfg.getVersion()
 
         # 每列顯示幾個候選字
-        cbTS.candPerRow = cfg.candPerRow
-        if getattr(cfg, 'candidateModernStyle', False):
-            if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical':
-                cbTS.candPerRow = 1
-            else:
-                cbTS.candPerRow = getattr(cfg, 'candidatePerRow', 6)
+        if getattr(cfg, 'candidateLayout', 'horizontal') == 'vertical':
+            cbTS.candPerRow = 1
+        else:
+            cbTS.candPerRow = getattr(cfg, 'candidatePerRow', 6)
 
         # 如果程式為 UiLess 模式就取代設定
         if cbTS.client.isUiLess:
@@ -3635,7 +3626,7 @@ class CinBase:
 
         # 每頁顯示幾個候選字
         cbTS.candPerPage = cfg.candPerPage
-        if getattr(cfg, 'candidateModernStyle', False) and getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
+        if getattr(cfg, 'candidateLayout', 'horizontal') == 'horizontal':
             cbTS.candPerPage = cbTS.candPerRow
         # 每頁候選數不可超過選字鍵數，否則多出來的候選沒有鍵可選，
         # C++ 端也會以超出選字鍵長度的索引取鍵字元
