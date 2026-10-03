@@ -96,9 +96,6 @@ class Cin(object):
                         newvalue.remove(value)
                 self.chardefs[key] = newvalue
 
-        self._chardef_prefix_cache_count = None
-        self._chardef_prefixes = set()
-        self._chardef_proper_prefixes = set()
         self._char_to_keys = {}
         self._count_dirty = False
         self._last_count_save_time = 0.0
@@ -160,19 +157,6 @@ class Cin(object):
                 index[char].append(chardef)
         self._char_to_keys = index
 
-    def _rebuild_prefix_cache(self):
-        prefixes = set()
-        proper_prefixes = set()
-        for chardef in self.chardefs:
-            n = len(chardef)
-            for length in range(1, n + 1):
-                prefixes.add(chardef[:length])
-            for length in range(1, n):
-                proper_prefixes.add(chardef[:length])
-        self._chardef_prefixes = prefixes
-        self._chardef_proper_prefixes = proper_prefixes
-        self._chardef_prefix_cache_count = len(self.chardefs)
-
     def isHaveKey(self, val):
         return val in self._char_to_keys
 
@@ -185,21 +169,27 @@ class Cin(object):
     def getCharDef(self, key):
         return self.chardefs.get(key, [])
 
+    # 字根是不是某個字根的開頭：在已排序的字根裡，開頭相同的字根一定相鄰，二分搜尋就夠了。
+    # 以前第一次用到時為所有字根的每個前綴建一個集合，大易／酷倉第一次打到未完成的字根
+    # 會卡 40／100 ms，還多佔 2–4 MB
     def isCharDefPrefix(self, key):
         if not key:
             return False
         if key in self.chardefs:
             return True
-        if self._chardef_prefix_cache_count != len(self.chardefs):
-            self._rebuild_prefix_cache()
-        return key in self._chardef_prefixes
+        keys = self.sortedCharDefKeys()
+        i = bisect.bisect_left(keys, key)
+        return i < len(keys) and keys[i].startswith(key)
 
     def hasLongerCharDefPrefix(self, key):
+        """有沒有比 key 更長、以 key 開頭的字根"""
         if not key:
             return False
-        if self._chardef_prefix_cache_count != len(self.chardefs):
-            self._rebuild_prefix_cache()
-        return key in self._chardef_proper_prefixes
+        keys = self.sortedCharDefKeys()
+        i = bisect.bisect_left(keys, key)
+        if i < len(keys) and keys[i] == key:
+            i += 1
+        return i < len(keys) and keys[i].startswith(key)
 
 
     def sortedCharDefKeys(self):
@@ -361,9 +351,7 @@ class Cin(object):
                             self.chardefs[key.lower()].append(root)
                         except KeyError:
                             self.chardefs[key.lower()] = [root]
-            self._chardef_prefix_cache_count = None
-            self._chardef_prefixes = set()
-            self._chardef_proper_prefixes = set()
+            self._sorted_chardef_keys = None
             # 擴充碼表可能只改既有字根的候選字、字根數不變，萬用字元的索引與結果要重建
             self._wildcard_index_count = -1
             self._build_reverse_index()

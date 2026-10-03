@@ -44,8 +44,6 @@ from . import pager
 from . import selkeys
 from .config import SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
 
-from .debug import Debug
-
 CHINESE_MODE = 1
 ENGLISH_MODE = 0
 FULLSHAPE_MODE = 1
@@ -265,6 +263,9 @@ class CinBase:
         cbTS.bopomofolist.append(chr(0x02CB))
 
         if DEBUG_MODE:
+            # 只在除錯模式才載入：debug.py 會匯入 tools/cpuinfo.py，後者一載入就用 WMI
+            # 查詢 CPU，以前每次啟動後端都白白多花約 100 ms
+            from .debug import Debug
             cbTS.debug = Debug(cbTS.imeDirName)
             cbTS.debugLog = cbTS.debug.loadDebugLog()
 
