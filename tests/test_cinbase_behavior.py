@@ -152,14 +152,18 @@ class CompositionBufferTests(unittest.TestCase):
 @h.requires_tables
 @unittest.skipUnless(os.path.exists(os.path.join(h.JSON_DIR, "thphonetic.json")), "thphonetic.json missing")
 class HomophoneTests(unittest.TestCase):
+    # 泰瑞大易四碼 (selCinType 0): in 大易三碼, the default table, ` is the root 巷,
+    # so after a root it continues the code instead of opening the homophone list
+    THDAYI = {"selCinType": 0}
+
     def test_reading_selection_key(self):
-        service = h.make_service("chedayi", homophoneQuery=True, directShowCand=True)
+        service = h.make_service("chedayi", user_config=self.THDAYI, homophoneQuery=True, directShowCand=True)
         hcin = h._modules["chedayi"].HCinTable
         if hcin.cin is None:
             h.cinbase.LoadHCinTable(service, hcin).run()
         # find a candidate with 3+ readings on the first page of some root
         for root in "abcdefghijklmnopqrstuvwxyz":
-            service = h.make_service("chedayi", homophoneQuery=True, directShowCand=True)
+            service = h.make_service("chedayi", user_config=self.THDAYI, homophoneQuery=True, directShowCand=True)
             h.type_keys(service, [root])
             char = service.candidateList[0] if service.candidateList else ""
             if char and hcin.cin.isHaveKey(char) and len(hcin.cin.getKeyList(char)) >= 3:

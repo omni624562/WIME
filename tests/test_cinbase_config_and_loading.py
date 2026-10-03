@@ -104,7 +104,7 @@ class ConfigLoadingTests(unittest.TestCase):
         self.assertEqual(cfg.candPerRow, 10)       # chedayi's shipped default
         self.assertIs(cfg.directShowCand, False)
         self.assertEqual(cfg.selWildcardType, 1)   # out of range -> shipped default
-        self.assertEqual(cfg.selCinType, 0)
+        self.assertEqual(cfg.selCinType, 2)         # out of range -> shipped default (大易三碼)
         self.assertEqual(cfg.imeDisplayName, "123")
         self.assertIsInstance(cfg.candidateStyle, dict)
 
@@ -270,7 +270,8 @@ class LookupTableTests(_TableTestBase):
 
     def test_missing_homophone_table_is_not_reloaded_on_every_request(self):
         starts = self.count_starts(h.cinbase.LoadHCinTable)
-        service = h.make_service(self.IME, homophoneQuery=True)
+        # 泰瑞大易四碼: in 大易三碼 (the default) ` is the root 巷, not the homophone key
+        service = h.make_service(self.IME, user_config={"selCinType": 0}, homophoneQuery=True)
         service.jsondir = self.empty_dir
         self.module.HCinTable.cin = None
         self.module.HCinTable.curCinType = None
