@@ -51,20 +51,16 @@ class ChewingTestCase(unittest.TestCase):
         return ctx.bopomofo_String(None).decode("utf-8") if ctx.bopomofo_Check() else ""
 
 
-class ModernStyleTypesLikeClassicTests(ChewingTestCase):
-    STYLES = (dict(candidateModernStyle=True), dict(candidateModernStyle=False))
-
+class TypingTests(ChewingTestCase):
     def test_continuous_phrase_input(self):
-        for style in self.STYLES:
-            with self.subTest(**style):
-                s = self.service(**style)
-                self.assertEqual(self.type(s, list("5j/") + ["SPACE"] + list("jp6") + ["ENTER"]), "中文")
-                self.assertEqual(self.type(s, list("ji3ap7") + ["ENTER"]), "我們")
-                # 3/4/6/7 are tones, not selection keys: 你 + ㄨㄛˋ used to commit 禰
-                self.assertEqual(self.type(s, list("su3ji4") + ["ENTER"]), "你握")
+        s = self.service()
+        self.assertEqual(self.type(s, list("5j/") + ["SPACE"] + list("jp6") + ["ENTER"]), "中文")
+        self.assertEqual(self.type(s, list("ji3ap7") + ["ENTER"]), "我們")
+        # 3/4/6/7 are tones, not selection keys: 你 + ㄨㄛˋ used to commit 禰
+        self.assertEqual(self.type(s, list("su3ji4") + ["ENTER"]), "你握")
 
     def test_composition_is_inline_and_no_candidates_until_asked(self):
-        s = self.service(candidateModernStyle=True)
+        s = self.service()
         self.type(s, list("su3"))
         self.assertEqual(s.compositionString, "你")  # not a zero-width space
         self.assertFalse(s.showCandidates)
@@ -78,7 +74,7 @@ class ModernStyleTypesLikeClassicTests(ChewingTestCase):
         self.assertEqual(self.type(s, ["ENTER"]), "妳")
 
     def test_backspace_deletes(self):
-        s = self.service(candidateModernStyle=True)
+        s = self.service()
         self.type(s, list("su3") + ["BACK"])
         self.assertEqual(s.compositionString, "")
         self.assertFalse(s.isComposing())
@@ -125,7 +121,7 @@ class CandidateCursorTests(ChewingTestCase):
         self.assertEqual(s.compositionString, chosen)  # Enter picks what is highlighted
 
     def test_up_down_move_by_a_visual_row(self):
-        s = self.service(candidateModernStyle=True, candidateLayout="horizontal", candidatePerRow=6,
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6,
                          candPerRow=3, candPerPage=9)
         self.type(s, list("su3") + ["DOWN"])
         self.assertEqual(s.candidateCursor, 0)

@@ -33,7 +33,7 @@ CONFIGS = [
     dict(directShowCand=True, showPhrase=True, **h.MODERN_LAYOUT),
     dict(directShowCand=True, compositionBufferMode=True),
     dict(directShowCand=True, homophoneQuery=True, supportWildcard=True),
-    dict(directShowCand=False, showPhrase=True, candidateModernStyle=False),
+    dict(directShowCand=False, showPhrase=True, candidateLayout="vertical"),
 ]
 
 

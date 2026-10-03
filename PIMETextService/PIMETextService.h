@@ -22,7 +22,6 @@
 
 #include <LibIME2/src/TextService.h>
 #include <LibIME2/src/CandidateWindow.h>
-#include <LibIME2/src/MessageWindow.h>
 #include <LibIME2/src/EditSession.h>
 #include <LibIME2/src/LangBarButton.h>
 #include "PIMEImeModule.h"
@@ -224,15 +223,6 @@ public:
 		applyCandidateWindowOpacity();
 	}
 
-	void setCandidateModernStyle(bool enabled) {
-		candidateModernStyle_ = enabled;
-		applyCandidateWindowStyle();
-	}
-
-	bool candidateModernStyle() const {
-		return candidateModernStyle_;
-	}
-
 	// candidate window
 	void showCandidates(Ime::EditSession* session);
 	void updateCandidates(Ime::EditSession* session);
@@ -241,16 +231,10 @@ public:
 
 	void refreshCandidates();
 
-	// message window
-	void showMessage(Ime::EditSession* session, std::wstring message, int duration = 3);
-    void updateMessageWindow(Ime::EditSession* session);
-	void hideMessage();
 
 private:
 	virtual ~TextService(void);  // COM object should only be deleted using Release()
 
-	void onMessageTimeout();
-	static void CALLBACK onMessageTimeout(HWND hwnd, UINT msg, UINT_PTR id, DWORD time);
 
 	void updateLangButtons(); // update status of language bar buttons
 
@@ -273,8 +257,6 @@ private:
 	Ime::ComPtr<Ime::CandidateWindow> candidateWindow_; // this is a ref-counted COM object and should not be managed with std::unique_ptr
 	bool showingCandidates_;
 	std::vector<std::wstring> candidates_; // current candidate list
-	std::unique_ptr<Ime::MessageWindow> messageWindow_;
-	UINT messageTimerId_;
 	HFONT font_;
 	bool updateFont_;
 	int candPerRow_;
@@ -285,7 +267,6 @@ private:
 	std::wstring candidatePageInfo_;
 	std::wstring candidateMessage_;
 	int candFontSize_;
-	bool candidateModernStyle_;
 	bool candidateEdgeAvoidance_;
 	int candidatePositionMode_; // 0 = 跟隨游標，1 = 螢幕下緣置中
 	int candidateOpacity_; // 30~100（百分比）

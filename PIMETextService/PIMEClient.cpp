@@ -276,7 +276,6 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateStableWidth(true, 286);
 		textService_->setCandidateMaxWidth(true, 300);
 		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelBadge);
-		textService_->setCandidateModernStyle(true);
 	}
 }
 
@@ -328,9 +327,6 @@ bool Client::handleRpcResponse(json& msg, Ime::EditSession* session) {
 }
 
 void Client::updateUI(json& data) {
-	bool pendingModernStyle = false;
-	bool hasModernStyle = false;
-
 	for (auto it = data.begin(); it != data.end(); ++it) {
 		const std::string& name = it.key();
 		const json& value = it.value();
@@ -346,12 +342,6 @@ void Client::updateUI(json& data) {
 		}
 		else if (value.is_boolean() && name == "candUseCursor") {
 			textService_->setCandUseCursor(value.get<bool>());
-		}
-		else if (value.is_boolean() && name == "candidateModernStyle") {
-			// Defer until theme/spacing are applied so applyCandidateWindowStyle()
-			// runs once with the final state instead of triggering early with stale colors.
-			pendingModernStyle = value.get<bool>();
-			hasModernStyle = true;
 		}
 		else if (value.is_boolean() && name == "candidateEdgeAvoidance") {
 			textService_->setCandidateEdgeAvoidance(value.get<bool>());
@@ -419,12 +409,6 @@ void Client::updateUI(json& data) {
 		int maxWidth = maxWidthIt != data.end() && maxWidthIt->is_number_integer() ? maxWidthIt->get<int>() : 0;
 		textService_->setCandidateMaxWidth(wrapToMaxWidth, maxWidth);
 	}
-
-	// Apply modernStyle last: triggers the final applyCandidateWindowStyle() with
-	// theme and spacing already in their new state.
-	if (hasModernStyle) {
-		textService_->setCandidateModernStyle(pendingModernStyle);
-	}
 }
 
 void Client::updateSelectionKeys(json& msg) {
@@ -437,34 +421,18 @@ void Client::updateSelectionKeys(json& msg) {
 	}
 }
 
-void Client::updateMessageWindow(json& msg, Ime::EditSession* session, bool& endComposition) {
+// Messages from the backend ("showMessage") are shown inside the candidate window,
+// in its message row; there is no separate message window any more (it belonged to
+// the removed classic candidate style). The candidate list update applies them, so
+// this only rewrites the request, and only for requests with an edit session.
+void Client::routeMessageToCandidateWindow(json& msg, Ime::EditSession* session) {
 	auto& showMessageVal = msg["showMessage"];
-	// Showing a message may need to start a composition, which requires a live edit
-	// session. updateStatus() calls this before its "if (session != nullptr)" guard
-	// (so that "hideMessage" below still works for session-less RPCs like onActivate),
-	// so this branch must check session itself to avoid dereferencing a null session.
 	if (showMessageVal.is_object() && session != nullptr) {
 		auto& message = showMessageVal["message"];
-		auto& duration = showMessageVal["duration"];
-		if (message.is_string() && duration.is_number_integer()) {
-			if (textService_->candidateModernStyle()) {
-				textService_->hideMessage();
-				msg["candidateMessage"] = message.get<string>();
-				msg["showCandidates"] = true;
-				return;
-			}
-			if (!textService_->isComposing()) {
-				textService_->startComposition(session->context());
-				endComposition = true;
-			}
-			textService_->showMessage(session, utf8ToUtf16(message.get<string>().c_str()), duration.get<int>());
+		if (message.is_string()) {
+			msg["candidateMessage"] = message.get<string>();
+			msg["showCandidates"] = true;
 		}
-	}
-
-	// hide message
-	auto& hideMessageVal = msg["hideMessage"];
-	if (hideMessageVal.is_boolean() && hideMessageVal.get<bool>()) {
-		textService_->hideMessage();
 	}
 }
 
@@ -478,12 +446,9 @@ void Client::updateCommitString(json& msg, Ime::EditSession* session) {
 				textService_->startComposition(session->context());
 			}
 			textService_->setCompositionString(session, commitString.c_str(), commitString.length());
-			// FIXME: update the position of candidate and message window when the composition string is changed.
+			// FIXME: update the position of the candidate window when the composition string is changed.
 			if (textService_->candidateWindow_ != nullptr) {
 				textService_->updateCandidatesWindow(session);
-			}
-			if (textService_->messageWindow_ != nullptr) {
-				textService_->updateMessageWindow(session);
 			}
 			textService_->endComposition(session->context());
 		}
@@ -515,12 +480,9 @@ void Client::updateComposition(json& msg, Ime::EditSession* session, bool& endCo
 			}
 			textService_->setCompositionString(session, compositionString.c_str(), compositionString.length());
 		}
-		// FIXME: update the position of candidate and message window when the composition string is changed.
+		// FIXME: update the position of the candidate window when the composition string is changed.
 		if (textService_->candidateWindow_ != nullptr) {
 			textService_->updateCandidatesWindow(session);
-		}
-		if (textService_->messageWindow_ != nullptr) {
-			textService_->updateMessageWindow(session);
 		}
 	}
 
@@ -637,7 +599,7 @@ void Client::updateKeyboardStatus(json& msg) {
 }
 
 void Client::updateStatus(json& msg, Ime::EditSession* session) {
-	// Clear per-pass cache so moveCandidateWindow / updateMessageWindow share one GetTextExt call.
+	// Clear the per-pass cache of the selection rectangle (one GetTextExt call per pass).
 	textService_->clearSelRectCache();
 
 	// We need to handle ordering of some types of the requests.
@@ -651,9 +613,9 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 
 	updateSelectionKeys(msg);
 
-	// show message
+	// show message (in the candidate window)
+	routeMessageToCandidateWindow(msg, session);
 	bool endComposition = false;
-	updateMessageWindow(msg, session, endComposition);
 
 	if (session != nullptr) { // if an edit session is available
 		updateCandidateList(msg, session);

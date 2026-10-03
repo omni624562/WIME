@@ -26,7 +26,6 @@
     "sortByPhrase": true,
     "hideCompositionLabel": "蝦米",
     "imeDisplayName": "蝦米",
-    "candidateModernStyle": true,
     "candidateLayout": "horizontal",
     "candidatePerRow": 6,
     "candidateEdgeAvoidance": true,

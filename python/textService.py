@@ -288,7 +288,7 @@ class TextService:
     '''
     Valid arguments:
     candFontName, cadFontSize, candPerRow, candUseCursor,
-    candidateModernStyle, candidateLayout, candidatePerRow,
+    candidateLayout, candidatePerRow,
     candidateEdgeAvoidance, candidatePositionMode, candidateOpacity,
     candidateTheme, candidateColors, candidateStyle,
     candidateStableWidth, candidateMinWidth

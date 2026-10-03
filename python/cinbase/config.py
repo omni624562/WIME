@@ -52,6 +52,11 @@ _INT_RANGES = (
     ("selHCinType", 0, 999),
 )
 
+# Settings removed in later versions (candidateModernStyle: the classic candidate
+# window is gone). Old config.json files still carry them; they are dropped on load
+# so they are not written back forever.
+_RETIRED_KEYS = ("candidateModernStyle",)
+
 
 def _toInt(value, default):
     """"5" / 5.0 / " 7 " -> int; "", None, "abc", lists... -> default."""
@@ -128,7 +133,6 @@ class CinBaseConfig:
         self.hideComposition = False
         self.hideCompositionLabel = ""
         self.imeDisplayName = ""
-        self.candidateModernStyle = False
         self.candidateLayout = "horizontal"
         self.candidatePerRow = 6
         self.candidateEdgeAvoidance = True
@@ -213,6 +217,8 @@ class CinBaseConfig:
             # typo (or the encoding bug above) silently wiped all of their settings.
             # Keep a copy aside for them and carry on with the defaults.
             self._backupBrokenConfig(filename)
+        for key in _RETIRED_KEYS:
+            self.__dict__.pop(key, None)
         self.normalize(shipped)
         self.update()
 
