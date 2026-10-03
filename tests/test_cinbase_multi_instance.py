@@ -64,7 +64,7 @@ class SharedTableTests(unittest.TestCase):
     def test_table_switch_is_loaded_once(self):
         a = h.make_service(self.IME)
         b = h.make_service(self.IME)
-        self.assertEqual(self.loads, [0])
+        self.assertEqual(self.loads, [2])   # shipped default: 大易三碼
         self.loads.clear()
 
         path = h.write_user_config(self.IME, {"selCinType": 1})
