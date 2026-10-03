@@ -16,9 +16,7 @@
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "安裝發生錯誤，無法完成。$\n$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。"
 !insertmacro LANG_STRING PENDING_DELETE_MESSAGE "先前的解除安裝或升級已排定在下次開機時刪除 WIME 的檔案。若現在安裝，新裝的檔案會在下次開機時被刪掉。$\r$\n請先重新開機，再執行安裝程式。"
 !insertmacro LANG_STRING UNINSTALL_OLD "偵測到已安裝舊版，是否要移除舊版後繼續安裝新版？"
-!insertmacro LANG_STRING DOWNLOAD_VCREDIST_QUESTION "這個程式需要 微軟 VC++ Redistributable 更新才能運作，要自動下載安裝？"
-!insertmacro LANG_STRING DOWNLOAD_VCREDIST_FAILED_MESSAGE "無法正確下載，請稍後再試，或手動安裝 VC++ Redistributable"
-!insertmacro LANG_STRING INST_VCREDIST_FAILED_MESSAGE "VC++ Redistributable 並未正確安裝，請參閱相關微軟文件進行更新。"
+!insertmacro LANG_STRING UCRT_MISSING_MESSAGE "這個程式需要 Windows 的通用 C 執行階段更新 (KB2999226)。請透過 Windows Update 安裝後，再執行安裝程式。"
 
 !insertmacro LANG_STRING SECTION_MAIN "WIME 輸入法平台"
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP "Python 輸入法模組"
