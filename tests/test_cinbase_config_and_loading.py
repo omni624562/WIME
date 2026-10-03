@@ -64,12 +64,15 @@ class ConfigLoadingTests(unittest.TestCase):
         self.assertEqual(cfg.imeDisplayName, "我的大易")
         self.assertEqual(cfg.candPerPage, 5)
 
-    def test_retired_candidate_modern_style_is_dropped(self):
-        # the classic candidate window is gone; old config.json files still carry its switch
-        h.write_user_config("chedayi", {"candidateModernStyle": False, "candPerPage": 5})
+    def test_retired_settings_are_dropped(self):
+        # removed settings (the classic candidate window switch, the message duration
+        # and "hide prompt messages"); old config.json files still carry them
+        retired = {"candidateModernStyle": False, "messageDurationTime": 0, "hidePromptMessages": False}
+        h.write_user_config("chedayi", dict(retired, candPerPage=5))
         cfg = fresh_config("chedayi")
-        self.assertFalse(hasattr(cfg, "candidateModernStyle"))
-        self.assertNotIn("candidateModernStyle", cfg.toJson())
+        for key in retired:
+            self.assertFalse(hasattr(cfg, key), key)
+            self.assertNotIn(key, cfg.toJson())
         self.assertEqual(cfg.candPerPage, 5)
 
     def test_user_config_with_bom_is_loaded(self):

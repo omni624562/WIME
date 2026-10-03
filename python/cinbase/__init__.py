@@ -43,6 +43,7 @@ from . import menu
 from . import pager
 from . import selkeys
 from .config import SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
+from .config import RCIN_FILE_LIST
 
 from .debug import Debug
 
@@ -86,19 +87,6 @@ def tableIndex(value, count):
     if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < count:
         return 0
     return value
-
-
-# 反查字根可選的碼表（設定頁 selRCins 的順序）
-RCIN_FILE_LIST = (
-    "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json",
-    "thphonetic.json", "CnsPhonetic.json", "bpmf.json",
-    "tharray.json", "array30.json", "ar30-big.json", "array40.json",
-    "thdayi.json", "dayi4.json", "dayi3.json",
-    "ez.json", "ezsmall.json", "ezmid.json", "ezbig.json",
-    "thpinyin.json", "pinyin.json", "roman.json",
-    "simplecj.json", "simplex.json", "simplex5.json",
-    "liu.json",
-)
 
 
 def tableLoadRecentlyFailed(table):
@@ -150,7 +138,6 @@ class CinBase:
         cbTS.langMode = -1
         cbTS.shapeMode = -1
         cbTS.switchPageWithSpace = False
-        cbTS.hidePromptMessages = True
         cbTS.playSoundWhenNonCand = False
         cbTS.directShowCand = False
         cbTS.autoCommitSingleCandidate = False
@@ -177,7 +164,6 @@ class CinBase:
         cbTS.userExtendTable = False
         cbTS.reLoadTable = False
         cbTS.priorityExtendTable = False
-        cbTS.messageDurationTime = 3
 
         cbTS.selDayiSymbolCharType = 0
         cbTS.lastKeyDownCode = 0
@@ -1030,7 +1016,7 @@ class CinBase:
             if not cbTS.client.isUiLess:
                 messagestr = '正在載入輸入法碼表，請稍候...'
                 cbTS.isShowMessage = True
-                cbTS.showMessage(messagestr, cbTS.messageDurationTime)
+                cbTS.showMessage(messagestr)
             return True
 
         # NumPad 某些狀況允許輸入法處理
@@ -1109,10 +1095,6 @@ class CinBase:
                     self.setCompositionBufferString(cbTS, cbTS.compositionChar, 0)
                 else:
                     cbTS.setCompositionString(cbTS.compositionChar)
-                if not cbTS.hidePromptMessages and not cbTS.client.isUiLess:
-                    cbTS.isShowMessage = True
-                    cbTS.showMessageOnKeyUp = True
-                    cbTS.onKeyUpMessage = '多功能前導字元'
                 cbTS.multifunctionmode = True
             elif len(cbTS.compositionChar) == 1 and cbTS.multifunctionmode:
                 if charStrLow == 'm' or charStrLow == 'u' or charStrLow == 'e':
@@ -1781,7 +1763,7 @@ class CinBase:
                             cbTS.selcandmode = False
                             if not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
-                                cbTS.showMessage("沒有候選字...", cbTS.messageDurationTime)
+                                cbTS.showMessage("沒有候選字...")
 
                     if cbTS.selcandmode:
                         cbTS.isShowCandidates = True
@@ -1942,7 +1924,7 @@ class CinBase:
                                                     cbTS.showMessageOnKeyUp = True
                                                     cbTS.onKeyUpMessage = message
                                                 else:
-                                                    cbTS.showMessage(message, cbTS.messageDurationTime)
+                                                    cbTS.showMessage(message)
                                         else:
                                             if not cbTS.client.isUiLess:
                                                 cbTS.isShowMessage = True
@@ -2119,7 +2101,7 @@ class CinBase:
                         if (currentCandPage + 1) < currentCandPageCount:
                             currentCandPage += 1
                             candCursor = 0
-                    elif cbTS.homophoneQuery and not cbTS.homophonemode and not cbTS.multifunctionmode and not cbTS.fullsymbolsmode and keyCode == VK_OEM_3: # 同音字查詢啟用下按下`鍵
+                    elif cbTS.homophoneQuery and not cbTS.homophonemode and not cbTS.multifunctionmode and not cbTS.fullsymbolsmode and keyCode == VK_OEM_3 and not menu.homophoneKeyIsRoot(cbTS): # 同音字查詢啟用下按下`鍵
                         if HCinTable.cin is not None:
                             commitStr = cbTS.candidateList[candCursor]
                             if HCinTable.cin.isHaveKey(commitStr):
@@ -2219,7 +2201,7 @@ class CinBase:
                                         # 保留組字讓使用者用 Backspace 修正
                                         if not cbTS.client.isUiLess:
                                             cbTS.isShowMessage = True
-                                            cbTS.showMessage("無效的 Unicode 編碼...", cbTS.messageDurationTime)
+                                            cbTS.showMessage("無效的 Unicode 編碼...")
                                     elif len(cbTS.compositionChar) > 2:
                                         commitStr = chr(codePoint)
                                         cbTS.lastCommitString = commitStr
@@ -2241,14 +2223,14 @@ class CinBase:
                                     else:
                                         if not cbTS.client.isUiLess:
                                             cbTS.isShowMessage = True
-                                            cbTS.showMessage("請輸入 Unicode 編碼...", cbTS.messageDurationTime)
+                                            cbTS.showMessage("請輸入 Unicode 編碼...")
                         else:
                             keepNoCandidateMessageInCandidateWindow = self.shouldKeepNoCandidateMessageInCandidateWindow(cbTS)
                             if keepNoCandidateMessageInCandidateWindow:
                                 self.setNoCandidateMessageInCandidateWindow(cbTS, confirmed=True)
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
-                                cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
+                                cbTS.showMessage("查無組字...")
                             if cbTS.playSoundWhenNonCand:
                                 winsound.PlaySound('alert', winsound.SND_ASYNC)
                 elif cbTS.useEndKey and charStr in cbTS.endKeyList:
@@ -2259,7 +2241,7 @@ class CinBase:
                                 self.setNoCandidateMessageInCandidateWindow(cbTS, confirmed=True)
                             elif not cbTS.client.isUiLess:
                                 cbTS.isShowMessage = True
-                                cbTS.showMessage("查無組字...", cbTS.messageDurationTime)
+                                cbTS.showMessage("查無組字...")
                             if cbTS.playSoundWhenNonCand:
                                 winsound.PlaySound('alert', winsound.SND_ASYNC)
 
@@ -2592,10 +2574,6 @@ class CinBase:
         if cbTS.isLangModeChanged and keyCode == VK_SHIFT:
             self.toggleLanguageMode(cbTS)  # 切換中英文模式
             cbTS.isLangModeChanged = False
-            if not cbTS.hidePromptMessages and not cbTS.client.isUiLess:
-                message = '中文模式' if cbTS.langMode == CHINESE_MODE else '英數模式'
-                cbTS.isShowMessage = True
-                cbTS.showMessage(message, cbTS.messageDurationTime)
             self.abandonComposition(cbTS)
 
         # 若放開 CapsLock 鍵
@@ -2604,10 +2582,6 @@ class CinBase:
 
         if cbTS.isShapeModeChanged:
             cbTS.isShapeModeChanged = False
-            if not cbTS.hidePromptMessages and not cbTS.client.isUiLess:
-                message = '半形模式' if cbTS.shapeMode == HALFSHAPE_MODE else '全形模式'
-                cbTS.isShowMessage = True
-                cbTS.showMessage(message, cbTS.messageDurationTime)
             self.abandonComposition(cbTS)
 
         if cbTS.isSelKeysChanged:
@@ -2621,7 +2595,7 @@ class CinBase:
 
         if cbTS.showMessageOnKeyUp:
             if not cbTS.onKeyUpMessage == "" and not cbTS.client.isUiLess:
-                cbTS.showMessage(cbTS.onKeyUpMessage, cbTS.messageDurationTime)
+                cbTS.showMessage(cbTS.onKeyUpMessage)
             cbTS.showMessageOnKeyUp = False
             cbTS.onKeyUpMessage = ""
 
@@ -3383,7 +3357,7 @@ class CinBase:
                         cbTS.showMessageOnKeyUp = True
                         cbTS.onKeyUpMessage = message
                     else:
-                        cbTS.showMessage(message, cbTS.messageDurationTime)
+                        cbTS.showMessage(message)
             else:
                 if not cbTS.client.isUiLess:
                     cbTS.isShowMessage = True
@@ -3656,12 +3630,6 @@ class CinBase:
         # Shift 快速輸入符號?
         cbTS.easySymbolsWithShift = cfg.easySymbolsWithShift
 
-        # 提示訊息顯示時間?
-        cbTS.messageDurationTime = cfg.messageDurationTime
-
-        # 隱藏提示訊息?
-        cbTS.hidePromptMessages = cfg.hidePromptMessages
-
         # 輸出字串後顯示聯想字詞?
         cbTS.showPhrase = cfg.showPhrase
 
@@ -3724,9 +3692,6 @@ class CinBase:
         cbTS.userExtendTable = cfg.userExtendTable
         cbTS.reLoadTable = cfg.reLoadTable
         cbTS.priorityExtendTable = cfg.priorityExtendTable
-
-        # 訊息顯示時間?
-        cbTS.messageDurationTime = cfg.messageDurationTime
 
         if cbTS.imeDirName == "chedayi":
             cbTS.selDayiSymbolCharType = cfg.selDayiSymbolCharType

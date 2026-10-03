@@ -13,7 +13,6 @@
     "fullShapeSymbols": false,
     "directOutFSymbols": false,
     "fontSize": 12,
-    "hidePromptMessages": true,
     "playSoundWhenNonCand": false,
     "directShowCand": true,
     "autoCommitSingleCandidate": false,
