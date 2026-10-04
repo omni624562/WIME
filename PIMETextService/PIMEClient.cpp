@@ -657,6 +657,7 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		textService_->setCandidateMessage(L"");
 	}
 
+	const bool wasShowingCandidates = textService_->showingCandidates();
 	if (showCandidatesVal.is_boolean()) {
 		if (showCandidatesVal.get<bool>() || hasCandidateMessage) {
 			// start composition if we are not composing.
@@ -712,13 +713,23 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 				candidates.emplace_back(utf8ToUtf16(candidate.get<string>().c_str()));
 			}
 		}
-		textService_->updateCandidates(session);
-		if (showCandidatesVal.is_boolean() && !showCandidatesVal.get<bool>() && !hasCandidateMessage) {
-			textService_->hideCandidates();
+		// Only draw the list into a window that is up, or brought up by this reply
+		// (updateCandidates() creates and shows one if needed). Commit replies carry
+		// the old list next to showCandidates:false, which used to build a window
+		// just to destroy it again; and a list sent without showCandidates while
+		// nothing is shown (大易 re-sends it on key-up after switching selection
+		// keys) left a window on screen that showingCandidates_ did not know about,
+		// so focus loss never hid it. The list is kept for a later show.
+		if (textService_->showingCandidates()) {
+			textService_->updateCandidates(session);
 		}
 	}
 	else if (hasCandidateMessage) {
 		textService_->candidates_.clear();
+		textService_->updateCandidates(session);
+	}
+	else if (!wasShowingCandidates && textService_->showingCandidates()) {
+		// shown without a new list: lay out the one kept from an earlier reply
 		textService_->updateCandidates(session);
 	}
 

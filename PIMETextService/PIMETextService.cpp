@@ -123,7 +123,9 @@ void TextService::onSetFocus() {
 void TextService::onKillFocus() {
 	if (client_)
 		client_->onKillFocus();
-	if (showingCandidates())
+	// also when only the window exists: it is topmost and must not stay behind
+	// over other apps even if showingCandidates_ somehow missed it
+	if (showingCandidates() || candidateWindow_)
 		hideCandidates();
 	// drop the remembered width when leaving the field so a wide window from
 	// one app doesn't carry over to the next
@@ -222,7 +224,7 @@ void TextService::onKeyboardStatusChanged(bool opened) {
 				endComposition(context);
 			}
 		}
-		if(showingCandidates()) // disable candidate window if it's opened
+		if(showingCandidates() || candidateWindow_) // disable candidate window if it's opened
 			hideCandidates();
 	}
 }
@@ -238,7 +240,7 @@ void TextService::onCompositionTerminated(bool forced) {
 		// we're still editing our composition and have something in the preedit buffer.
 		// however, some other applications grabs the focus and force us to terminate
 		// our composition.
-		if (showingCandidates()) // disable candidate window if it's opened
+		if (showingCandidates() || candidateWindow_) // disable candidate window if it's opened
 			hideCandidates();
 	}
 	if(client_)
