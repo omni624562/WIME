@@ -683,73 +683,31 @@ function updateCandidateAppearanceGalleries() {
 }
 
 function saveConfig(callbackFunc) {
-    var checkState = true
-    // Check symbols format
-    checkState = checkDataFormat($("#symbols").val(), "2", "#symbols", "特殊符號");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check easy symbols format
-    checkState = checkDataFormat($("#ez_symbols").val(), "1", "#ez_symbols", "簡易符號");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check fullshape symbols format
-    checkState = checkDataFormat($("#fs_symbols").val(), "2", "#fs_symbols", "全形標點符號");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check user phrase format
-    checkState = checkDataFormat($("#phrase").val(), "2", "#phrase", "聯想字詞");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check exclude phrase format
-    checkState = checkDataFormat($("#excludePhrase").val(), "2", "#excludePhrase", "排除聯想字詞");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check foreign language format
-    checkState = checkDataFormat($("#flangs").val(), "2", "#flangs", "外語文字");
-    if (!checkState) {
-        return false;
-    }
-
-    // Check extendtable format
-    checkState = checkDataFormat($("#extendtable").val(), "3", "#extendtable", "擴展碼表");
-    if (!checkState) {
-        return false;
-    }
-
     var data = {
         "config": checjConfig
     }
 
-    if(symbolsChanged) {
-        data.symbols = $("#symbols").val();
-    }
-    if(swkbChanged) {
-        data.swkb = $("#ez_symbols").val();
-    }
-    if(fsymbolsChanged) {
-        data.fsymbols = $("#fs_symbols").val();
-    }
-    if(phraseChanged) {
-        data.phrase = $("#phrase").val();
-    }
-    if(excludePhraseChanged) {
-        data.excludePhrase = $("#excludePhrase").val();
-    }
-    if(flangsChanged) {
-        data.flangs = $("#flangs").val();
-    }
-    if(extendtableChanged) {
-        data.extendtable = $("#extendtable").val();
+    // 只檢查這次改過、要一起送出的文字資料。沒改的不會送出，檔案裡原有的內容
+    // （例如在記事本裡改過）不該擋住主題、字型等其他設定的儲存
+    var textData = [
+        { changed: symbolsChanged, elementId: "#symbols", type: "2", desc: "特殊符號", key: "symbols" },
+        { changed: swkbChanged, elementId: "#ez_symbols", type: "1", desc: "簡易符號", key: "swkb" },
+        { changed: fsymbolsChanged, elementId: "#fs_symbols", type: "2", desc: "全形標點符號", key: "fsymbols" },
+        { changed: phraseChanged, elementId: "#phrase", type: "2", desc: "聯想字詞", key: "phrase" },
+        { changed: excludePhraseChanged, elementId: "#excludePhrase", type: "2", desc: "排除聯想字詞", key: "excludePhrase" },
+        { changed: flangsChanged, elementId: "#flangs", type: "2", desc: "外語文字", key: "flangs" },
+        { changed: extendtableChanged, elementId: "#extendtable", type: "3", desc: "擴展碼表", key: "extendtable" }
+    ];
+    for (var i = 0; i < textData.length; i++) {
+        var item = textData[i];
+        if (!item.changed) {
+            continue;
+        }
+        var value = $(item.elementId).val();
+        if (!checkDataFormat(value, item.type, item.elementId, item.desc)) {
+            return false;
+        }
+        data[item.key] = value;
     }
 
     $.ajax({
@@ -873,84 +831,54 @@ function showSaveToast(message) {
     }, 2200);
 }
 
+// 檢查一份文字資料的格式（規則在 js/data_format.js）。有錯時說明是哪一行，
+// 切到該文字框所在的分頁並選取那一行，回傳 false
 function checkDataFormat(checkData, checkType, elementId, dataDesc) {
-    var data_array = checkData.split("\n");
-    var errorState = false;
-    for (var i = 0; i < data_array.length; i++) {
-        switch (checkType) {
-            case "1":
-                if (! /^[A-Za-z] .{1,10}$/.test(data_array[i])) {
-                    errorState = true;
-                    $.jAlert({
-                        'title': '糟糕！',
-                        'content': dataDesc + '設定第 ' + (i + 1) + ' 行「'+ data_array[i] +'」格式錯誤！<br>請使用「英文 + 空格 + 符號」的格式。',
-                        'theme': 'dark_red',
-                        'size': 'md',
-                        'blurBackground': true,
-                        'closeOnClick': true,
-                        'showAnimation': 'zoomIn',
-                        'hideAnimation': 'zoomOutDown',
-                        'btns': {'text': '關閉', 'theme': 'blue'}
-                    });
-                }
-                break;
-            case "2":
-                if (data_array[i].length > 1 && data_array[i].search("=") == -1) {
-                    errorState = true;
-                    $.jAlert({
-                        'title': '糟糕！',
-                        'content': dataDesc + '設定第 ' + (i + 1) + ' 行格式錯誤！<br>單行不能超過一個字元，或是沒有 = 符號區隔。',
-                        'theme': 'dark_red',
-                        'size': 'md',
-                        'blurBackground': true,
-                        'closeOnClick': true,
-                        'showAnimation': 'zoomIn',
-                        'hideAnimation': 'zoomOutDown',
-                        'btns': {'text': '關閉', 'theme': 'blue'}
-                    });
-                }
-                break;
-            case "3":
-                if (! /^[A-Za-z\d]+ .{1,40}$/.test(data_array[i])) {
-                    if (!(data_array.length == 1 && data_array[0].length == 0))
-                    {
-                        errorState = true;
-                        if (data_array[i].length == 0) {
-                            alertContent = dataDesc + '設定第 ' + (i + 1) + ' 行為空行！<br>請去除該空行或使用「英數 + 空格 + 字詞」的格式。'
-                        }
-                        else {
-                            alertContent = dataDesc + '設定第 ' + (i + 1) + ' 行「'+ data_array[i] +'」格式錯誤！<br>請使用「英數 + 空格 + 字詞」的格式。'
-                        }
-
-                        $.jAlert({
-                            'title': '糟糕！',
-                            'content': alertContent,
-                            'theme': 'dark_red',
-                            'size': 'md',
-                            'blurBackground': true,
-                            'closeOnClick': true,
-                            'showAnimation': 'zoomIn',
-                            'hideAnimation': 'zoomOutDown',
-                            'btns': {'text': '關閉', 'theme': 'blue'}
-                        });
-                    }
-                }
-                break;
-        }
-        if (errorState) {
-            $(elementId).blur();
-            // Count select range
-            var selectionStart = 0;
-            for (var j = 0; j < i; j++) {
-                selectionStart += data_array[j].length + 1;
-            }
-
-            $(elementId).prop("selectionStart", selectionStart);
-            $(elementId).prop("selectionEnd", selectionStart + data_array[i].length + 1);
-            return false;
-        }
+    var error = findDataFormatError(checkData, checkType, imeFolderName);
+    if (!error) {
+        return true;
     }
-    return true;
+
+    // 以前只在原地選取：錯誤若在沒開著的分頁，使用者得自己找是哪一頁
+    var pane = $(elementId).closest(".tab-pane");
+    var tabLink = pane.length ? $('#sidebar a[href="#' + pane.attr("id") + '"]')[0] : null;
+    if (tabLink && window.bootstrap && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(tabLink).show();
+    }
+
+    var lines = checkData.split("\n");
+    var selectionStart = 0;
+    for (var j = 0; j < error.line; j++) {
+        selectionStart += lines[j].length + 1;
+    }
+    var selectErrorLine = function() {
+        var textarea = $(elementId)[0];
+        if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(selectionStart, selectionStart + lines[error.line].length);
+        }
+    };
+    selectErrorLine();
+
+    // 行的內容是使用者的資料，可能含有 < 或 &，以文字插入
+    var escapeHtml = function(text) {
+        return $("<div>").text(text).html();
+    };
+    $.jAlert({
+        'title': '糟糕！',
+        'content': escapeHtml(dataDesc + '設定第 ' + (error.line + 1) + ' 行「' + error.text + '」格式錯誤！') +
+            '<br>' + escapeHtml(error.reason),
+        'theme': 'dark_red',
+        'size': 'md',
+        'blurBackground': true,
+        'closeOnClick': true,
+        'showAnimation': 'zoomIn',
+        'hideAnimation': 'zoomOutDown',
+        'btns': {'text': '關閉', 'theme': 'blue'},
+        // 對話框打開時會拿走焦點；關掉後再選一次，那一行才看得到
+        'onClose': selectErrorLine
+    });
+    return false;
 }
 
 // ── 排除聯想字詞：查詢 + 勾選 ────────────────────────────────────
