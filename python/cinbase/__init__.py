@@ -67,7 +67,7 @@ ID_SETTINGS = 3
 ID_MODE_ICON = 4
 ID_WEBSITE = 5
 ID_BUGREPORT = 6
-ID_FORUM = 7
+# 7 是已移除的「WIME 討論區」：和錯誤回報開同一頁（專案沒有 GitHub Discussions）
 ID_MOEDICT = 8
 ID_DICT = 9
 ID_SIMPDICT = 10
@@ -2689,18 +2689,18 @@ class CinBase:
             os.startfile("https://github.com/omni624562/WIME")
         elif commandId == ID_BUGREPORT: # visit bug tracker page
             os.startfile("https://github.com/omni624562/WIME/issues")
-        elif commandId == ID_FORUM:
-            os.startfile("https://github.com/omni624562/WIME/issues")
         elif commandId == ID_MOEDICT: # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
+        # 教育部辭典 2021 年改版後的網址。舊的 http 路徑：成語典 /cydic/ 是 404，
+        # 其他幾個要先經過明碼 http 轉址
         elif commandId == ID_DICT: # online Chinese dictonary
-            os.startfile("http://dict.revised.moe.edu.tw/cbdic/")
+            os.startfile("https://dict.revised.moe.edu.tw/")
         elif commandId == ID_SIMPDICT: # a simplified version of the online dictonary
-            os.startfile("http://dict.concised.moe.edu.tw/jbdic/")
+            os.startfile("https://dict.concised.moe.edu.tw/")
         elif commandId == ID_LITTLEDICT: # a simplified dictionary for little children
-            os.startfile("http://dict.mini.moe.edu.tw/cgi-bin/gdic/gsweb.cgi?o=ddictionary")
-        elif commandId == ID_PROVERBDICT: # a dictionary for proverbs (seems to be broken at the moment?)
-            os.startfile("http://dict.idioms.moe.edu.tw/cydic/")
+            os.startfile("https://dict.mini.moe.edu.tw/")
+        elif commandId == ID_PROVERBDICT: # a dictionary for proverbs
+            os.startfile("https://dict.idioms.moe.edu.tw/")
 
     # 開啟語言列按鈕選單
     def onMenu(self, cbTS, buttonId):
@@ -2711,7 +2711,6 @@ class CinBase:
                 {"text": "參觀 WIME 官方網站(&W)", "id": ID_WEBSITE},
                 {},
                 {"text": "WIME 錯誤回報(&B)", "id": ID_BUGREPORT},
-                {"text": "WIME 討論區 (&F)", "id": ID_FORUM},
                 {},
                 {"text": "設定輸入法模組(&C)", "id": ID_SETTINGS},
                 {},

@@ -1047,11 +1047,11 @@ class ChewingTextService(TextService):
             os.startfile("https://github.com/chewing/libchewing/issues")
         elif commandId == ID_MOEDICT:  # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
+        # 教育部辭典 2021 年改版後的網址 (舊的 http 路徑要先經過明碼 http 轉址)
         elif commandId == ID_SIMPDICT:  # a simplified version of the online dictonary
-            os.startfile("http://dict.concised.moe.edu.tw/jbdic/")
+            os.startfile("https://dict.concised.moe.edu.tw/")
         elif commandId == ID_LITTLEDICT:  # a simplified dictionary for little children
-            os.startfile(
-                "http://dict.mini.moe.edu.tw/cgi-bin/gdic/gsweb.cgi?o=ddictionary")
+            os.startfile("https://dict.mini.moe.edu.tw/")
         elif commandId == ID_PROVERBDICT:  # a dictionary for proverbs
             os.startfile(
                 "https://dict.idioms.moe.edu.tw/")
