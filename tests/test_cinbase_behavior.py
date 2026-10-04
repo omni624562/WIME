@@ -7,7 +7,7 @@ import os
 import unittest
 
 import cinbase_harness as h
-from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, CHINESE_MODE, ENGLISH_MODE
+from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE, CHINESE_MODE, ENGLISH_MODE
 
 
 def setUpModule():
@@ -298,16 +298,20 @@ class SmallKeyHandlingTests(unittest.TestCase):
                 self.assertEqual(len(result), len(set(result)))
 
 
-def auto_commit_code(service):
+def auto_commit_code(service, with_phrases=False):
     """A code (lowercase letters only) with exactly one candidate that no longer
     code starts with: typing it commits that candidate when
-    autoCommitSingleCandidate is on (大易三碼 3 roots, 酷倉 5 roots...)."""
+    autoCommitSingleCandidate is on (大易三碼 3 roots, 酷倉 5 roots...).
+    with_phrases: the candidate also has 聯想字詞, so the phrase list opens."""
     cin = service.cin
     for code in sorted(cin.chardefs):
         if (len(code) >= 3 and code.isascii() and code.isalpha() and code.islower()
                 and len(cin.chardefs[code]) == 1 and not cin.hasLongerCharDefPrefix(code)):
-            return code, cin.chardefs[code][0]
-    raise unittest.SkipTest("no single-candidate code without longer codes")
+            char = cin.chardefs[code][0]
+            if with_phrases and not service.cinbase.phraseSuggestions(service, char):
+                continue
+            return code, char
+    raise unittest.SkipTest("no suitable single-candidate code")
 
 
 @h.requires_tables
@@ -315,11 +319,13 @@ class SpaceAfterAutoCommitTests(unittest.TestCase):
     """只有一個候選字時自動送出後，緊接著習慣多按的空白鍵要忽略（不打出空白）；
     隔一段時間、中間按了別的鍵、或沒開自動送出時，空白照常。"""
 
-    def auto_commit(self, ime="chedayi", **overrides):
+    def auto_commit(self, ime="chedayi", with_phrases=False, **overrides):
         config = {"selCinType": 2} if ime == "chedayi" else {}
         config.update(autoCommitSingleCandidate=True, **overrides)
         service = h.make_service(ime, user_config=config)
-        code, char = auto_commit_code(service)
+        if with_phrases:
+            h.wait_for_phrase_table()
+        code, char = auto_commit_code(service, with_phrases)
         commits, _ = h.type_keys(service, list(code))
         self.assertEqual(commits, [char], code)
         return service
@@ -372,12 +378,29 @@ class SpaceAfterAutoCommitTests(unittest.TestCase):
 
     def test_ignored_space_does_not_pick_a_phrase(self):
         # 聯想字詞開著時，那一下空白以前會選走第一個聯想詞
-        service = self.auto_commit(showPhrase=True)
-        phrases = list(service.candidateList) if service.isShowPhraseCandidates else None
-        self.assert_space_ignored(service)
-        if phrases is not None:
-            self.assertTrue(service.isShowPhraseCandidates)
-            self.assertEqual(list(service.candidateList), phrases)
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service = self.auto_commit(ime, with_phrases=True, showPhrase=True)
+                self.assertTrue(service.isShowPhraseCandidates)
+                phrases = list(service.candidateList)
+                self.assert_space_ignored(service)
+                self.assertTrue(service.isShowPhraseCandidates)
+                self.assertEqual(list(service.candidateList), phrases)
+
+    def test_mode_switch_by_mouse_cancels_it(self):
+        # 用滑鼠點語言列切換中英文或全半形不會送按鍵，也要取消
+        for command in (ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE):
+            with self.subTest(command=command):
+                service = self.auto_commit()
+                h.request(service, "onCommand", id=command, type=0)
+                down = h.key_event("SPACE")
+                filtered = h._send(service, "filterKeyDown", down, "SPACE").get("return")
+                eaten = filtered and h._send(service, "onKeyDown", down, "SPACE")
+                self.assertEqual(service.skipSpaceDeadline, 0.0)
+                if command == ID_SWITCH_SHAPE:   # 全形模式的空白由輸入法輸出全形空白
+                    self.assertIn("commitString", eaten or {})
+                else:
+                    self.assertFalse(filtered)
 
     def test_without_auto_commit_space_still_selects(self):
         service = h.make_service("chedayi", user_config={"selCinType": 2, "autoCommitSingleCandidate": False})

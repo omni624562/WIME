@@ -52,8 +52,9 @@ HALFSHAPE_MODE = 0
 DEBUG_MODE = False
 
 # 「只有一個候選字時自動送出」送出後，緊接著按下的空白鍵在這段時間（秒）內會被忽略：
-# 以前要按空白選字，手指習慣多按一下，結果在文件裡多打出一個空白
-AUTO_COMMIT_SPACE_GRACE = 1.5
+# 以前要按空白選字，手指習慣多按一下，結果在文件裡多打出一個空白。習慣性的那一下
+# 多半在 0.1～0.5 秒內；太長會連刻意要打的空白（或滑鼠移動游標後的空白）也吃掉
+AUTO_COMMIT_SPACE_GRACE = 1.0
 
 # shift + space 熱鍵的 GUID
 SHIFT_SPACE_GUID = "{f1dae0fb-8091-44a7-8a0c-3082a1515447}"
@@ -2646,6 +2647,8 @@ class CinBase:
 
 
     def onCommand(self, cbTS, commandId, commandType):
+        # 用滑鼠或語言列切換中英文、全半形等不會送出按鍵，自動送字後要忽略的空白也一併取消
+        cbTS.skipSpaceDeadline = 0.0
         if commandId == ID_SWITCH_LANG and commandType == 0:  # 切換中英文模式
             self.abandonComposition(cbTS)
             self.toggleLanguageMode(cbTS)
@@ -3270,6 +3273,7 @@ class CinBase:
         if not deadline:
             return False
         if (keyEvent.keyCode != VK_SPACE or time.monotonic() > deadline
+                or cbTS.langMode != CHINESE_MODE
                 or keyEvent.isKeyDown(VK_SHIFT) or keyEvent.isKeyDown(VK_CONTROL)
                 or keyEvent.isKeyDown(VK_MENU)):
             cbTS.skipSpaceDeadline = 0.0
