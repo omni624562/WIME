@@ -35,10 +35,62 @@ function splitDataLine(line) {
     return [line.substring(0, at).trim(), line.substring(at + 1).trim()];
 }
 
+// 結合用字元（Unicode 類別 Mn、Mc、Me，含鍵帽 U+20E3）。不支援 \p{} 的舊瀏覽器
+// 直接寫在正規式字面值裡會讓整個檔案語法錯誤、存檔全壞，所以用 RegExp 建立，
+// 失敗時退回常見的結合用字元區段
+var combiningMarkPattern = (function() {
+    try {
+        return new RegExp("^\\p{M}$", "u");
+    } catch (e) {
+        return /^[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]$/;
+    }
+}());
+
+function isSymbolExtender(ch) {
+    var cp = ch.codePointAt(0);
+    return (cp >= 0xFE00 && cp <= 0xFE0F)           // 變體選擇符（VS16 讓前一字顯示成彩色 emoji）
+        || (cp >= 0xE0100 && cp <= 0xE01EF)         // 變體選擇符補充
+        || (cp >= 0x1F3FB && cp <= 0x1F3FF)         // 膚色
+        || (cp >= 0xE0020 && cp <= 0xE007F)         // 標籤字元（英格蘭等地區旗）
+        || combiningMarkPattern.test(ch);
+}
+
+function isRegionalIndicator(ch) {
+    var cp = ch.codePointAt(0);
+    return cp >= 0x1F1E6 && cp <= 0x1F1FF;
+}
+
+// 與後端 cinbase/textclusters.py 的 symbolClusters() 相同：把文字切成一個個「符號」，
+// 變體選擇符、膚色、ZWJ 連接、鍵帽、國旗與結合用字元都併入前一個符號。後端讀
+// 符號檔就是這樣切的，所以字數要以它計算：逐碼位算時 ❤️（❤ + VS16）、🇹🇼、👍🏻
+// 都是兩個字元，逐 UTF-16 單位算時連 😀 和 Ext-B 字也是兩個。
+// tests/test_config_pages.py 會拿兩邊的結果核對。
+function symbolClusters(text) {
+    var clusters = [];
+    var joinNext = false;
+    var chars = Array.from(text);
+    for (var i = 0; i < chars.length; i++) {
+        var ch = chars[i];
+        var last = clusters.length - 1;
+        if (last >= 0 && (joinNext || ch === "\u200D" || isSymbolExtender(ch))) {
+            clusters[last] += ch;
+            joinNext = ch === "\u200D";             // ZWJ 之後那個字也屬於同一個符號
+        } else if (last >= 0 && isRegionalIndicator(ch) && Array.from(clusters[last]).length === 1
+                   && isRegionalIndicator(clusters[last])) {
+            clusters[last] += ch;                   // 兩個區域指示符組成一面國旗
+            joinNext = false;
+        } else {
+            clusters.push(ch);
+            joinNext = false;
+        }
+    }
+    return clusters;
+}
+
 // 簡易符號（swkb.dat）：「英文字母 空格 符號」，Shift+該字母輸出符號
 function easySymbolLineError(line) {
     var parts = splitDataLine(line);
-    if (!parts || !/^[A-Za-z]$/.test(parts[0]) || !parts[1] || parts[1].length > 10) {
+    if (!parts || !/^[A-Za-z]$/.test(parts[0]) || !parts[1] || symbolClusters(parts[1]).length > 10) {
         return "請使用「英文字母 + 空格 + 符號」的格式，符號最多 10 個字。";
     }
     return null;
@@ -46,8 +98,8 @@ function easySymbolLineError(line) {
 
 // 「分類名稱=內容」，或一行只放一個符號（放在最上層選單）
 function namedListLineError(line) {
-    // 以碼位計算：一行只放一個 Ext-B 字或表情符號也算一個字元
-    if (line.indexOf("=") < 0 && Array.from(line).length > 1) {
+    // 以符號計算：一行只放一個 Ext-B 字或 ❤️、🇹🇼 這類由多個碼位組成的表情符號也算一個
+    if (line.indexOf("=") < 0 && symbolClusters(line).length > 1) {
         return "單行不能超過一個字元，或是沒有 = 符號區隔。";
     }
     return null;
@@ -77,7 +129,7 @@ function findDataFormatError(data, type, imeName) {
     var lines = String(data || "").split("\n");
     for (var i = 0; i < lines.length; i++) {
         // 後端讀檔時去掉 UTF-8 BOM 與行首行尾空白，並略過空行
-        var line = lines[i].replace(/^﻿/, "").trim();
+        var line = lines[i].replace(/^\uFEFF/, "").trim();
         if (!line) {
             continue;
         }

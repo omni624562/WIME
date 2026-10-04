@@ -19,12 +19,16 @@ page refused data the backend reads fine. A blank line (a trailing newline), a
 UTF-8 BOM or an empty 簡易符號 box in any text tab blocked 套用設定 for every
 option, and 擴展碼表 codes had to be letters and digits, so the 大易 codes that
 use the , . / ; ' [ ] - = \\ ` roots (about a quarter of them) could not be added.
+Lengths are counted in the symbols the backend splits the files into
+(cinbase/textclusters.py), not in UTF-16 units or code points: a line holding
+only ❤️ or 🇹🇼, or a 簡易符號 of six Ext-B characters, was refused.
 """
 
 import ast
 import collections
 import glob
 import html.parser
+import importlib.util
 import json
 import os
 import re
@@ -38,6 +42,7 @@ CHEWING_DIR = os.path.join(PYTHON_DIR, "input_methods", "chewing")
 CINBASE_CONFIG_DIR = os.path.join(PYTHON_DIR, "cinbase", "config")
 CIN_JSON_DIR = os.path.join(PYTHON_DIR, "cinbase", "json")
 DATA_FORMAT_JS = os.path.join(CINBASE_CONFIG_DIR, "js", "data_format.js")
+TEXTCLUSTERS_PY = os.path.join(PYTHON_DIR, "cinbase", "textclusters.py")
 NODE = shutil.which("node")
 
 # fields of the classic candidate window that the pages no longer have
@@ -246,6 +251,40 @@ def cin_file_list(ime):
     return []
 
 
+def chars(codes):
+    """'2764 FE0F' -> ❤️. Written as code points: most of these combine or are invisible."""
+    return "".join(chr(int(code, 16)) for code in codes.split())
+
+
+def backend_symbol_clusters():
+    """symbolClusters() of cinbase/textclusters.py, loaded by itself (the package imports the whole IME)."""
+    spec = importlib.util.spec_from_file_location("_textclusters", TEXTCLUSTERS_PY)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.symbolClusters
+
+
+# one symbol each for the backend, but more than one code point
+MULTI_CODE_POINT_SYMBOLS = (
+    "2764 FE0F",                                # ❤️: VS16
+    "1F1F9 1F1FC",                              # 🇹🇼: two regional indicators
+    "1F44D 1F3FB",                              # 👍🏻: skin tone
+    "31 FE0F 20E3",                             # 1️⃣: keycap
+    "1F468 200D 1F469 200D 1F467",              # 👨‍👩‍👧: ZWJ sequence
+)
+
+CLUSTER_SAMPLES = MULTI_CODE_POINT_SYMBOLS + (
+    "2605 41 6A19",                             # ★, A, 標
+    "1F600 20000",                              # 😀 and an Ext-B character: two UTF-16 units each
+    "1F3F4 E0067 E0062 E0065 E006E E0067 E007F",  # England's flag: tag characters
+    "1F1F9 1F1FC 1F1EF 1F1F5 1F1FA",            # two flags and a lone regional indicator
+    "8FBB E0100",                               # 辻 with an ideographic variation selector
+    "65 301 915 93F",                           # e + U+0301 (Mn), क + U+093F (Mc)
+    "301 61 200D",                              # a mark with nothing before it, a trailing ZWJ
+    "200D 61 62",                               # a leading ZWJ
+)
+
+
 class ExtendTableCodeKeysTests(unittest.TestCase):
     """The 擴展碼表 check accepts exactly the keys of the IME's tables (%keyname)."""
 
@@ -274,22 +313,26 @@ class ExtendTableCodeKeysTests(unittest.TestCase):
 
 @unittest.skipUnless(NODE, "node is not installed")
 class DataFormatRuleTests(unittest.TestCase):
-    """findDataFormatError() from js/data_format.js, run in node."""
+    """findDataFormatError() and symbolClusters() from js/data_format.js, run in node."""
 
     RUNNER = r"""
 const fs = require("fs"), vm = require("vm");
-const sandbox = {};
+const sandbox = {}, call = process.argv[2];
 vm.runInNewContext(fs.readFileSync(process.argv[1], "utf8").replace(/^﻿/, ""), sandbox);
 const cases = JSON.parse(fs.readFileSync(0, "utf8"));
-process.stdout.write(JSON.stringify(cases.map(c => sandbox.findDataFormatError(c[0], c[1], c[2]))));
+process.stdout.write(JSON.stringify(cases.map(args => sandbox[call](...args))));
 """
+
+    def call(self, function, cases):
+        """function(*args) in node for each args in cases"""
+        result = subprocess.run([NODE, "-e", self.RUNNER, DATA_FORMAT_JS, function], input=json.dumps(cases),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
 
     def errors(self, cases):
         """[(text, type, ime)] -> [None or (line index, line text)]"""
-        result = subprocess.run([NODE, "-e", self.RUNNER, DATA_FORMAT_JS], input=json.dumps(cases),
-                                capture_output=True, encoding="utf-8", timeout=60)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        return [error and (error["line"], error["text"]) for error in json.loads(result.stdout)]
+        return [error and (error["line"], error["text"]) for error in self.call("findDataFormatError", cases)]
 
     def assert_valid(self, type_, texts, ime="chedayi"):
         self.assertEqual(self.errors([[text, type_, ime] for text in texts]), [None] * len(texts))
@@ -329,8 +372,28 @@ process.stdout.write(JSON.stringify(cases.map(c => sandbox.findDataFormatError(c
         ]
         self.assertEqual(self.errors(cases), [(1, "1 一"), (1, "ab 一"), (1, "b 一二三四五六七八九十一"), (2, "xy")])
 
-    def test_single_symbol_lines_count_code_points(self):
-        self.assert_valid("2", ["★", "😀", "𠀀\n標點=，。"])
+    def test_single_symbol_lines_count_symbols(self):
+        # symbols.py, fsymbols.py and flangs.py read each of these lines as one symbol
+        # for the top-level menu, like ★
+        self.assert_valid("2", ["★", chars("1F600"), chars("20000") + "\n標點=，。"]
+                          + [chars(codes) for codes in MULTI_CODE_POINT_SYMBOLS])
+        cases = [[text, "2", "chedayi"] for text in ("ab", chars("1F1F9 1F1FC 1F1EF 1F1F5"), chars("2764 FE0F 2605"))]
+        self.assertEqual([error and error[0] for error in self.errors(cases)], [0, 0, 0])
+
+    def test_easy_symbols_are_counted_in_symbols(self):
+        # 「符號最多 10 個字」: six Ext-B characters or emoji are twelve UTF-16 units
+        self.assert_valid("1", ["a " + chars("20000 20001 20002 20003 20004 20005"),
+                                "a " + chars("1F600 1F601 1F602 1F603 1F604 1F605"),
+                                "a " + chars("2764 FE0F") * 10])
+        cases = [["a " + chars("20000") * 11, "1", "chedayi"], ["a " + chars("2764 FE0F") * 11, "1", "chedayi"]]
+        self.assertEqual([error and error[0] for error in self.errors(cases)], [0, 0])
+
+    def test_symbol_clusters_match_the_backend(self):
+        # the page counts what cinbase/textclusters.py splits the symbol files into
+        backend = backend_symbol_clusters()
+        texts = [chars(codes) for codes in CLUSTER_SAMPLES]
+        self.assertEqual(self.call("symbolClusters", [[text] for text in texts]),
+                         [backend(text) for text in texts])
 
 
 if __name__ == "__main__":
