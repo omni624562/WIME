@@ -72,8 +72,9 @@ $(function () {
         if (typeof chewingConfig.candidateWrapToMaxWidth === "undefined") {
             chewingConfig.candidateWrapToMaxWidth = true;
         }
+        // 與大易/酷倉設定頁相同的預設值（300 在 100% 縮放下放不下一列 6 個 12pt 候選字）
         if (typeof chewingConfig.candidateMaxWidth === "undefined" || chewingConfig.candidateMaxWidth < 220) {
-            chewingConfig.candidateMaxWidth = 300;
+            chewingConfig.candidateMaxWidth = 320;
         }
         // 別名（大小寫/空白不同、舊分支的命名、舊的 dark/light）對回正式名稱；
         // 被移除的主題退回 System（跟隨系統）
@@ -870,7 +871,7 @@ $(function () {
         setCandidateNumber("candidatePerRow", 6);
         setCandidateNumber("fontSize", 16);
         setCandidateNumber("candidateMinWidth", 286);
-        setCandidateNumber("candidateMaxWidth", 300);
+        setCandidateNumber("candidateMaxWidth", 320);
 
         var selPositionModes = ["跟隨游標", "螢幕下緣置中"];
         var candidatePositionMode = $("#candidatePositionMode");

@@ -262,8 +262,9 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.candidateWrapToMaxWidth === "undefined") {
         checjConfig.candidateWrapToMaxWidth = true;
     }
+    // 300 放不下一列 6 個候選字（100% 縮放要 306px），會換成 5+1 兩列
     if (typeof checjConfig.candidateMaxWidth === "undefined" || checjConfig.candidateMaxWidth < 220) {
-        checjConfig.candidateMaxWidth = 300;
+        checjConfig.candidateMaxWidth = 320;
     }
     // 別名（大小寫/空白不同、舊分支的命名）對回正式名稱；被移除的主題退回 System
     checjConfig.candidateTheme = canonicalCandidateThemeName(checjConfig.candidateTheme);
