@@ -148,7 +148,10 @@ static int candidateKeyStyleValue(const std::string& style) {
 		return Ime::CandidateWindow::KeyStyleMicroTab;
 	if (name == "wordanchor" || name == "underline" || name == "rule" || name == "rulekey")
 		return Ime::CandidateWindow::KeyStyleWordAnchor;
-	return Ime::CandidateWindow::KeyStyleKeycap;
+	if (name == "keycap")
+		return Ime::CandidateWindow::KeyStyleKeycap;
+	// unknown names get word-first, the only style the settings pages offer
+	return Ime::CandidateWindow::KeyStyleWordFirst;
 }
 
 static int candidateMessageStyleValue(const std::string& style) {
@@ -294,10 +297,15 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateTheme(panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
-		// six keycap candidates at 100% need 306 px (6 x 44 + 5 x 6 + 2 x 6);
-		// 300 wrapped the sixth one onto a row of its own
+		// six word-first candidates at 100% need 312 px with 大易's wide select
+		// key (306 px with keycap keys: 6 x 44 + 5 x 6 + 2 x 6); 300 wrapped the
+		// sixth one onto a row of its own
 		textService_->setCandidateMaxWidth(true, 320);
-		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelBadge);
+		// the styles the settings pages preview and save (選字符 word-first,
+		// 名稱標籤 accent), so the window matches them before the backend's
+		// customizeUI arrives and for 新酷音, which sends no header style
+		textService_->setCandidateKeyStyle(Ime::CandidateWindow::KeyStyleWordFirst);
+		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelAccent);
 	}
 }
 
