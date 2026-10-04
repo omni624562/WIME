@@ -87,6 +87,16 @@ def script_lines(path, pattern):
         return [(n, line.strip()) for n, line in enumerate(f, 1) if re.search(pattern, line)]
 
 
+def function_body(path, name):
+    """Source of `function name(...) {` up to the closing brace at the same indentation."""
+    with open(path, encoding="utf-8-sig") as f:
+        source = f.read()
+    match = re.search(r"^([ \t]*)function %s\(.*?\{\n(.*?)^\1\}" % re.escape(name), source, re.M | re.S)
+    if not match:
+        raise AssertionError("function %s not found in %s" % (name, os.path.relpath(path, ROOT)))
+    return match.group(2)
+
+
 class ConfigPageTests(unittest.TestCase):
     maxDiff = None  # list every offending script line
 
@@ -122,6 +132,29 @@ class ConfigPageTests(unittest.TestCase):
                                os.path.join(CINBASE_CONFIG_DIR, "config.htm"))
                 self.assert_no_script_for_missing_fields(
                     os.path.join(CINBASE_CONFIG_DIR, "js", "config.js"), ids)
+
+    def test_cinbase_has_the_shift_space_option(self):
+        # 大易/酷倉 always took Shift+Space for 全形/半形 with no way to turn it off;
+        # the option has the same key and wording as 新酷音's
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            page = f.read()
+        typing = page[page.index('<div id="typing_page">'):page.index('<div id="intelligent_page">')]
+        card = typing[typing.index('<h3 class="card-title">行為設定</h3>'):]
+        card = card[:card.index('<div class="card">')]
+        # updateConfig() saves every named checkbox under its name; pageReady() sets it by id
+        self.assertIn('<input type="checkbox" id="enableShiftSpace" name="enableShiftSpace" />', card)
+        self.assertIn('<label for="enableShiftSpace">使用 Shift+空白鍵切換全形/半形</label>', card)
+        self.assertRegex(card, r'<label for="enableShiftSpace">[^<]*</label>\s*<div class="setting-hint">')
+        self.assertEqual([name for name, _ in page_ids(os.path.join(CINBASE_CONFIG_DIR, "config.htm"))
+                          if name == "enableShiftSpace"], ["enableShiftSpace"])
+
+        # checked when config.json has no such key, for every CIN IME (before the
+        # modern-window-only defaults return early)
+        defaults = function_body(os.path.join(CINBASE_CONFIG_DIR, "js", "config.js"), "applyCandidateDefaults")
+        match = re.search(r'if \(typeof checjConfig\.enableShiftSpace === "undefined"\) \{\s*'
+                          r'checjConfig\.enableShiftSpace = true;\s*\}', defaults)
+        self.assertIsNotNone(match)
+        self.assertLess(match.start(), defaults.index("if (!modernDefaultIme)"))
 
     def test_cinbase_pages_load_the_data_format_rules(self):
         # checkDataFormat() in js/config.js calls findDataFormatError(); without the

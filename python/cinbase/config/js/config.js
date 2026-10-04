@@ -219,6 +219,10 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.intelligentSelectContext === "undefined") {
         checjConfig.intelligentSelectContext = true;
     }
+    // 舊的設定檔與後端都沒有這個鍵時，維持以前一律以 Shift+空白鍵切換全半形的行為
+    if (typeof checjConfig.enableShiftSpace === "undefined") {
+        checjConfig.enableShiftSpace = true;
+    }
     // 選字符樣式只提供 Word First，一律固定為 word-first
     checjConfig.candidateKeyStyle = "word-first";
     if (typeof checjConfig.candidateMessageStyle === "undefined") {
