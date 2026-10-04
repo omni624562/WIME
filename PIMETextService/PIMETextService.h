@@ -77,6 +77,17 @@ public:
 	virtual void onLangProfileDeactivated(REFIID lang);
 
 	// methods called by PIME::Client
+
+	// Hides Ime::TextService::startComposition() to remember the context the
+	// composition was started in (libIME2 keeps its ITfComposition private), so
+	// endCompositionDroppingPlaceholder() can end it in its own document.
+	void startComposition(ITfContext* context);
+
+	// Ends the composition when no backend reply will replace its text (a lost
+	// backend client, the keyboard closed). The text stays in the document as
+	// typed, except 新酷音's U+200B placeholder, which is cleared first.
+	void endCompositionDroppingPlaceholder();
+
 	int candPerRow() const {
 		return candPerRow_;
 	}
@@ -302,6 +313,8 @@ private:
 
 	std::unique_ptr<Client> client_; // connection client
 	GUID currentLangProfile_;
+	// the document the open composition lives in; null when not composing
+	Ime::ComPtr<ITfContext> compositionContext_;
 };
 
 }

@@ -218,12 +218,9 @@ void TextService::onKeyboardStatusChanged(bool opened) {
 	if(opened) { // keyboard is opened
 	}
 	else { // keyboard is closed
-		if(isComposing()) {
-			// end current composition if needed
-			if(auto context = currentContext()) {
-				endComposition(context);
-			}
-		}
+		// end current composition if needed; keys no longer reach the backend,
+		// so nothing would ever replace a U+200B placeholder left in it
+		endCompositionDroppingPlaceholder();
 		if(showingCandidates() || candidateWindow_) // disable candidate window if it's opened
 			hideCandidates();
 	}
@@ -243,8 +240,48 @@ void TextService::onCompositionTerminated(bool forced) {
 		if (showingCandidates() || candidateWindow_) // disable candidate window if it's opened
 			hideCandidates();
 	}
+	// called for every end of the composition (endComposition() and the app's)
+	compositionContext_ = nullptr;
 	if(client_)
 		client_->onCompositionTerminated(forced);
+}
+
+void TextService::startComposition(ITfContext* context) {
+	Ime::TextService::startComposition(context);
+	compositionContext_ = isComposing() ? context : nullptr;
+}
+
+static const wchar_t kZeroWidthSpace = 0x200B;
+
+// 新酷音 composes a lone bopomofo, shown in the candidate header, as a U+200B
+// placeholder (chewing_ime.py) to keep the composition open. Only the backend's
+// next reply replaces it, so ending the composition any other way leaves an
+// invisible character in the user's text (search, URLs, file names, code).
+static bool isPlaceholderComposition(const std::wstring& text) {
+	return !text.empty() && text.find_first_not_of(kZeroWidthSpace) == std::wstring::npos;
+}
+
+void TextService::endCompositionDroppingPlaceholder() {
+	if (!isComposing())
+		return;
+	// The composition's own document, not necessarily the focused one:
+	// Client::onSetFocus() may discard a composition left in another document.
+	Ime::ComPtr<ITfContext> context = compositionContext_;
+	if (!context)
+		context = currentContext();
+	if (!context)
+		return;
+	// a separate synchronous session first: endComposition() requests its own
+	HRESULT sessionResult;
+	auto clearPlaceholder = Ime::ComPtr<Ime::EditSession>::make(
+		context,
+		[this](Ime::EditSession* session, TfEditCookie cookie) {
+			if (isPlaceholderComposition(compositionString(session)))
+				setCompositionString(session, L"", 0);
+		}
+	);
+	context->RequestEditSession(clientId(), clearPlaceholder, TF_ES_SYNC | TF_ES_READWRITE, &sessionResult);
+	endComposition(context);
 }
 
 void TextService::onLangProfileActivated(REFIID lang) {

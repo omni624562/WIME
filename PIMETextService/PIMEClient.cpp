@@ -1510,13 +1510,13 @@ void Client::resetTextServiceState() {
 void Client::discardOrphanedUi() {
 	connectionLost_ = false;
 	if (textService_->isComposing()) {
-		if (auto context = textService_->currentContext()) {
-			// requests its own synchronous edit session; whatever preedit text is
-			// in the document stays there as typed
-			discardingOrphanedUi_ = true;
-			textService_->endComposition(context);
-			discardingOrphanedUi_ = false;
-		}
+		// requests its own synchronous edit sessions; whatever preedit text is
+		// in the document stays there as typed, but not 新酷音's U+200B
+		// placeholder for a lone bopomofo: the old backend client's next reply
+		// would have replaced it, the new client's never does
+		discardingOrphanedUi_ = true;
+		textService_->endCompositionDroppingPlaceholder();
+		discardingOrphanedUi_ = false;
 	}
 	textService_->hideCandidates();
 	textService_->candidates_.clear();
