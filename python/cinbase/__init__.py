@@ -51,6 +51,10 @@ FULLSHAPE_MODE = 1
 HALFSHAPE_MODE = 0
 DEBUG_MODE = False
 
+# 「只有一個候選字時自動送出」送出後，緊接著按下的空白鍵在這段時間（秒）內會被忽略：
+# 以前要按空白選字，手指習慣多按一下，結果在文件裡多打出一個空白
+AUTO_COMMIT_SPACE_GRACE = 1.5
+
 # shift + space 熱鍵的 GUID
 SHIFT_SPACE_GUID = "{f1dae0fb-8091-44a7-8a0c-3082a1515447}"
 TF_MOD_SHIFT = 0x0004
@@ -424,6 +428,9 @@ class CinBase:
         cbTS.lastKeyDownCode = keyEvent.keyCode
         if cbTS.lastKeyDownTime == 0.0:
             cbTS.lastKeyDownTime = time.time()
+
+        if self.isSpaceAfterAutoCommit(cbTS, keyEvent):
+            return True   # onKeyDown 吃掉它，什麼都不做
 
         if CinTable.loading or not getattr(cbTS, 'cin', None):
             # 碼表還沒就緒（背景重載中，或檔案缺失/損毀而載入失敗）：只攔下
@@ -1012,6 +1019,10 @@ class CinBase:
         keyCode = keyEvent.keyCode
         charStr = chr(charCode)
         charStrLow = charStr.lower()
+
+        if self.isSpaceAfterAutoCommit(cbTS, keyEvent):
+            cbTS.skipSpaceDeadline = 0.0   # 只吃一下
+            return True
 
         if CinTable.loading or not getattr(cbTS, 'cin', None):
             if not cbTS.client.isUiLess:
@@ -1848,6 +1859,7 @@ class CinBase:
                 candCursor = 0
                 currentCandPage = 0
                 autoCommittedSingleCandidate = True
+                self.ignoreNextSpace(cbTS)
 
             if candidates and not cbTS.phrasemode and not autoCommittedSingleCandidate:
                 if not cbTS.selcandmode:
@@ -1983,6 +1995,7 @@ class CinBase:
                             self.resetComposition(cbTS)
                             candCursor = 0
                             currentCandPage = 0
+                            self.ignoreNextSpace(cbTS)
                         else:
                             cbTS.isShowCandidates = True
                             cbTS.canSetCommitString = True
@@ -2521,6 +2534,8 @@ class CinBase:
     # return True，系統會呼叫 onKeyUp() 進一步處理這個按鍵
     # return False，表示我們不需要這個鍵，系統會原封不動把按鍵傳給應用程式
     def filterKeyUp(self, cbTS, keyEvent):
+        if keyEvent.keyCode == VK_SPACE:
+            cbTS.skipSpaceDeadline = 0.0
         # 若啟用使用 Shift 鍵切換中英文模式
         if cbTS.cfg.switchLangWithShift:
             # 剛才最後一個按下的鍵，和現在放開的鍵，都是 Shift
@@ -2691,6 +2706,7 @@ class CinBase:
 
     # 鍵盤開啟/關閉時會被呼叫 (在 Windows 10 Ctrl+Space 時)
     def onKeyboardStatusChanged(self, cbTS, opened):
+        cbTS.skipSpaceDeadline = 0.0
         if opened: # 鍵盤開啟
             self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
@@ -2711,6 +2727,7 @@ class CinBase:
     # forced 參數會是 True，在這種狀況下，要清除一些 buffer
     def onCompositionTerminated(self, cbTS, forced):
         if forced:
+            cbTS.skipSpaceDeadline = 0.0
             # 焦點離開或組字被外部中斷：游標多半已移動，
             # 「前一字上下文」不再可靠，避免加權到不相干的位置
             cbTS.lastCommitString = ""
@@ -3238,6 +3255,26 @@ class CinBase:
             candidates = self.sortByPhrase(cbTS, list(candidates))
         candidates = self.sortByIntelligentSelect(cbTS, key, candidates)
         return candidates[0] if candidates else ""
+
+    # 自動送出唯一候選字之後，使用者常習慣再按一下空白（以前要按空白選字），那一下
+    # 會在文件裡多打出一個空白。送出後 AUTO_COMMIT_SPACE_GRACE 秒內、中間沒有按別的
+    # 鍵，緊接著的那一下空白就忽略；停頓一下再按、或先按了別的鍵，空白照常輸出
+    def ignoreNextSpace(self, cbTS):
+        cbTS.skipSpaceDeadline = time.monotonic() + AUTO_COMMIT_SPACE_GRACE
+
+    def isSpaceAfterAutoCommit(self, cbTS, keyEvent):
+        """按下的鍵是不是剛自動送字後要忽略的那一下空白。filterKeyDown 與 onKeyDown
+        都會問（TSF 可能先測試同一個鍵好幾次），所以只在 onKeyDown 真的吃掉時才清除；
+        按下任何其他的鍵就取消。"""
+        deadline = getattr(cbTS, 'skipSpaceDeadline', 0.0)
+        if not deadline:
+            return False
+        if (keyEvent.keyCode != VK_SPACE or time.monotonic() > deadline
+                or keyEvent.isKeyDown(VK_SHIFT) or keyEvent.isKeyDown(VK_CONTROL)
+                or keyEvent.isKeyDown(VK_MENU)):
+            cbTS.skipSpaceDeadline = 0.0
+            return False
+        return True
 
     def commitSingleCandidate(self, cbTS, RCinTable, commitStr):
         self.addIntelligentSelectCount(cbTS, cbTS.compositionChar, commitStr)
