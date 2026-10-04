@@ -10,7 +10,7 @@
 - The reload throttle used the wall clock, so reloads stopped after the clock
   was set back.
 - The old default candidateMaxWidth (300) is stored in most users' config.json
-  and is migrated to the new default (320) on load.
+  and is migrated to the new default (340: 6 candidates at 16pt need 336px) on load.
 - candPerRow has done nothing since the classic candidate window was removed; it
   is dropped from old config files.
 """
@@ -151,14 +151,14 @@ class ValueNormalizationTests(ConfigFileTestCase):
         self.assertEqual(cfg.candPerPage, 4)
 
     def test_old_default_candidate_max_width_is_migrated(self):
-        self.assertEqual(cc.ChewingConfig(load=False).candidateMaxWidth, 320)
-        # saving the settings page writes every value, so most users have 300 stored
-        for stored, expected in ((300, 320), ("300", 320), (360, 360), (280, 280)):
+        self.assertEqual(cc.ChewingConfig(load=False).candidateMaxWidth, 340)
+        # the first load and the settings page write every value, so most users have 300 stored
+        for stored, expected in ((300, 340), ("300", 340), (320, 320), (360, 360), (280, 280)):
             with self.subTest(stored=stored):
                 self.assertEqual(self.load({"candidateMaxWidth": stored}).candidateMaxWidth, expected)
         # the settings tool shows the same value (it normalizes the file with normalizeValues)
         values = cc.normalizeValues({"candidateMaxWidth": 300}, cc.defaultValues())
-        self.assertEqual(values, {"candidateMaxWidth": 320})
+        self.assertEqual(values, {"candidateMaxWidth": 340})
 
     def test_normalize_values_keeps_unknown_keys(self):
         defaults = cc.defaultValues()

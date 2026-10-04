@@ -59,8 +59,10 @@ _INT_RANGES = (
 _RETIRED_KEYS = ("candidateModernStyle", "messageDurationTime", "hidePromptMessages")
 
 # 以前出貨的候選窗最大寬度。100% 縮放時一列 6 個候選（12pt 每個 44px，加間距與邊界）
-# 要 306px，300 讓第 6 個候選被擠到第二列；預設已改成 320。存過設定的使用者
-# config.json 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設
+# 要 306px（大易的 ␣ 選字鍵配設定頁存的 word-first 要 312px），300 讓第 6 個候選被擠到
+# 第二列；預設已改成 320（tests/test_candidate_width.py 依 CandidateWindow 的算法檢查）。
+# 存過設定的使用者 config.json 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是
+# 300 就換成新預設
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 反查字根可選的碼表（設定頁 selRCins 的順序）

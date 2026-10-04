@@ -62,10 +62,13 @@ _INT_RANGES = {
 }
 _C_INT_RANGE = (-2 ** 31, 2 ** 31 - 1)
 
-# 以前出貨的候選窗最大寬度，太窄：100% 縮放時一列 6 個候選擠不下，第 6 個被換到
-# 第二列（大易/酷倉 12pt 要 306px）。預設已改成 320；存過設定的使用者 config.json
-# 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。
-# 設定工具顯示的值也經過 normalizeValues，兩邊一致
+# 以前出貨的候選窗最大寬度，太窄：新酷音預設 16pt，100% 縮放時一列 6 個單字候選要
+# 336px（keycap 選字鍵，後端預設：6×49 + 5×6 + 2×6）或 318px（word-first，設定頁
+# 儲存時寫入的），300 讓一頁 9 個排成 5＋4。預設改成 340，keycap 在 125%、150% 也
+# 放得下（大易/酷倉是 12pt，用 320 就夠；tests/test_candidate_width.py 依
+# CandidateWindow 的算法與實際字寬檢查）。使用者的 config.json 都留著舊預設 300
+# （第一次載入與設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。設定工具
+# 顯示的值也經過 normalizeValues，兩邊一致
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 已移除的設定。舊的 config.json 還帶著它們，載入（含設定工具讀檔）時丟掉，
@@ -211,7 +214,7 @@ class ChewingConfig:
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 320
+        self.candidateMaxWidth = 340  # 16pt 一列 6 個單字要 336px（見 LEGACY_CANDIDATE_MAX_WIDTH）
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

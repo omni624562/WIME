@@ -127,7 +127,7 @@ class ChewingConfigToolDataTests(unittest.TestCase):
         self.assertEqual(data["config"]["candidateMinWidth"], 286)  # null on disk
         self.assertEqual(data["config"]["candPerPage"], 5)
         self.assertNotIn("candPerRow", data["config"])  # retired: saving the page drops it from the file
-        self.assertEqual(data["config"]["candidateMaxWidth"], 320)  # the old default, as the backend loads it
+        self.assertEqual(data["config"]["candidateMaxWidth"], 340)  # the old default, as the backend loads it
         self.assertEqual(data["swkb"], "A ★\n")  # "﻿A ..." failed the page's format check
 
     def test_2_phrase_list_survives_invalid_utf8(self):
