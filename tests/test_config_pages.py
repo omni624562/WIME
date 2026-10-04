@@ -22,6 +22,9 @@ use the , . / ; ' [ ] - = \\ ` roots (about a quarter of them) could not be adde
 Lengths are counted in the symbols the backend splits the files into
 (cinbase/textclusters.py), not in UTF-16 units or code points: a line holding
 only ❤️ or 🇹🇼, or a 簡易符號 of six Ext-B characters, was refused.
+saveConfig() (run in node with a jQuery stub) checks only the text tabs it
+posts, the ones changed this time, so a line the page refuses in a file edited
+by hand no longer blocks saving the other options.
 """
 
 import ast
@@ -57,15 +60,17 @@ class _PageIds(html.parser.HTMLParser):
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.open = []  # (tag, classes) of the open elements
-        self.ids = []   # (id, classes of its ancestors)
+        self.open = []     # (tag, classes, id) of the open elements
+        self.ids = []      # (id, classes of its ancestors)
+        self.parents = {}  # id -> ids of its ancestors, outermost first
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if attrs.get("id"):
-            self.ids.append((attrs["id"], {c for _, classes in self.open for c in classes}))
+            self.ids.append((attrs["id"], {c for _, classes, _ in self.open for c in classes}))
+            self.parents[attrs["id"]] = [parent for _, _, parent in self.open if parent]
         if tag not in _VOID:
-            self.open.append((tag, (attrs.get("class") or "").split()))
+            self.open.append((tag, (attrs.get("class") or "").split(), attrs.get("id")))
 
     def handle_endtag(self, tag):
         # close up to the matching tag, like a browser does for an unclosed <p>/<li>
@@ -75,14 +80,18 @@ class _PageIds(html.parser.HTMLParser):
                 break
 
 
+def parse_page(path):
+    parser = _PageIds()
+    with open(path, encoding="utf-8-sig") as f:
+        parser.feed(f.read())
+    parser.close()
+    return parser
+
+
 def page_ids(*paths):
     ids = []
     for path in paths:
-        parser = _PageIds()
-        with open(path, encoding="utf-8-sig") as f:
-            parser.feed(f.read())
-        parser.close()
-        ids += parser.ids
+        ids += parse_page(path).ids
     return ids
 
 
@@ -318,7 +327,7 @@ class DataFormatRuleTests(unittest.TestCase):
     RUNNER = r"""
 const fs = require("fs"), vm = require("vm");
 const sandbox = {}, call = process.argv[2];
-vm.runInNewContext(fs.readFileSync(process.argv[1], "utf8").replace(/^﻿/, ""), sandbox);
+vm.runInNewContext(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""), sandbox);
 const cases = JSON.parse(fs.readFileSync(0, "utf8"));
 process.stdout.write(JSON.stringify(cases.map(args => sandbox[call](...args))));
 """
@@ -344,7 +353,7 @@ process.stdout.write(JSON.stringify(cases.map(args => sandbox[call](...args))));
                     "",                                  # an empty box (簡易符號 used to refuse it)
                     line + "\n",                         # file ending in a newline
                     line + "\n\n" + line,                # blank line in the middle
-                    "﻿" + line + "\n" + line,       # Notepad's UTF-8 BOM
+                    chars("FEFF") + line + "\n" + line,  # Notepad's UTF-8 BOM
                     "  " + line + "\t\n \t\n" + line,    # whitespace-only line, indentation
                 ])
 
@@ -394,6 +403,168 @@ process.stdout.write(JSON.stringify(cases.map(args => sandbox[call](...args))));
         texts = [chars(codes) for codes in CLUSTER_SAMPLES]
         self.assertEqual(self.call("symbolClusters", [[text] for text in texts]),
                          [backend(text) for text in texts])
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class SaveConfigTextDataTests(unittest.TestCase):
+    """saveConfig() and checkDataFormat() of the 大易/酷倉 page's js/config.js, run in node
+    against a minimal jQuery stub (the page's scripts, in the page's order).
+
+    Only the text tabs changed this time are posted, so only they are checked: a line
+    the page refuses in a file edited by hand must not keep 主題、字型 and the other
+    options from being saved. A refused line names its tab and line, switches to that
+    tab and selects the line, again after the alert closes.
+    """
+
+    # textarea id, its *Changed flag minus "Changed" (also the posted key), rule type, name in the alert
+    TEXT_TABS = (
+        ("symbols", "symbols", "2", "特殊符號"),
+        ("ez_symbols", "swkb", "1", "簡易符號"),
+        ("fs_symbols", "fsymbols", "2", "全形標點符號"),
+        ("phrase", "phrase", "2", "聯想字詞"),
+        ("excludePhrase", "excludePhrase", "2", "排除聯想字詞"),
+        ("flangs", "flangs", "2", "外語文字"),
+        ("extendtable", "extendtable", "3", "擴展碼表"),
+    )
+    VALID = {"1": "a 一\n", "2": "標點=，。\n★\n", "3": ",,z 測試\n"}
+    # the page refuses the second line of each (< is not a 大易 root, and must reach the alert as text)
+    REFUSED = {"1": "a 一\n1 一", "2": "標點=，。\nxy", "3": "ab 一\n<b>測</b> 試"}
+
+    SCRIPTS = ("candidate_appearance.js", "data_format.js", "config.js")
+
+    RUNNER = r"""
+const fs = require("fs"), vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const source = path => {
+    const text = fs.readFileSync(path, "utf8");
+    return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+};
+process.stdout.write(JSON.stringify(input.runs.map(run => {
+    const log = { posts: [], alerts: [], tabs: [], selections: [] };
+    const elements = {};
+    const element = sel => elements[sel] || (elements[sel] = {
+        value: run.values[sel] || "",
+        focus() {},
+        setSelectionRange(start, end) { log.selections.push([sel, start, end]); },
+    });
+    const $ = sel => {
+        if (typeof sel === "function") return;                  // $(ready): no page is built here
+        if (sel === "<div>") {                                  // checkDataFormat()'s escapeHtml()
+            let text = "";
+            return { text(t) { text = t; return this; },
+                     html() { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); } };
+        }
+        const link = /^#sidebar a\[href="#(\w+)"\]$/.exec(sel);
+        if (link) return input.sidebar.includes(link[1]) ? [{ pane: link[1] }] : [];
+        const el = element(sel);
+        return {
+            0: el, length: 1,
+            val(value) { if (value === undefined) return el.value; el.value = value; return this; },
+            closest(query) {
+                const pane = query === ".tab-pane" && input.panes[sel];
+                return pane ? { length: 1, attr: () => pane } : { length: 0 };
+            },
+        };
+    };
+    $.get = () => ({ fail() {} });                              // loadConfig() when the script loads
+    $.ajax = request => log.posts.push(JSON.parse(request.data));
+    $.jAlert = options => log.alerts.push(options);
+    const sandbox = {
+        $, jQuery: $, imeFolderName: input.ime, includeScriptFile() {},
+        navigator: { userAgent: "", appVersion: "" },
+        document: { getElementsByTagName: () => [{ innerText: "" }] },
+        bootstrap: { Tab: { getOrCreateInstance: link => ({ show() { log.tabs.push(link.pane); } }) } },
+    };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    for (const script of input.scripts) {
+        vm.runInContext(source(script), sandbox, { filename: script });
+    }
+    vm.runInContext("checjConfig = {};" + run.changed.map(key => key + "Changed = true;").join(""), sandbox);
+    vm.runInContext("saveConfig();", sandbox);
+    if (log.alerts.length && log.alerts[0].onClose) {
+        log.alerts[0].onClose();
+    }
+    return { posts: log.posts, alerts: log.alerts.map(alert => alert.content), tabs: log.tabs,
+             selections: log.selections };
+})));
+"""
+
+    @classmethod
+    def setUpClass(cls):
+        config_htm = os.path.join(CINBASE_CONFIG_DIR, "config.htm")
+        # the ready handler loads each config.htm fragment into the shell's .tab-pane of
+        # the same id, and the sidebar link to that id shows it
+        parents = parse_page(config_htm).parents
+        cls.panes = {name: [parent for parent in parents[name] if parent.endswith("_page")][-1]
+                     for name, _, _, _ in cls.TEXT_TABS}
+        with open(config_htm, encoding="utf-8-sig") as f:
+            page = f.read()
+        sidebar = page[page.index('<nav id="sidebar">'):page.index("</nav>")]
+        cls.sidebar = re.findall(r'href="#(\w+)"', sidebar)
+
+    def save(self, runs):
+        """[(values {textarea id: text}, [changed keys])] -> what each saveConfig() did"""
+        request = {
+            "scripts": [os.path.join(CINBASE_CONFIG_DIR, "js", name) for name in self.SCRIPTS],
+            "ime": "chedayi",
+            "panes": {"#" + name: pane for name, pane in self.panes.items()},
+            "sidebar": self.sidebar,
+            "runs": [{"values": {"#" + name: text for name, text in values.items()}, "changed": changed}
+                     for values, changed in runs],
+        }
+        result = subprocess.run([NODE, "-e", self.RUNNER], input=json.dumps(request),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def refused_everywhere(self):
+        return {name: self.REFUSED[type_] for name, _, type_, _ in self.TEXT_TABS}
+
+    def test_the_text_tabs_are_the_ones_the_server_saves_and_the_page_shows(self):
+        with open(os.path.join(PYTHON_DIR, "cinbase", "configtool.py"), encoding="utf-8-sig") as f:
+            posted = set(re.findall(r'data\.get\("(\w+)", None\)', f.read()))
+        shells = sorted(glob.glob(os.path.join(PYTHON_DIR, "input_methods", "*", "config", "config.html")))
+        for name, key, _, _ in self.TEXT_TABS:
+            with self.subTest(textarea=name):
+                self.assertIn(key, posted)
+                self.assertIn(self.panes[name], self.sidebar)
+                for shell in shells:
+                    with open(shell, encoding="utf-8-sig") as f:
+                        self.assertRegex(f.read(), r'<div id="%s" class="tab-pane\b' % self.panes[name])
+
+    def test_unchanged_text_tabs_are_neither_checked_nor_posted(self):
+        result, = self.save([(self.refused_everywhere(), [])])
+        self.assertEqual(result["alerts"], [])
+        self.assertEqual([sorted(post) for post in result["posts"]], [["config"]])
+        self.assertIs(result["posts"][0]["config"].get("candidateMaxWidthMigrated"), True)
+
+    def test_each_changed_text_tab_is_checked_and_posted(self):
+        runs = []
+        for name, key, type_, _ in self.TEXT_TABS:
+            # only this tab changed; every other one holds a refused line
+            runs.append((dict(self.refused_everywhere(), **{name: self.VALID[type_]}), [key]))
+            runs.append((self.refused_everywhere(), [key]))
+        results = self.save(runs)
+        for i, (name, key, type_, desc) in enumerate(self.TEXT_TABS):
+            saved, refused = results[2 * i], results[2 * i + 1]
+            with self.subTest(textarea=name):
+                self.assertEqual(saved["alerts"], [])
+                self.assertEqual([sorted(post) for post in saved["posts"]], [sorted(["config", key])])
+                self.assertEqual(saved["posts"][0][key], self.VALID[type_])
+
+                self.assertEqual(refused["posts"], [])
+                self.assertEqual(len(refused["alerts"]), 1)
+                self.assertTrue(refused["alerts"][0].startswith(desc + "設定第 2 行「"), refused["alerts"][0])
+                self.assertEqual(refused["tabs"], [self.panes[name]])
+                first, second = self.REFUSED[type_].split("\n")
+                start = len(first) + 1  # BMP text: UTF-16 offsets are len()
+                self.assertEqual(refused["selections"], [["#" + name, start, start + len(second)]] * 2)
+
+    def test_the_refused_line_reaches_the_alert_as_text(self):
+        result, = self.save([({"extendtable": self.REFUSED["3"]}, ["extendtable"])])
+        self.assertIn("「&lt;b&gt;測&lt;/b&gt; 試」", result["alerts"][0])
+        self.assertNotIn("<b>", result["alerts"][0])
 
 
 if __name__ == "__main__":
