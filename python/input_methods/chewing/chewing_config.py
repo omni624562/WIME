@@ -72,7 +72,9 @@ _FIXED_VALUES = {"candidateKeyStyle": "word-first"}
 # 讓一頁 9 個排成 5＋4。預設改成 340，125%、150% 也放得下（大易/酷倉是 12pt，用 320
 # 就夠；tests/test_candidate_width.py 依 CandidateWindow 的算法與實際字寬檢查）。
 # 使用者的 config.json 都留著舊預設 300（第一次載入與設定頁儲存時整份寫出），載入時
-# 剛好是 300 就換成新預設。設定工具顯示的值也經過 normalizeValues，兩邊一致
+# 剛好是 300 就換成新預設。設定工具顯示的值也經過 normalizeValues，兩邊一致。
+# 只換一次：設定頁每次儲存都寫入 candidateMaxWidthMigrated，有這個標記的檔案裡的
+# 300 是使用者自己選的 (以前每次載入都換掉，300 永遠選不到)
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 已移除的設定。舊的 config.json 還帶著它們，載入（含設定工具讀檔）時丟掉，
@@ -143,7 +145,9 @@ def normalizeValues(values, defaults):
     for key, value in _FIXED_VALUES.items():
         if key in result:
             result[key] = value
-    if result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults:
+    # 標記只看 values (使用者的檔案)：後端的設定物件裡可能是上一次載入留下的值
+    if (result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults
+            and not result.get("candidateMaxWidthMigrated")):
         result["candidateMaxWidth"] = defaults["candidateMaxWidth"]
     return result
 
@@ -223,6 +227,8 @@ class ChewingConfig:
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
         self.candidateMaxWidth = 340  # 16pt 一列 6 個單字要 336px（見 LEGACY_CANDIDATE_MAX_WIDTH）
+        # 見 LEGACY_CANDIDATE_MAX_WIDTH。_applyValues 只接受預設值裡有的設定，標記也要列在這裡
+        self.candidateMaxWidthMigrated = False
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

@@ -10,7 +10,9 @@
 - The reload throttle used the wall clock, so reloads stopped after the clock
   was set back.
 - The old default candidateMaxWidth (300) is stored in most users' config.json
-  and is migrated to the new default (340: 6 candidates at 16pt need 336px) on load.
+  and is migrated to the new default (340: 6 candidates at 16pt need 336px) on load,
+  but only in files without candidateMaxWidthMigrated (the settings page writes it):
+  the migration used to run on every load, so 300 could never be chosen.
 - candPerRow has done nothing since the classic candidate window was removed; it
   is dropped from old config files.
 """
@@ -159,6 +161,33 @@ class ValueNormalizationTests(ConfigFileTestCase):
         # the settings tool shows the same value (it normalizes the file with normalizeValues)
         values = cc.normalizeValues({"candidateMaxWidth": 300}, cc.defaultValues())
         self.assertEqual(values, {"candidateMaxWidth": 340})
+
+    def test_chosen_300_is_kept_after_the_migration(self):
+        for marker in (True, "true", 1):
+            with self.subTest(marker=marker):
+                cfg = self.load({"candidateMaxWidth": 300, "candidateMaxWidthMigrated": marker})
+                self.assertEqual(cfg.candidateMaxWidth, 300)
+        self.assertEqual(self.load({"candidateMaxWidth": 300, "candidateMaxWidthMigrated": False})
+                         .candidateMaxWidth, 340)
+        # the settings tool shows the defaults overlaid with the file, through normalizeValues
+        defaults = cc.defaultValues()
+        self.assertIs(defaults["candidateMaxWidthMigrated"], False)
+        old = cc.normalizeValues(dict(defaults, candidateMaxWidth=300), defaults)
+        self.assertEqual(old["candidateMaxWidth"], 340)
+        chosen = cc.normalizeValues(dict(defaults, candidateMaxWidth=300, candidateMaxWidthMigrated=True), defaults)
+        self.assertEqual(chosen["candidateMaxWidth"], 300)
+
+    def test_migration_marker_comes_from_the_user_file(self):
+        # the shared config object is reloaded: the marker of the file read before must
+        # not keep an old file's 300
+        cfg = self.load({"candidateMaxWidth": 300, "candidateMaxWidthMigrated": True})
+        self.assertEqual(cfg.candidateMaxWidth, 300)
+        self.write({"candidateMaxWidth": 300})
+        stamp = time.time() + 5
+        os.utime(self.path, (stamp, stamp))
+        cfg._lastUpdateTime = None
+        cfg.update()
+        self.assertEqual(cfg.candidateMaxWidth, 340)
 
     def test_normalize_values_keeps_unknown_keys(self):
         defaults = cc.defaultValues()

@@ -70,7 +70,8 @@ _FIXED_VALUES = {
 # 邊界）大易的 ␣ 選字鍵要 312px，300 讓第 6 個候選被擠到第二列；預設已改成 320
 # （tests/test_candidate_width.py 依 CandidateWindow 的算法檢查）。
 # 存過設定的使用者 config.json 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是
-# 300 就換成新預設
+# 300 就換成新預設——只換一次：設定頁每次儲存都寫入 candidateMaxWidthMigrated，有這個
+# 標記的檔案裡的 300 是使用者自己選的（以前每次載入都換掉，300 永遠選不到）
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 反查字根可選的碼表（設定頁 selRCins 的順序）
@@ -173,6 +174,7 @@ class CinBaseConfig:
         self.candidateMinWidth = 0
         self.candidateWrapToMaxWidth = True
         self.candidateMaxWidth = 320
+        self.candidateMaxWidthMigrated = False  # 見 LEGACY_CANDIDATE_MAX_WIDTH
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,
@@ -224,6 +226,7 @@ class CinBaseConfig:
 
         # Layer 2: overlay with the user's personal config (APPDATA or legacy home-dir path).
         filename = self.getConfigFile()
+        userValues = {}
         try:
             if not os.path.exists(filename) or os.stat(filename).st_size == 0:
                 filename = os.path.join(os.path.expanduser("~"), "PIME", self.imeDirName, "config.json")
@@ -237,7 +240,8 @@ class CinBaseConfig:
                     filename = self.getConfigFile()
 
             if filename:
-                self.__dict__.update(self._readUserConfig(filename))
+                userValues = self._readUserConfig(filename)
+                self.__dict__.update(userValues)
         except Exception:
             # Keep the user's file: it used to be overwritten with defaults here, so a
             # typo (or the encoding bug above) silently wiped all of their settings.
@@ -246,7 +250,9 @@ class CinBaseConfig:
         for key in _RETIRED_KEYS:
             self.__dict__.pop(key, None)
         self.normalize(shipped)
-        if self.candidateMaxWidth == LEGACY_CANDIDATE_MAX_WIDTH:
+        # 標記只看使用者的檔案：self 裡的值可能是預設值，或上一次載入（重讀前的檔案）留下的
+        if (self.candidateMaxWidth == LEGACY_CANDIDATE_MAX_WIDTH
+                and not _toBool(userValues.get("candidateMaxWidthMigrated"), False)):
             self.candidateMaxWidth = shipped["candidateMaxWidth"]
         self.update()
 
