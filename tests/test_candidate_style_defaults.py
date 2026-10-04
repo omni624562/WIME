@@ -3,10 +3,10 @@ the ones the settings pages offer and preview: 選字符 word-first and 名稱�
 accent.
 
 Client::Client() applies them to 大易/酷倉/新酷音 until the backend's customizeUI
-arrives, and 新酷音 sends no header style at all, so its window keeps the
-built-in one. candidateKeyStyleValue() falls back to the default for a name it
-does not know. While the built-in defaults were keycap/badge, the window did not
-look like the settings pages' previews."""
+arrives; a style it leaves out keeps the built-in one. candidateKeyStyleValue()
+falls back to the default for a name it does not know. While the built-in
+defaults were keycap/badge, the window did not look like the settings pages'
+previews."""
 
 import os
 import re

@@ -303,7 +303,7 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateMaxWidth(true, 320);
 		// the styles the settings pages preview and save (選字符 word-first,
 		// 名稱標籤 accent), so the window matches them before the backend's
-		// customizeUI arrives and for 新酷音, which sends no header style
+		// customizeUI arrives and keeps them for a style it leaves out
 		textService_->setCandidateKeyStyle(Ime::CandidateWindow::KeyStyleWordFirst);
 		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelAccent);
 	}
