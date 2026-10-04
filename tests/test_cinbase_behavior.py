@@ -7,7 +7,7 @@ import os
 import unittest
 
 import cinbase_harness as h
-from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, CHINESE_MODE, ENGLISH_MODE
+from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE, CHINESE_MODE, ENGLISH_MODE
 
 
 def setUpModule():
@@ -296,6 +296,118 @@ class SmallKeyHandlingTests(unittest.TestCase):
                 cin = h.make_service(ime).cin
                 result = cin.getWildcardCharDefs(pattern, "*", 100)
                 self.assertEqual(len(result), len(set(result)))
+
+
+def auto_commit_code(service, with_phrases=False):
+    """A code (lowercase letters only) with exactly one candidate that no longer
+    code starts with: typing it commits that candidate when
+    autoCommitSingleCandidate is on (大易三碼 3 roots, 酷倉 5 roots...).
+    with_phrases: the candidate also has 聯想字詞, so the phrase list opens."""
+    cin = service.cin
+    for code in sorted(cin.chardefs):
+        if (len(code) >= 3 and code.isascii() and code.isalpha() and code.islower()
+                and len(cin.chardefs[code]) == 1 and not cin.hasLongerCharDefPrefix(code)):
+            char = cin.chardefs[code][0]
+            if with_phrases and not service.cinbase.phraseSuggestions(service, char):
+                continue
+            return code, char
+    raise unittest.SkipTest("no suitable single-candidate code")
+
+
+@h.requires_tables
+class SpaceAfterAutoCommitTests(unittest.TestCase):
+    """只有一個候選字時自動送出後，緊接著習慣多按的空白鍵要忽略（不打出空白）；
+    隔一段時間、中間按了別的鍵、或沒開自動送出時，空白照常。"""
+
+    def auto_commit(self, ime="chedayi", with_phrases=False, **overrides):
+        config = {"selCinType": 2} if ime == "chedayi" else {}
+        config.update(autoCommitSingleCandidate=True, **overrides)
+        service = h.make_service(ime, user_config=config)
+        if with_phrases:
+            h.wait_for_phrase_table()
+        code, char = auto_commit_code(service, with_phrases)
+        commits, _ = h.type_keys(service, list(code))
+        self.assertEqual(commits, [char], code)
+        return service
+
+    def assert_space_ignored(self, service):
+        down, _ = h.press_replies(service, "SPACE")
+        self.assertTrue(down.get("return"), "the Space was passed to the application")
+        self.assertNotIn("commitString", down)
+
+    def assert_space_passed(self, service):
+        down, _ = h.press_replies(service, "SPACE")
+        self.assertEqual(down, {}, "the Space was taken by the input method")
+
+    def test_space_right_after_auto_commit_is_ignored_once(self):
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service = self.auto_commit(ime)
+                self.assert_space_ignored(service)
+                self.assert_space_passed(service)   # a second Space is a real one
+
+    def test_another_key_first_cancels_it(self):
+        service = self.auto_commit()
+        h.press(service, "LEFT")
+        self.assert_space_passed(service)
+
+    def test_space_after_a_pause_is_typed(self):
+        service = self.auto_commit()
+        service.skipSpaceDeadline = h.cinbase.time.monotonic() - 0.01
+        self.assert_space_passed(service)
+
+    def test_shift_space_is_not_taken(self):
+        service = self.auto_commit()
+        h.press(service, "SPACE", shift=True)
+        self.assertEqual(service.skipSpaceDeadline, 0.0)
+        self.assert_space_passed(service)
+
+    def test_focus_loss_cancels_it(self):
+        service = self.auto_commit()
+        h.request(service, "onKillFocus")
+        self.assert_space_passed(service)
+
+    def test_space_only_tested_does_not_stay_armed(self):
+        # TSF 可能只測試按鍵（filterKeyDown）而沒有真的送 onKeyDown；放開空白鍵後
+        # 就不能再留著，否則之後刻意按的空白會被吃掉
+        service = self.auto_commit()
+        down = h.key_event("SPACE")
+        self.assertTrue(h._send(service, "filterKeyDown", down, "SPACE").get("return"))
+        h._send(service, "filterKeyUp", h.key_event("SPACE", down=False), "SPACE")
+        self.assert_space_passed(service)
+
+    def test_ignored_space_does_not_pick_a_phrase(self):
+        # 聯想字詞開著時，那一下空白以前會選走第一個聯想詞
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service = self.auto_commit(ime, with_phrases=True, showPhrase=True)
+                self.assertTrue(service.isShowPhraseCandidates)
+                phrases = list(service.candidateList)
+                self.assert_space_ignored(service)
+                self.assertTrue(service.isShowPhraseCandidates)
+                self.assertEqual(list(service.candidateList), phrases)
+
+    def test_mode_switch_by_mouse_cancels_it(self):
+        # 用滑鼠點語言列切換中英文或全半形不會送按鍵，也要取消
+        for command in (ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE):
+            with self.subTest(command=command):
+                service = self.auto_commit()
+                h.request(service, "onCommand", id=command, type=0)
+                down = h.key_event("SPACE")
+                filtered = h._send(service, "filterKeyDown", down, "SPACE").get("return")
+                eaten = filtered and h._send(service, "onKeyDown", down, "SPACE")
+                self.assertEqual(service.skipSpaceDeadline, 0.0)
+                if command == ID_SWITCH_SHAPE:   # 全形模式的空白由輸入法輸出全形空白
+                    self.assertIn("commitString", eaten or {})
+                else:
+                    self.assertFalse(filtered)
+
+    def test_without_auto_commit_space_still_selects(self):
+        service = h.make_service("chedayi", user_config={"selCinType": 2, "autoCommitSingleCandidate": False})
+        code, char = auto_commit_code(service)
+        commits, _ = h.type_keys(service, list(code) + ["SPACE"])
+        self.assertEqual(commits, [char])
+        self.assert_space_passed(service)
 
 
 if __name__ == "__main__":
