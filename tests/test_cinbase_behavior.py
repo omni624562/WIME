@@ -4,10 +4,12 @@ Driven through handleRequest with the real 大易/酷倉 tables (cinbase_harness
 """
 
 import os
+import time
 import unittest
 
 import cinbase_harness as h
 from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE, CHINESE_MODE, ENGLISH_MODE
+from cinbase import FULLSHAPE_MODE, HALFSHAPE_MODE, SHIFT_SPACE_GUID
 
 
 def setUpModule():
@@ -72,6 +74,85 @@ class ModeSwitchTests(unittest.TestCase):
         commits, _ = h.type_keys(service, ["'"])   # 大易's first selection key
         self.assertEqual(commits, [])
         self.assertEqual(service.langMode, CHINESE_MODE)
+
+
+@h.requires_tables
+class ShiftSpaceTests(unittest.TestCase):
+    """Shift + 空白鍵切換全形/半形。以前大易/酷倉一律宣告並吃掉這個鍵：鍵盤關閉
+    （Ctrl+Space）時打英文的空白不見、偷偷切成全形，也沒有新酷音那樣的開關。"""
+
+    def activate(self, ime="chedayi", **config):
+        service = h.make_service(ime, user_config=config or None)
+        reply = h.request(service, "onActivate", isKeyboardOpen=True)
+        return service, reply
+
+    def shift_space(self, service):
+        return h.request(service, "onPreservedKey", guid=SHIFT_SPACE_GUID).get("return")
+
+    def apply_user_config(self, service, config):
+        """Save config.json the way the settings page does and send the next
+        request: checkConfigChange notices the new file and applies it."""
+        path = h.write_user_config(service.imeDirName, config)
+        self.addCleanup(h.remove_user_config, service.imeDirName)
+        # time.time() 約 15 ms 才跳一次，連續兩次存檔可能拿到同一個 mtime
+        self.stamp = max(getattr(self, "stamp", 0.0), time.time() + 10) + 1
+        os.utime(path, (self.stamp, self.stamp))
+        service.cfg._lastUpdateTime = 0.0      # not 3 seconds since the last read
+        return h.request(service, "ping")
+
+    def test_open_keyboard_toggles_the_shape(self):
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service, reply = self.activate(ime)
+                self.assertEqual([key["guid"] for key in reply.get("addPreservedKey", [])],
+                                 [SHIFT_SPACE_GUID])
+                self.assertTrue(self.shift_space(service))
+                self.assertEqual(service.shapeMode, FULLSHAPE_MODE)
+
+    def test_closed_keyboard_passes_it_on(self):
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service, _ = self.activate(ime)
+                h.request(service, "onKeyboardStatusChanged", opened=False)
+                self.assertFalse(self.shift_space(service))
+                h.request(service, "onKeyboardStatusChanged", opened=True)
+                self.assertEqual(service.shapeMode, HALFSHAPE_MODE)
+
+    def test_disabled_at_startup_passes_it_on(self):
+        # 「預設以停用輸入法模式啟動」：啟用時鍵盤就是關的
+        service, _ = self.activate(disableOnStartup=True)
+        self.assertFalse(service.keyboardOpen)
+        self.assertFalse(self.shift_space(service))
+        self.assertEqual(service.shapeMode, HALFSHAPE_MODE)
+
+    def test_option_off_does_not_claim_the_key(self):
+        service, reply = self.activate(enableShiftSpace=False)
+        self.assertNotIn("addPreservedKey", reply)
+        self.assertFalse(self.shift_space(service))
+        self.assertEqual(service.shapeMode, HALFSHAPE_MODE)
+        self.assertNotIn("removePreservedKey", h.request(service, "onDeactivate"))
+
+    def test_shape_button_works_without_the_shortcut(self):
+        service, _ = self.activate(enableShiftSpace=False)
+        h.request(service, "onCommand", id=ID_SWITCH_SHAPE, type=0)
+        self.assertEqual(service.shapeMode, FULLSHAPE_MODE)
+
+    def test_turning_the_option_off_and_on_while_active(self):
+        service, _ = self.activate()
+        reply = self.apply_user_config(service, {"enableShiftSpace": False})
+        self.assertEqual(reply.get("removePreservedKey"), [SHIFT_SPACE_GUID])
+        self.assertNotIn("addPreservedKey", reply)
+        self.assertFalse(self.shift_space(service))
+        self.assertEqual(service.shapeMode, HALFSHAPE_MODE)
+
+        reply = self.apply_user_config(service, {"enableShiftSpace": True, "candPerPage": 5})
+        self.assertEqual([key["guid"] for key in reply.get("addPreservedKey", [])], [SHIFT_SPACE_GUID])
+        self.assertTrue(self.shift_space(service))
+
+        # 其他設定改變時不重複宣告（libIME2 會把同一個 GUID 登記兩次）
+        reply = self.apply_user_config(service, {"enableShiftSpace": True, "candPerPage": 4})
+        self.assertNotIn("addPreservedKey", reply)
+        self.assertEqual(h.request(service, "onDeactivate").get("removePreservedKey"), [SHIFT_SPACE_GUID])
 
 
 @h.requires_tables

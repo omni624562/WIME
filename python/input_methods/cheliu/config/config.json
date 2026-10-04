@@ -5,6 +5,7 @@
     "easySymbolsWithShift": false,
     "candPerPage": 9,
     "defaultFullSpace": false,
+    "enableShiftSpace": true,
     "selCinType": 0,
     "switchLangWithShift": true,
     "switchLangWithWhichShift": 0,

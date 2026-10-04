@@ -17,6 +17,7 @@
   "fontSize": 12,
   "fullShapeSymbols": false,
   "defaultFullSpace": false,
+  "enableShiftSpace": true,
   "candPerRow": 3,
   "defaultEnglish": false,
   "candPerPage": 9,

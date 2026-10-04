@@ -109,6 +109,7 @@ class CinBaseConfig:
         self.candPerRow = 3
         self.defaultEnglish = False
         self.defaultFullSpace = False
+        self.enableShiftSpace = True  # Shift + 空白鍵切換全形/半形（和新酷音同名）
         self.disableOnStartup = False
         self.switchLangWithShift = True
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT

@@ -208,6 +208,7 @@ class CinBase:
         cbTS.isWildcardChardefs = False
         cbTS.isLangModeChanged = False
         cbTS.isShapeModeChanged = False
+        cbTS.shiftSpaceKeyAdded = False
         cbTS.isShowCandidates = False
         cbTS.isShowPhraseCandidates = False
         cbTS.isShowMessage = False
@@ -270,8 +271,7 @@ class CinBase:
         self.restoreChineseModeOnKeyboardOpen(cbTS, keyboardWillOpen, updateButtons=False)
 
         # 向系統宣告 Shift + Space 這個組合為特殊用途 (全半形切換)
-        # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
-        cbTS.addPreservedKey(VK_SPACE, TF_MOD_SHIFT, SHIFT_SPACE_GUID); # shift + space
+        self.updateShiftSpaceKey(cbTS, activated=True)
 
         # 切換中英文
         icon_name = "chi.ico" if cbTS.langMode == CHINESE_MODE else "eng.ico"
@@ -387,7 +387,7 @@ class CinBase:
     def onDeactivate(self, cbTS):
         cbTS.lastKeyDownCode = 0
         # 向系統宣告移除 Shift + Space 這個組合鍵用途 (全半形切換)
-        cbTS.removePreservedKey(SHIFT_SPACE_GUID); # shift + space
+        self.updateShiftSpaceKey(cbTS, activated=False)
 
         cbTS.removeButton("switch-lang")
         cbTS.removeButton("switch-shape")
@@ -2640,10 +2640,30 @@ class CinBase:
         cbTS.lastKeyDownCode = 0;
         # some preserved keys registered are pressed
         if guid == SHIFT_SPACE_GUID: # 使用者按下 shift + space
+            # 鍵盤關閉（Ctrl+Space、預設停用輸入法）時系統照樣送來這個鍵：以前也切換，
+            # 吃掉英文裡的空白，重新開啟後才發現變成全形。停用這個快速鍵時也不處理
+            # （設定剛關掉、宣告還沒取消的那一下）。兩種情況都交給應用程式
+            if not getattr(cbTS, "keyboardOpen", True) or not cbTS.cfg.enableShiftSpace:
+                return False
             cbTS.isShapeModeChanged = True
             self.toggleShapeMode(cbTS)  # 切換全半形
             return True
         return False
+
+
+    # 「Shift + 空白鍵切換全形/半形」（enableShiftSpace）開著才向系統宣告這個組合鍵；
+    # 關掉時取消宣告，Shift + 空白照常交給應用程式（例如 Excel 的選取整列）。
+    # 啟用、停用輸入法與套用設定時呼叫，記住宣告了沒有，同一個 GUID 不重複宣告
+    def updateShiftSpaceKey(self, cbTS, activated=None):
+        if activated is None:
+            activated = cbTS.isActivated
+        wanted = bool(activated and cbTS.cfg.enableShiftSpace)
+        if wanted and not cbTS.shiftSpaceKeyAdded:
+            # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
+            cbTS.addPreservedKey(VK_SPACE, TF_MOD_SHIFT, SHIFT_SPACE_GUID)
+        elif not wanted and cbTS.shiftSpaceKeyAdded:
+            cbTS.removePreservedKey(SHIFT_SPACE_GUID)
+        cbTS.shiftSpaceKeyAdded = wanted
 
 
     def onCommand(self, cbTS, commandId, commandType):
@@ -3669,6 +3689,9 @@ class CinBase:
 
         # 使用空白鍵作為候選清單換頁鍵?
         cbTS.switchPageWithSpace = cfg.switchPageWithSpace
+
+        # Shift + 空白鍵切換全形/半形?（建立時還沒啟用，不會宣告）
+        self.updateShiftSpaceKey(cbTS)
 
         self.updateLangButtons(cbTS)
 
