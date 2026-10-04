@@ -1100,7 +1100,6 @@ function updateKeyboardLayout() {
 // jQuery ready
 $(function() {
     // show PIME version number
-    $("#tabs").hide();
     $("#version").load(VERSION_URL);
     // 只抓一次 config.htm，再於 client 端把各片段填入對應容器；
     // 原本對同一份 40KB 檔發了 14 次 .load()（14 趟往返、解析 14 遍）。
@@ -1150,15 +1149,6 @@ function pageReady() {
     $("#flangs").val(flangsData);
     $("#extendtable").val(extendtableData);
 
-    if (imeFolderName == "chedayi") {
-        $("#candPerRow").TouchSpin({min:1, max:6});
-        $("#candPerPage").TouchSpin({min:1, max:6});
-    }
-    else {
-        $("#candPerRow").TouchSpin({min:1, max:10});
-        $("#candPerPage").TouchSpin({min:1, max:10});
-    }
-    $("#candMaxItems").TouchSpin({min:100, max:10000});
     $("#fontSize").TouchSpin({min:6, max:200});
     $("#candidatePerRow").TouchSpin({min:1, max:10});
     $("#candidateMinWidth").TouchSpin({min:160, max:720});
@@ -1403,46 +1393,15 @@ function pageReady() {
         });
     });
 
-    // use for select example
-    function updateSelExample() {
-        var example = ["選", "字", "大", "小", "範", "例"];
-        var html="";
-
-        for (number = 1, i = 0, row = 0; number <= $("#candPerPage").val(); number++, i++, row++) {
-            if (example[i] == null) {
-                i = 0;
-            }
-
-            if (row == $("#candPerRow").val()) {
-                row = 0;
-                html += "<br>";
-            }
-
-            html += "<span>" + number.toString().slice(-1) + ".</span> " + example[i] + "&nbsp;&nbsp;";
-        }
-
-        $("#selExample").html(html);
-    }
-
-    // setup selExample default style
-    $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-    updateSelExample();
-
     // trigger event
     $('.ui-spinner-button').click(function() {
         $(this).siblings('input').change();
     });
 
-    $("#ui_page input").on("change", function() {
-        $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-        updateSelExample();
-        updateCandidateAppearanceGalleries();
-    });
+    $("#ui_page input").on("change", updateCandidateAppearanceGalleries);
 
     $("#ui_page input").on("keydown", function(e) {
         if (e.keyCode == 38 || e.keyCode==40) {
-            $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-            updateSelExample();
             updateCandidateAppearanceGalleries();
         }
     });
