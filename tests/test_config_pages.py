@@ -171,6 +171,49 @@ class ConfigPageTests(unittest.TestCase):
                 self.assertRegex(body, r'"?config"?: %s\b' % config)
                 self.assertLess(match.start(), body.index("JSON.stringify(data)"))
 
+    def test_pages_always_save_the_fixed_candidate_styles(self):
+        # 選字符 Word First and (大易/酷倉) 名稱標籤 Accent are the only styles left,
+        # and the theme/message previews draw them. The page must save exactly those,
+        # whatever an older config.json held (the backends still default to
+        # keycap/badge), or the window would not look like the preview.
+        pages = (
+            (os.path.join(CINBASE_CONFIG_DIR, "js", "config.js"), "checjConfig",
+             os.path.join(CINBASE_CONFIG_DIR, "config.htm"),
+             os.path.join(CINBASE_CONFIG_DIR, "js", "candidate_appearance.js"),
+             {"candidateKeyStyle": "word-first", "candidateHeaderStyle": "accent"}),
+            (os.path.join(CHEWING_DIR, "js", "config.js"), "chewingConfig",
+             os.path.join(CHEWING_DIR, "config_tool.html"),
+             os.path.join(CHEWING_DIR, "js", "candidate_appearance.js"),
+             {"candidateKeyStyle": "word-first"}),
+        )
+        for script, config, page, appearance, fixed in pages:
+            defaults = function_body(script, "applyCandidateDefaults")
+            indent = re.match(r"(?:[ \t]*\n)*([ \t]*)\S", defaults).group(1)
+            with open(page, encoding="utf-8-sig") as f:
+                html = f.read()
+            with open(appearance, encoding="utf-8-sig") as f:
+                options = f.read()
+            for key, value in fixed.items():
+                with self.subTest(page=os.path.relpath(script, ROOT), key=key):
+                    # forced on load, unconditionally (not only when the key is missing)
+                    self.assertRegex(defaults, r'(?m)^%s%s\.%s = "%s";$' % (indent, config, key, value))
+                    # carried by a named hidden input, which updateConfig() saves
+                    self.assertRegex(html, r'<input type="hidden" id="%s" name="%s"' % (key, key))
+                    # the input is only ever set from the forced config or from a style
+                    # card, and the only card left is the fixed style
+                    writers = [line for _, line in script_lines(script, r'"#%s"\)\.val\([^)]' % key)]
+                    self.assertTrue(writers)
+                    for line in writers:
+                        self.assertRegex(line, r'\.val\((%s\.%s \|\| "%s"|\$\(this\)\.data\("style"\))\);'
+                                         % (config, key, value))
+                    option_map = re.search(r"var %sOptions = \{(.*?)\};" % key, options, re.S)
+                    self.assertIsNotNone(option_map)
+                    self.assertEqual(re.findall(r'"?([\w-]+)"?\s*:', option_map.group(1)), [value])
+            if "candidateHeaderStyle" in fixed:
+                # before the modern-window-only defaults return early: every CIN IME
+                self.assertLess(defaults.index('candidateHeaderStyle = "accent"'),
+                                defaults.index("if (!modernDefaultIme)"))
+
     def test_cinbase_pages_load_the_data_format_rules(self):
         # checkDataFormat() in js/config.js calls findDataFormatError(); without the
         # script every 套用設定 that changed a text tab would throw and save nothing
