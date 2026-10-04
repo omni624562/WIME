@@ -11,6 +11,8 @@
   was set back.
 - The old default candidateMaxWidth (300) is stored in most users' config.json
   and is migrated to the new default (320) on load.
+- candPerRow has done nothing since the classic candidate window was removed; it
+  is dropped from old config files.
 """
 
 import importlib
@@ -101,7 +103,7 @@ class ValueNormalizationTests(ConfigFileTestCase):
 
     def test_bad_numbers_fall_back_to_defaults(self):
         cfg = self.load({
-            "candPerRow": None,           # an emptied number field on the settings page
+            "candidateMinWidth": None,    # an emptied number field on the settings page
             "candPerPage": 9.0,           # hand edit: float
             "keyboardLayout": 2 ** 40,    # ctypes OverflowError before
             "selKeyType": 6,              # IndexError in getSelKeys() before
@@ -109,7 +111,7 @@ class ValueNormalizationTests(ConfigFileTestCase):
             "fontSize": "",
             "candidateOpacity": 5,
         })
-        self.assertEqual(cfg.candPerRow, 3)
+        self.assertEqual(cfg.candidateMinWidth, 286)
         self.assertEqual(cfg.candPerPage, 9)
         self.assertIsInstance(cfg.candPerPage, int)
         self.assertEqual(cfg.keyboardLayout, 0)
@@ -160,8 +162,24 @@ class ValueNormalizationTests(ConfigFileTestCase):
 
     def test_normalize_values_keeps_unknown_keys(self):
         defaults = cc.defaultValues()
-        values = cc.normalizeValues({"candPerRow": None, "test_input_text": None}, defaults)
-        self.assertEqual(values, {"candPerRow": 3, "test_input_text": None})
+        values = cc.normalizeValues({"candidateMinWidth": None, "test_input_text": None}, defaults)
+        self.assertEqual(values, {"candidateMinWidth": 286, "test_input_text": None})
+
+    def test_retired_settings_are_dropped(self):
+        # candPerRow (the classic window's per-row count) does nothing since that window
+        # was removed; the per-row count is candidatePerRow
+        cfg = self.load({"candPerRow": 5, "candPerPage": 4})
+        self.assertFalse(hasattr(cfg, "candPerRow"))
+        self.assertNotIn("candPerRow", cfg.toJson())
+        self.assertEqual(cfg.candPerPage, 4)
+        # the settings tool reads config.json itself: it must not get it back either,
+        # or saving the settings page writes it out again
+        values = cc.normalizeValues({"candPerRow": 5, "candPerPage": 4}, cc.defaultValues())
+        self.assertEqual(values, {"candPerPage": 4})
+
+    def test_new_config_file_has_no_retired_settings(self):
+        cc.ChewingConfig()
+        self.assertNotIn("candPerRow", json.loads(self.read().decode("utf-8")))
 
 
 class ReloadThrottleTests(ConfigFileTestCase):

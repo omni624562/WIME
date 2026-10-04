@@ -45,7 +45,6 @@ selKeys = (
 # 或每個按鍵都丟例外。型別不對或超出範圍的值改用預設值
 _INT_RANGES = {
     "candPerPage": (1, 10),
-    "candPerRow": (1, 10),
     "keyboardLayout": (0, 12),  # 設定頁的 13 種鍵盤排列
     "leftRightAction": (0, 1),
     "upDownAction": (0, 1),
@@ -68,6 +67,12 @@ _C_INT_RANGE = (-2 ** 31, 2 ** 31 - 1)
 # 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。
 # 設定工具顯示的值也經過 normalizeValues，兩邊一致
 LEGACY_CANDIDATE_MAX_WIDTH = 300
+
+# 已移除的設定。舊的 config.json 還帶著它們，載入（含設定工具讀檔）時丟掉，
+# 設定頁儲存時就不會再寫回去
+#   candPerRow: 舊版候選窗「每列顯示候選字個數」。舊版候選窗移除後沒有任何作用，
+#     每列幾個候選由 candidatePerRow（候選窗外觀的「每列候選字數」）決定
+_RETIRED_KEYS = ("candPerRow",)
 
 
 def _toInt(value):
@@ -100,9 +105,9 @@ def _toBool(value):
 
 def normalizeValues(values, defaults):
     """回傳 values 的副本：已知設定的值轉成程式預期的型別與範圍，無效的值改用
-    defaults 裡的預設值，舊的出貨預設值（LEGACY_CANDIDATE_MAX_WIDTH）換成新的；
-    不認得的鍵原樣保留。"""
-    result = dict(values)
+    defaults 裡的預設值，舊的出貨預設值（LEGACY_CANDIDATE_MAX_WIDTH）換成新的，
+    已移除的設定（_RETIRED_KEYS）丟掉；其他不認得的鍵原樣保留。"""
+    result = {key: value for key, value in values.items() if key not in _RETIRED_KEYS}
     for key, default in defaults.items():
         if key not in result:
             continue
@@ -172,7 +177,6 @@ class ChewingConfig:
         self.advanceAfterSelection = True
         self.autoLearn = True
         self.candPerPage = 9
-        self.candPerRow = 3
         self.defaultEnglish = False
         self.defaultFullSpace = False
         self.disableOnStartup = False
