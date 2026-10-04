@@ -41,7 +41,7 @@
     "candidateStableWidth": true,
     "candidateMinWidth": 286,
     "candidateWrapToMaxWidth": true,
-    "candidateMaxWidth": 300,
+    "candidateMaxWidth": 320,
     "candidateColors": {},
     "candidateStyle": {
         "contentMargin": 6,

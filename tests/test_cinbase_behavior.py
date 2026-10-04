@@ -113,6 +113,81 @@ class FunctionMenuTests(unittest.TestCase):
         h.press(service, service.selKeys[service.candidateList.index(item)])   # used to raise ValueError
         self.assertEqual(service.showPhrase, before)
 
+    def test_settings_item_is_not_started_by_tests(self):
+        # 選單的「開啟設定視窗…」用 ShellExecuteW 執行 configtool.py，它會打開使用者的
+        # 瀏覽器，而且頁面開著就不會結束。游標 fuzz 測試會按到這一項：以前每跑一次
+        # 完整測試就多開兩個設定頁。IsolatedAppData 必須把它換成記錄，先確認再按
+        self.assertTrue(h.launches_blocked())
+        start = len(_appdata.launches)
+        service = h.make_service("chedayi")
+        for _ in range(3):
+            h.press(service, "`")
+            if "特殊符號" in (service.candidateList or []):
+                break
+        settings = next(item for item in service.candidateList
+                        if h.cinbase.menu.mainMenuId(item) == "settings")
+        h.press(service, service.selKeys[service.candidateList.index(settings)])
+        launches = _appdata.launches[start:]
+        self.assertEqual(len(launches), 1, launches)
+        name, args = launches[0]
+        self.assertEqual(name, "ShellExecuteW")
+        self.assertTrue(args[3].endswith('configtool.py" config chedayi'), args)
+        self.assertFalse(service.showmenu)
+
+
+@h.requires_tables
+class SelKeysSwitchTests(unittest.TestCase):
+    """大易在每個新 client 的第一個鍵、進出 ` 功能選單時會換選字鍵。以前那個鍵放開時
+    重送候選清單：頁碼（1/2）被清成空字串；候選窗沒在顯示時，重送的清單沒有
+    showCandidates，C++ 端照樣秀出視窗卻不記成「顯示中」，切到別的程式也收不掉。
+    按下時的回覆已帶 setSelKeys（C++ 先套用再畫清單），放開時什麼都不用送。"""
+
+    def assertNoCandidateUpdate(self, up):
+        for key in ("candidateList", "candidatePageInfo", "showCandidates"):
+            self.assertNotIn(key, up)
+
+    def open_function_menu(self, service):
+        # 大易三碼的 ` 是字根「巷」，連按三次才是功能選單
+        for _ in range(3):
+            down, up = h.press_replies(service, "`")
+            if "特殊符號" in (service.candidateList or []):
+                return down, up
+        self.fail("function menu not shown")
+
+    def test_first_key_keeps_the_page_info(self):
+        service = h.make_service("chedayi")
+        down, up = h.press_replies(service, "x")
+        self.assertIn("setSelKeys", down)                  # the key that switches the keys
+        self.assertIs(down.get("showCandidates"), True)
+        self.assertTrue(down.get("candidateList"))
+        self.assertTrue(down.get("candidatePageInfo"))      # e.g. 1/2
+        self.assertNoCandidateUpdate(up)
+
+    def test_function_menu_is_shown_on_key_down(self):
+        service = h.make_service("chedayi")
+        h.type_keys(service, ["x", "SPACE"])                # the 大易 keys are in use
+        down, up = self.open_function_menu(service)
+        self.assertEqual(down.get("setSelKeys"), "1234567890")
+        self.assertIs(down.get("showCandidates"), True)
+        self.assertIn("選單", down.get("candidateHeader", ""))
+        self.assertNoCandidateUpdate(up)                    # used to replace the menu header
+
+    def test_escape_from_the_function_menu_leaves_no_window(self):
+        service = h.make_service("chedayi")
+        self.open_function_menu(service)
+        down, up = h.press_replies(service, "ESC")
+        self.assertIs(down.get("showCandidates"), False)
+        self.assertIn("setSelKeys", down)
+        self.assertNoCandidateUpdate(up)                    # used to resend the menu page
+
+    def test_first_key_that_commits_leaves_no_window(self):
+        for key, shift in (("a", True), ("~", False), ("+", False)):
+            with self.subTest(key=key):
+                service = h.make_service("chedayi")
+                down, up = h.press_replies(service, key, shift=shift)
+                self.assertTrue(down.get("commitString"))
+                self.assertNoCandidateUpdate(up)
+
 
 @h.requires_tables
 class DayiSymbolTests(unittest.TestCase):

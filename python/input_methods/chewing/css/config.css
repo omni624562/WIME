@@ -69,24 +69,6 @@ textarea {
     width: 80px;
 }
 
-#selExample {
-    background-color: white;
-    border-bottom: 1px solid black;
-    border-left: 1px solid grey;
-    border-right: 2px solid black;
-    border-top: 1px solid grey;
-    display: inline-block;
-    font-family: serif;
-    line-height: 110%;
-    min-width: 2.3em;
-    padding: 4px;
-}
-
-#selExample span {
-    color: blue;
-    font-family: monospace;
-}
-
 #keyboard_tab #keyboard_layouts {
     box-shadow: 5px 6px #888888;
     display: block;
@@ -670,6 +652,9 @@ textarea {
     max-width: none;
     padding-left: 24px;
     padding-right: 24px;
+    /* Bootstrap 的 .container 是 width: 100%，加上側欄的 margin-left 會比視窗寬 210px，
+       每個分頁都出現水平捲軸；auto 讓它只佔側欄右邊剩下的寬度 */
+    width: auto;
 }
 
 .setting-hint {
@@ -784,11 +769,5 @@ textarea {
     .candidate-theme-card-state,
     .candidate-style-card-state {
         color: #7ea2f0;
-    }
-
-    #selExample {
-        background-color: #262b35;
-        border-color: #4a5468;
-        color: #dbe1ea;
     }
 }

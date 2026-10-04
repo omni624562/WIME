@@ -1,10 +1,11 @@
 """End-to-end tests against the deployed PIME stack.
 
 Talks to the live PIMELauncher named pipe exactly like PIMETextService
-does. Skipped automatically when the launcher pipe is not available, so
-the suite stays safe to run on machines without a deployed build.
+does. They exercise the user's real backend, settings and phrase data, so
+they only run when WIME_E2E=1 is set (and the launcher pipe is available);
+a plain `unittest discover` skips them.
 
-Run with:  python -m unittest tests.e2e_pipe_test -v
+Run with:  set WIME_E2E=1 && python -m unittest tests.e2e_pipe_test -v
 """
 import json
 import os
@@ -36,6 +37,11 @@ _PIPE_AVAILABLE = None
 def pipe_available():
     global _PIPE_AVAILABLE
     if _PIPE_AVAILABLE is None:
+        # 這些測試打的是使用者真的在用的輸入法後端（使用者的設定與詞庫），所以要明確
+        # 設定 WIME_E2E=1 才跑；以前只要啟動器在跑，跑整套 unittest discover 就會打進去
+        if os.environ.get("WIME_E2E") != "1":
+            _PIPE_AVAILABLE = False
+            return _PIPE_AVAILABLE
         try:
             f = open_pipe(retries=3)
             f.close()

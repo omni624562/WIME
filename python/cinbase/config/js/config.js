@@ -97,7 +97,15 @@ function showConfigLoadError(xhr) {
 
 // 儲存失敗一定要讓使用者知道，否則會以為已經存好了。
 function showConfigSaveError(xhr) {
-    var message = serverErrorMessage(xhr, "儲存設定") + "<br>這次的變更尚未儲存。";
+    var message;
+    if (xhr && xhr.status === 500) {
+        // 設定工具寫不進設定檔（例如 config.json 正被其他程式開著）。工作階段還有效，
+        // 關掉頁面反而會丟掉這次的變更，請使用者稍後再按一次即可。
+        message = "儲存設定失敗：設定檔無法寫入（可能正被其他程式開著）。<br>" +
+            "頁面上的變更還在，請稍後再按一次「套用設定」。";
+    } else {
+        message = serverErrorMessage(xhr, "儲存設定") + "<br>這次的變更尚未儲存。";
+    }
     if ($.jAlert) {
         $.jAlert({
             'title': '儲存失敗',
@@ -254,8 +262,9 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.candidateWrapToMaxWidth === "undefined") {
         checjConfig.candidateWrapToMaxWidth = true;
     }
+    // 300 放不下一列 6 個候選字（100% 縮放要 306px），會換成 5+1 兩列
     if (typeof checjConfig.candidateMaxWidth === "undefined" || checjConfig.candidateMaxWidth < 220) {
-        checjConfig.candidateMaxWidth = 300;
+        checjConfig.candidateMaxWidth = 320;
     }
     // 別名（大小寫/空白不同、舊分支的命名）對回正式名稱；被移除的主題退回 System
     checjConfig.candidateTheme = canonicalCandidateThemeName(checjConfig.candidateTheme);
@@ -1092,7 +1101,6 @@ function updateKeyboardLayout() {
 // jQuery ready
 $(function() {
     // show PIME version number
-    $("#tabs").hide();
     $("#version").load(VERSION_URL);
     // 只抓一次 config.htm，再於 client 端把各片段填入對應容器；
     // 原本對同一份 40KB 檔發了 14 次 .load()（14 趟往返、解析 14 遍）。
@@ -1142,15 +1150,6 @@ function pageReady() {
     $("#flangs").val(flangsData);
     $("#extendtable").val(extendtableData);
 
-    if (imeFolderName == "chedayi") {
-        $("#candPerRow").TouchSpin({min:1, max:6});
-        $("#candPerPage").TouchSpin({min:1, max:6});
-    }
-    else {
-        $("#candPerRow").TouchSpin({min:1, max:10});
-        $("#candPerPage").TouchSpin({min:1, max:10});
-    }
-    $("#candMaxItems").TouchSpin({min:100, max:10000});
     $("#fontSize").TouchSpin({min:6, max:200});
     $("#candidatePerRow").TouchSpin({min:1, max:10});
     $("#candidateMinWidth").TouchSpin({min:160, max:720});
@@ -1395,46 +1394,15 @@ function pageReady() {
         });
     });
 
-    // use for select example
-    function updateSelExample() {
-        var example = ["選", "字", "大", "小", "範", "例"];
-        var html="";
-
-        for (number = 1, i = 0, row = 0; number <= $("#candPerPage").val(); number++, i++, row++) {
-            if (example[i] == null) {
-                i = 0;
-            }
-
-            if (row == $("#candPerRow").val()) {
-                row = 0;
-                html += "<br>";
-            }
-
-            html += "<span>" + number.toString().slice(-1) + ".</span> " + example[i] + "&nbsp;&nbsp;";
-        }
-
-        $("#selExample").html(html);
-    }
-
-    // setup selExample default style
-    $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-    updateSelExample();
-
     // trigger event
     $('.ui-spinner-button').click(function() {
         $(this).siblings('input').change();
     });
 
-    $("#ui_page input").on("change", function() {
-        $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-        updateSelExample();
-        updateCandidateAppearanceGalleries();
-    });
+    $("#ui_page input").on("change", updateCandidateAppearanceGalleries);
 
     $("#ui_page input").on("keydown", function(e) {
         if (e.keyCode == 38 || e.keyCode==40) {
-            $("#selExample").css("font-size", $("#fontSize").val() + "pt");
-            updateSelExample();
             updateCandidateAppearanceGalleries();
         }
     });

@@ -78,7 +78,7 @@ class ChewingConfigToolDataTests(unittest.TestCase):
                          "FROM userphrase_v1 WHERE phrase = '測試'" % (columns, columns))
         conn.close()
         with open(os.path.join(cls.dir, "config.json"), "w", encoding="utf-8-sig") as f:
-            json.dump({"candPerRow": None, "candPerPage": 5}, f)
+            json.dump({"candidateMinWidth": None, "candPerPage": 5, "candidateMaxWidth": 300, "candPerRow": 3}, f)
         with open(os.path.join(cls.dir, "swkb.dat"), "w", encoding="utf-8-sig") as f:
             f.write("A ★\n")
 
@@ -124,8 +124,10 @@ class ChewingConfigToolDataTests(unittest.TestCase):
 
     def test_1_config_is_normalized_and_bom_is_stripped(self):
         data = self.get_json("/config")
-        self.assertEqual(data["config"]["candPerRow"], 3)  # null on disk
+        self.assertEqual(data["config"]["candidateMinWidth"], 286)  # null on disk
         self.assertEqual(data["config"]["candPerPage"], 5)
+        self.assertNotIn("candPerRow", data["config"])  # retired: saving the page drops it from the file
+        self.assertEqual(data["config"]["candidateMaxWidth"], 340)  # the old default, as the backend loads it
         self.assertEqual(data["swkb"], "A ★\n")  # "﻿A ..." failed the page's format check
 
     def test_2_phrase_list_survives_invalid_utf8(self):

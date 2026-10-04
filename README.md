@@ -46,7 +46,7 @@ For a detailed Traditional Chinese summary of the changes made after the project
 *   Added `PYTHONUNBUFFERED=1` when spawning Python backends — eliminates 8 KB block-buffering delay that was the root cause of all input lag.
 *   Added `flush=True` to all `print()` calls in `python/server.py` as a secondary safeguard.
 *   Redirected debug/error prints in `server.py` from stdout to stderr, preventing protocol pollution.
-*   Fixed `BackendManager::get_backend_input()` in PIMELauncher to release the async mutex *before* spawning a new backend process, eliminating cold-start blocking of all other clients.
+*   `BackendManager::get_backend_input()` in PIMELauncher checks, spawns and registers a backend under one lock (spawning does not wait for the process, so this never blocked other clients); releasing the lock before spawning let simultaneous first connections start duplicate backends that restarted python.exe every second.
 *   Increased pipe read buffer from 1 KB to 8 KB in PIMEClient to reduce syscall round-trips for large candidate-list responses.
 *   Reduced `connectPipe` timeout from 30 s × 5 attempts to 3 s × 3 attempts to prevent UI freeze when PIMELauncher is unavailable.
 *   Changed watchdog tick logging from `info!` to `debug!` level to reduce console noise.

@@ -72,29 +72,26 @@ impl BackendManager {
 
     /// Retrieves a channel to send messages directly to the backend.
     pub async fn get_backend_input(&self, backend_name: &str) -> Option<mpsc::Sender<String>> {
-        // Fast path: backend already running — take and release the lock immediately.
-        {
-            let state = self.state.lock().await;
-            if let Some(b) = state.backends.get(backend_name) {
-                return Some(b.stdin_tx.clone());
-            }
+        // Check, spawn and insert under one lock acquisition. Releasing the lock in
+        // between let concurrent first handshakes each start a backend, of which only
+        // one was kept. Holding it is cheap: spawn_backend_process only starts the
+        // supervisor task, and the process itself is created inside that task.
+        let mut state = self.state.lock().await;
+        if let Some(b) = state.backends.get(backend_name) {
+            return Some(b.stdin_tx.clone());
         }
 
-        // Slow path: spawn the backend without holding the lock, so other clients
-        // are not blocked during the (potentially multi-second) process startup.
         let config = match self.registry.get_backend(backend_name) {
-            Some(c) => c.clone(),
+            Some(c) => c,
             None => {
                 error!("Unknown backend requested: {}", backend_name);
                 return None;
             }
         };
-        let backend = self.spawn_backend_process(&config).await;
-
-        // Re-acquire lock to insert; use entry() so a concurrent spawn doesn't overwrite.
-        let mut state = self.state.lock().await;
-        state.backends.entry(backend_name.to_string()).or_insert(backend);
-        state.backends.get(backend_name).map(|b| b.stdin_tx.clone())
+        let backend = self.spawn_backend_process(config).await;
+        let stdin_tx = backend.stdin_tx.clone();
+        state.backends.insert(backend_name.to_string(), backend);
+        Some(stdin_tx)
     }
 
     /// Sends a message to a specific backend, spawning it if necessary.
@@ -122,6 +119,9 @@ impl BackendManager {
     }
 
     /// Spawns a backend process and maintains its lifetime in a background task.
+    ///
+    /// get_backend_input calls this with the state lock held, so it must not wait
+    /// for the process to start.
     async fn spawn_backend_process(&self, config: &BackendConfig) -> BackendProcess {
         let backend_name = config.name.clone();
         let (stdin_tx, mut stdin_rx) = mpsc::channel::<String>(1024);
@@ -131,6 +131,13 @@ impl BackendManager {
 
         tokio::spawn(async move {
             loop {
+                // The BackendProcess and every client's copy of its sender are gone, so
+                // nothing can reach this backend any more: stop instead of restarting it.
+                if stdin_rx.is_closed() && stdin_rx.is_empty() {
+                    info!("Backend {} has no senders left. Stopping it.", backend_name_clone);
+                    break;
+                }
+
                 let mut child_process = match Self::create_backend_process(
                     &config_clone,
                     &manager_clone.registry.top_dir,
@@ -162,7 +169,7 @@ impl BackendManager {
                     Self::log_backend_stderr(stderr, backend_name_for_stderr).await;
                 });
 
-                Self::forward_inputs_to_backend(
+                let input_closed = Self::forward_inputs_to_backend(
                     &mut stdin_rx,       // Inputs received from client connections.
                     stdin,               // Backend stdin.
                     &mut child_process,  // Backend process.
@@ -173,6 +180,10 @@ impl BackendManager {
 
                 stdout_task.abort();
                 stderr_task.abort();
+                if input_closed {
+                    // Same as above; the process is killed when child_process drops.
+                    break;
+                }
                 warn!("Restarting backend {}", backend_name_clone);
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
@@ -286,13 +297,16 @@ impl BackendManager {
     }
 
     /// Forwards messages from the internal channel to the backend's stdin.
+    ///
+    /// Returns true when the channel was closed (all senders dropped), false when
+    /// the backend exited, hung or failed a write and should be restarted.
     async fn forward_inputs_to_backend(
         stdin_rx: &mut mpsc::Receiver<String>,
         stdin: tokio::process::ChildStdin,
         child_process: &mut tokio::process::Child,
         backend_name: &str,
         last_output_time: Arc<AtomicU64>,
-    ) {
+    ) -> bool {
         let mut stdin_writer = FramedWrite::new(stdin, LinesCodec::new_with_max_length(1048576));
         let mut last_request_time: Option<u64> = None;
 
@@ -303,7 +317,7 @@ impl BackendManager {
                 msg = stdin_rx.recv() => {
                     let Some(data) = msg else { 
                         info!("Backend {} stdin channel closed. Exiting input loop.", backend_name);
-                        break; 
+                        return true;
                     };
                     let now = Self::current_ms();
                     last_request_time = Some(now);
@@ -345,6 +359,7 @@ impl BackendManager {
                 }
             }
         }
+        false
     }
 
     fn current_ms() -> u64 {
@@ -359,6 +374,112 @@ impl BackendManager {
 mod tests {
     use super::*;
     use crate::backend_registry::BackendRegistry;
+    use std::time::Instant;
+
+    /// Every supervisor task (and the stdout reader of its running process) owns a
+    /// BackendManager clone until it ends, so the strong count minus the test's own
+    /// handle is the number of those background tasks still alive.
+    fn background_tasks(manager: &BackendManager) -> usize {
+        Arc::strong_count(&manager.state) - 1
+    }
+
+    fn single_backend_manager(
+        top_dir: &std::path::Path,
+        command: &str,
+        params: &str,
+    ) -> (BackendManager, BackendConfig) {
+        let config = BackendConfig {
+            name: "python".to_string(),
+            command: command.to_string(),
+            working_dir: "".to_string(),
+            params: params.to_string(),
+        };
+        let registry =
+            BackendRegistry::with_configs(vec![config.clone()], HashMap::new(), top_dir);
+        (BackendManager::new(registry), config)
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_first_requests_spawn_one_backend() {
+        // A missing executable parks every supervisor in its 5 s retry sleep without
+        // starting anything, so a duplicate supervisor is still alive when counted.
+        let dir = tempfile::tempdir().unwrap();
+        let (manager, _) = single_backend_manager(dir.path(), "missing_backend.exe", "");
+
+        // Queue all first requests on the state lock, then let them go at once:
+        // they must all end up on the one backend that the first of them started.
+        let guard = manager.state.lock().await;
+        let mut handles = Vec::new();
+        for _ in 0..8 {
+            let manager = manager.clone();
+            handles.push(tokio::spawn(async move {
+                manager.get_backend_input("python").await.unwrap()
+            }));
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        drop(guard);
+
+        let mut senders = Vec::new();
+        for h in handles {
+            senders.push(h.await.unwrap());
+        }
+        let map_tx = {
+            let state = manager.state.lock().await;
+            assert_eq!(state.backends.len(), 1);
+            state.backends["python"].stdin_tx.clone()
+        };
+        assert!(senders.iter().all(|tx| tx.same_channel(&map_tx)));
+        assert_eq!(
+            background_tasks(&manager),
+            1,
+            "duplicate backend supervisors were spawned"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_supervisor_stops_when_its_input_channel_closes() {
+        // cmd.exe stands in for python: /k appends one line per start, then keeps
+        // reading commands from stdin until it is closed, like server.py does.
+        let dir = tempfile::tempdir().unwrap();
+        let cmd =
+            std::env::var("ComSpec").unwrap_or_else(|_| r"C:\Windows\System32\cmd.exe".to_string());
+        let (manager, config) =
+            single_backend_manager(dir.path(), &cmd, "/d /q /k echo.>>starts.txt");
+        let starts = || {
+            std::fs::read_to_string(dir.path().join("starts.txt"))
+                .map(|s| s.lines().count())
+                .unwrap_or(0)
+        };
+
+        let backend = manager.spawn_backend_process(&config).await;
+        let t0 = Instant::now();
+        while starts() == 0 {
+            assert!(
+                t0.elapsed() < Duration::from_secs(10),
+                "backend never started"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+
+        // Nothing can send to this backend any more. The supervisor used to restart
+        // it every second regardless, for as long as the launcher kept running.
+        drop(backend);
+        tokio::time::sleep(Duration::from_millis(2500)).await;
+        assert_eq!(
+            starts(),
+            1,
+            "backend was restarted after its input channel closed"
+        );
+
+        let t0 = Instant::now();
+        while background_tasks(&manager) > 0 {
+            assert!(
+                t0.elapsed() < Duration::from_secs(5),
+                "backend supervisor is still running"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
 
     #[tokio::test]
     async fn test_client_registration() {

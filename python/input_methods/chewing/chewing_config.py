@@ -45,7 +45,6 @@ selKeys = (
 # 或每個按鍵都丟例外。型別不對或超出範圍的值改用預設值
 _INT_RANGES = {
     "candPerPage": (1, 10),
-    "candPerRow": (1, 10),
     "keyboardLayout": (0, 12),  # 設定頁的 13 種鍵盤排列
     "leftRightAction": (0, 1),
     "upDownAction": (0, 1),
@@ -62,6 +61,21 @@ _INT_RANGES = {
     "candidateMaxWidth": (0, 4000),
 }
 _C_INT_RANGE = (-2 ** 31, 2 ** 31 - 1)
+
+# 以前出貨的候選窗最大寬度，太窄：新酷音預設 16pt，100% 縮放時一列 6 個單字候選要
+# 336px（keycap 選字鍵，後端預設：6×49 + 5×6 + 2×6）或 318px（word-first，設定頁
+# 儲存時寫入的），300 讓一頁 9 個排成 5＋4。預設改成 340，keycap 在 125%、150% 也
+# 放得下（大易/酷倉是 12pt，用 320 就夠；tests/test_candidate_width.py 依
+# CandidateWindow 的算法與實際字寬檢查）。使用者的 config.json 都留著舊預設 300
+# （第一次載入與設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。設定工具
+# 顯示的值也經過 normalizeValues，兩邊一致
+LEGACY_CANDIDATE_MAX_WIDTH = 300
+
+# 已移除的設定。舊的 config.json 還帶著它們，載入（含設定工具讀檔）時丟掉，
+# 設定頁儲存時就不會再寫回去
+#   candPerRow: 舊版候選窗「每列顯示候選字個數」。舊版候選窗移除後沒有任何作用，
+#     每列幾個候選由 candidatePerRow（候選窗外觀的「每列候選字數」）決定
+_RETIRED_KEYS = ("candPerRow",)
 
 
 def _toInt(value):
@@ -94,8 +108,9 @@ def _toBool(value):
 
 def normalizeValues(values, defaults):
     """回傳 values 的副本：已知設定的值轉成程式預期的型別與範圍，無效的值改用
-    defaults 裡的預設值；不認得的鍵原樣保留。"""
-    result = dict(values)
+    defaults 裡的預設值，舊的出貨預設值（LEGACY_CANDIDATE_MAX_WIDTH）換成新的，
+    已移除的設定（_RETIRED_KEYS）丟掉；其他不認得的鍵原樣保留。"""
+    result = {key: value for key, value in values.items() if key not in _RETIRED_KEYS}
     for key, default in defaults.items():
         if key not in result:
             continue
@@ -120,6 +135,8 @@ def normalizeValues(values, defaults):
         if value is None:
             value = copy.deepcopy(default)
         result[key] = value
+    if result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults:
+        result["candidateMaxWidth"] = defaults["candidateMaxWidth"]
     return result
 
 
@@ -163,7 +180,6 @@ class ChewingConfig:
         self.advanceAfterSelection = True
         self.autoLearn = True
         self.candPerPage = 9
-        self.candPerRow = 3
         self.defaultEnglish = False
         self.defaultFullSpace = False
         self.disableOnStartup = False
@@ -198,7 +214,7 @@ class ChewingConfig:
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 300
+        self.candidateMaxWidth = 340  # 16pt 一列 6 個單字要 336px（見 LEGACY_CANDIDATE_MAX_WIDTH）
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

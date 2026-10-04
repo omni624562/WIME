@@ -242,7 +242,7 @@ class ChewingTextService(TextService):
             "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
             "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
             "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
+            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 340),
         }
         if not force and getattr(self, '_lastCandidateUIArgs', None) == ui_args:
             return
@@ -771,7 +771,7 @@ class ChewingTextService(TextService):
                             candCursor = 0
 
                 # 使用上下鍵游標選字，因上下鍵需要作為組字模式切換，所以不設定循環
-                # 步幅是候選窗一列的字數 (新式橫排一列是 candidatePerRow 個，不是 candPerRow)
+                # 步幅是候選窗一列的字數 (橫排一列是 candidatePerRow 個)
                 if cfg.upDownAction == 0:
                     perRow = self.candidatesPerUiRow()
                     if keyCode == VK_UP:

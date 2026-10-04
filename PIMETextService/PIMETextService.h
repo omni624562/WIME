@@ -123,6 +123,11 @@ public:
 		return showingCandidates_;
 	}
 
+	// the candidate window is up but lists no candidates, only a backend message
+	bool showingMessageOnly() const {
+		return showingCandidates_ && candidates_.empty() && !candidateMessage_.empty();
+	}
+
 	const std::wstring& candidateHeader() const {
 		return candidateHeader_;
 	}

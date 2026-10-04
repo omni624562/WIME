@@ -93,6 +93,7 @@ private:
 
 	bool init();
 	void resetTextServiceState();
+	void discardOrphanedUi();
 
 	void addKeyEventToRpcRequest(nlohmann::json& request, Ime::KeyEvent& keyEvent);
 	bool sendOnMenu(std::string button_id, nlohmann::json& result);
@@ -110,6 +111,7 @@ private:
 	void updatePreservedKeys(nlohmann::json& msg);
 	void updateKeyboardStatus(nlohmann::json& msg);
 	void updateCandidateList(nlohmann::json& msg, Ime::EditSession* session);
+	void hideCandidateMessage(Ime::EditSession* session);
 	void updateUI(nlohmann::json& data);
 	void updateStatus(nlohmann::json& msg, Ime::EditSession* session = nullptr);
 
@@ -125,6 +127,10 @@ private:
 	HANDLE ioEvent_;
 	ULONGLONG lastSuccessfulRpcTick_;
 	ULONGLONG lastFocusPingTick_;
+	bool discardingOrphanedUi_; // set while discardOrphanedUi() ends the composition
+	// a request lost the connection since discardOrphanedUi() last ran: the UI on
+	// screen may belong to a backend client that no longer exists
+	bool connectionLost_;
 };
 
 }

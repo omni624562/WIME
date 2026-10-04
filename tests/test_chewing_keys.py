@@ -121,12 +121,11 @@ class CandidateCursorTests(ChewingTestCase):
         self.assertEqual(s.compositionString, chosen)  # Enter picks what is highlighted
 
     def test_up_down_move_by_a_visual_row(self):
-        s = self.service(candidateLayout="horizontal", candidatePerRow=6,
-                         candPerRow=3, candPerPage=9)
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
         self.type(s, list("su3") + ["DOWN"])
         self.assertEqual(s.candidateCursor, 0)
         self.type(s, ["DOWN"])
-        self.assertEqual(s.candidateCursor, 6)  # a row of the modern window holds 6, not candPerRow (3)
+        self.assertEqual(s.candidateCursor, 6)  # a row of the window holds candidatePerRow (6)
         self.type(s, ["UP"])
         self.assertEqual(s.candidateCursor, 0)
 

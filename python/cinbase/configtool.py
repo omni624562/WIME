@@ -82,6 +82,16 @@ class ConfigHandler(BaseHandler):
     def post(self):  # save config
         data = tornado.escape.json_decode(self.request.body)
         # print(data)
+        try:
+            self.save_all(data)
+        except OSError as err:
+            # 以前錯誤被吞掉、一律回答成功，設定頁顯示「設定已套用」但 config.json 沒變
+            # （例如另一個程式正開著 config.json，os.replace 會被拒絕）
+            print("cannot save settings:", err, file=sys.stderr)
+            raise tornado.web.HTTPError(500, reason="Cannot save the settings")
+        self.write('{"return":true}')
+
+    def save_all(self, data):
         # ensure the config dir exists
         os.makedirs(config_dir, exist_ok=True)
         # write the config to files
@@ -121,8 +131,6 @@ class ConfigHandler(BaseHandler):
         extendtable = data.get("extendtable", None)
         if extendtable is not None:
             self.save_file("extendtable.dat", extendtable)
-
-        self.write('{"return":true}')
 
     def load_config(self):
         cfg.load()
@@ -183,6 +191,7 @@ class ConfigHandler(BaseHandler):
             return ""
 
     def save_file(self, filename, data):
+        """寫入 config_dir 下的檔案 (先寫暫存檔再取代)；失敗時清掉暫存檔後丟出例外"""
         target = os.path.join(config_dir, filename)
         tmp_target = target + ".tmp"
         try:
@@ -195,7 +204,7 @@ class ConfigHandler(BaseHandler):
                     os.remove(tmp_target)
             except Exception:
                 pass
-            pass
+            raise
 
 
 class ConfigApp(ConfigServerApp):

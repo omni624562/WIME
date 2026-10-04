@@ -61,6 +61,8 @@ $(function () {
     function applyCandidateDefaults() {
         // 舊版的「使用新版候選窗 UI」開關已移除，一律使用新版候選窗
         delete chewingConfig.candidateModernStyle;
+        // 舊版候選窗的每列字數 (candPerRow) 已沒有作用，新版只看 candidatePerRow；存檔時不再寫回
+        delete chewingConfig.candPerRow;
         if (typeof chewingConfig.candidateStableWidth === "undefined") {
             chewingConfig.candidateStableWidth = true;
         }
@@ -70,8 +72,9 @@ $(function () {
         if (typeof chewingConfig.candidateWrapToMaxWidth === "undefined") {
             chewingConfig.candidateWrapToMaxWidth = true;
         }
+        // 與大易/酷倉設定頁相同的預設值（300 在 100% 縮放下放不下一列 6 個 12pt 候選字）
         if (typeof chewingConfig.candidateMaxWidth === "undefined" || chewingConfig.candidateMaxWidth < 220) {
-            chewingConfig.candidateMaxWidth = 300;
+            chewingConfig.candidateMaxWidth = 340;
         }
         // 別名（大小寫/空白不同、舊分支的命名、舊的 dark/light）對回正式名稱；
         // 被移除的主題退回 System（跟隨系統）
@@ -597,6 +600,12 @@ $(function () {
             error: function (xhr) {
                 // 儲存失敗一定要讓使用者知道，否則會以為已經存好了
                 var message = serverErrorMessage(xhr, "儲存設定") + "\n這次的變更尚未儲存。";
+                if (xhr && xhr.status === 500) {
+                    // 設定工具寫不進設定檔（例如 config.json 正被其他程式開著）。工作階段還有效，
+                    // 關掉頁面反而會丟掉這次的變更，請使用者稍後再按一次即可。
+                    message = "儲存設定失敗：設定檔無法寫入（可能正被其他程式開著）。\n" +
+                        "頁面上的變更還在，請稍後再按一次「套用設定」。";
+                }
                 if (window.swal) {
                     swal.fire({ title: "儲存失敗", html: $("<div>").text(message).html().replace(/\n/g, "<br>"), icon: "error" });
                 } else {
@@ -743,9 +752,6 @@ $(function () {
             }
         });
 
-        // Setup select phrase example & Bind updateSelExample event
-        updateSelExample();
-        $("#ui_tab input, #ui_tab select").on("change keyup", updateSelExample);
         renderCandidateThemeGallery();
         renderCandidateKeyStyleGallery();
         renderCandidateMessageStyleGallery();
@@ -865,7 +871,7 @@ $(function () {
         setCandidateNumber("candidatePerRow", 6);
         setCandidateNumber("fontSize", 16);
         setCandidateNumber("candidateMinWidth", 286);
-        setCandidateNumber("candidateMaxWidth", 300);
+        setCandidateNumber("candidateMaxWidth", 340);
 
         var selPositionModes = ["跟隨游標", "螢幕下緣置中"];
         var candidatePositionMode = $("#candidatePositionMode");
@@ -874,33 +880,6 @@ $(function () {
         }
         candidatePositionMode.children().eq(chewingConfig.candidatePositionMode || 0).prop("selected", true);
         setCandidateNumber("candidateOpacity", 100);
-    }
-
-    // Use for select phrase example
-    function updateSelExample() {
-        var example = ["選", "字", "視", "窗", "大", "小", "範", "例"];
-        var selectedIndex = parseInt($("#selKeyType").val(), 10);
-        var selectedOption = $("#selKeyType option").eq(isNaN(selectedIndex) ? 0 : selectedIndex);
-        var selectItems = selectedOption.length ? selectedOption.html() : "1234567890";
-        var candPerPage = parseInt($("#candPerPage").val(), 10) || example.length;
-        var candPerRow = parseInt($("#candPerRow").val(), 10) || example.length;
-        var html = "";
-
-        for (var number = 0, i = 0, row = 0; number < candPerPage; number++, i++, row++) {
-            if (example[i] == null) {
-                i = 0;
-            }
-
-            if (row == candPerRow) {
-                row = 0;
-                html += "<br>";
-            }
-
-            html += "<span>" + selectItems.substr(number, 1) + ".</span>" + example[i];
-        }
-
-        $("#selExample").html(html);
-        $("#selExample").css("font-size", $("#fontSize").val() + "pt");
     }
 
     // workaround the same origin policy of IE.

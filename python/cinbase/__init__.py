@@ -772,8 +772,8 @@ class CinBase:
                 cbTS, pagecandidates, currentCandPage, candCursor)
             cbTS.setCandidateList(pagecandidates[currentCandPage])
             candCount = len(cbTS.candidateList)
-            if not cbTS.isSelKeysChanged:
-                cbTS.setShowCandidates(True)
+            # 選字鍵剛換掉也直接顯示：C++ 端先套用 setSelKeys 再畫候選清單
+            cbTS.setShowCandidates(True)
             cbTS.resetMenuCand = False
             itemName = ""
 
@@ -1015,7 +1015,13 @@ class CinBase:
 
         if CinTable.loading or not getattr(cbTS, 'cin', None):
             if not cbTS.client.isUiLess:
-                messagestr = '正在載入輸入法碼表，請稍候...'
+                if not getattr(cbTS, 'cin', None) and getattr(CinTable, 'loadFailed', False):
+                    # 碼表檔缺失或損毀：背景每 TABLE_RETRY_INTERVAL 秒仍會重試，但以前
+                    # 一直顯示「正在載入」，使用者只會乾等。重試進行中（loading）也維持
+                    # 這個訊息，免得文字在兩者間跳來跳去
+                    messagestr = '輸入法碼表載入失敗，請重新安裝 WIME 或檢查碼表檔案'
+                else:
+                    messagestr = '正在載入輸入法碼表，請稍候...'
                 cbTS.isShowMessage = True
                 cbTS.showMessage(messagestr)
             return True
@@ -2001,8 +2007,10 @@ class CinBase:
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
                     candCount = len(cbTS.candidateList)
 
-                    if not cbTS.isSelKeysChanged:
-                        cbTS.setShowCandidates(True)
+                    # 選字鍵剛換掉也在這裡就顯示（C++ 端先套用 setSelKeys 再畫清單）。
+                    # 以前留到 onKeyUp 才顯示，按鍵按下時送出的清單沒有 showCandidates，
+                    # C++ 端照樣把視窗秀出來卻沒記成「顯示中」，切到別的程式也不會收掉
+                    cbTS.setShowCandidates(True)
 
                     self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
 
@@ -2586,9 +2594,10 @@ class CinBase:
             self.abandonComposition(cbTS)
 
         if cbTS.isSelKeysChanged:
-            cbTS.setCandidateList(cbTS.candidateList)
-            if cbTS.isShowCandidates:
-                cbTS.setShowCandidates(True)
+            # 按下時的回覆已帶 setSelKeys 與候選清單，C++ 端也先換選字鍵再畫清單，
+            # 這裡只要清掉旗標。以前在這裡重送清單：頁碼（1/2）被 header 補成空字串
+            # 而消失；候選窗沒在顯示時（` 選單按 Esc、第一個鍵就送出字）重送的清單
+            # 沒有 showCandidates，C++ 端照樣秀出一個收不掉的空候選窗
             cbTS.isSelKeysChanged = False
 
         if cbTS.showPhrase and cbTS.phrasemode and cbTS.isShowPhraseCandidates:
@@ -3574,7 +3583,7 @@ class CinBase:
             "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
             "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
             "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
+            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 320),
         }
         if not force and getattr(cbTS, '_lastCandidateUIArgs', None) == ui_args:
             return
@@ -3869,6 +3878,9 @@ class LoadCinTable(threading.Thread):
                         newCin = Cin(fs, cbTS.imeDirName, cbTS.ignorePrivateUseArea)
                 except Exception:
                     self.CinTable.lastLoadFailure = time.time()
+                    # lastLoadFailure 只是重試節流，每次重試都會覆寫；這個旗標一直
+                    # 留到真的載入成功為止，onKeyDown 靠它分辨「載入中」與「載入失敗」
+                    self.CinTable.loadFailed = True
                     if current is None:
                         cbTS.cin = self.CinTable.cin   # 還有別的實例載好的表就先用
                     raise
@@ -3880,6 +3892,7 @@ class LoadCinTable(threading.Thread):
                 self.CinTable.cin = newCin
                 self.CinTable.curCinType = cfg.selCinType
                 self.CinTable.lastLoadFailure = 0.0
+                self.CinTable.loadFailed = False
 
             if not hasattr(cbTS, 'extendtable'):
                 cbTS.extendtable = CinBase.loadDataFile(cfg, "extendtable.dat", extendtable)

@@ -23,6 +23,8 @@ SEQUENCES = 1000
 
 LETTERS = list("abcdefghijklmnopqrstuvwxyz")
 NAV = ["PGDN", "PGUP", "DOWN", "UP", "LEFT", "RIGHT", "HOME", "END"]
+# The ` and digit keys reach the function menu's 開啟設定視窗… item, which starts
+# configtool.py (and the user's browser): IsolatedAppData records that call instead.
 KEYS = (LETTERS + list("0123456789") + list(",./;'[]-=") + NAV * 6
         + ["SPACE"] * 5 + ["ENTER", "ESC", "BACK", "BACK", "`", "`", "`"]
         + [("'", "C"), (";", "C"), (",", "C"), ("[", "C")] * 3
@@ -52,6 +54,7 @@ def tearDownModule():
 @h.requires_tables
 class CandidateCursorFuzzTests(unittest.TestCase):
     def test_cursor_stays_inside_the_candidate_list(self):
+        self.assertTrue(h.launches_blocked(), "the settings item would open the browser")
         rng = random.Random(SEED)
         problems = []
         for _ in range(SEQUENCES):
