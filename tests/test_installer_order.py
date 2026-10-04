@@ -7,7 +7,8 @@ tree. Clicking Cancel on one of the following pages then left the PC with no WIM
 all and nothing to repair or uninstall it with. These checks read the script (the
 installer itself is never run): nothing reachable from .onInit may change the system,
 the removal runs in a hidden section declared before every section that installs
-files, and silent installs still answer the prompt with OK.
+files, only on the OK the prompt recorded, and silent installs still answer the
+prompt with OK.
 """
 
 import os
@@ -28,10 +29,9 @@ CHANGING_COMMANDS = {
 CHANGING_FUNCTIONS = {"killProcessesInInstDir", "moveAsideIfLocked"}
 
 
-def read_script():
-    """Return (functions, sections): function name -> body lines, and the install
-    sections in declaration order as (header, body lines). Comment lines are dropped
-    and continuation lines joined; both branches of !if blocks are kept."""
+def script_lines():
+    """The script's lines with comment lines dropped and continuation lines joined;
+    both branches of !if blocks are kept."""
     with open(INSTALLER, encoding="utf-8-sig") as f:
         raw = f.read().splitlines()
     lines, pending = [], ""
@@ -44,8 +44,14 @@ def read_script():
         if line and not line.startswith((";", "#")):
             # functions defined by the DEFINE_* macros, as the installer's copy
             lines.append(line.replace("${UN}", ""))
+    return lines
+
+
+def read_script():
+    """Return (functions, sections): function name -> body lines, and the install
+    sections in declaration order as (header, body lines)."""
     functions, sections, current = {}, [], None
-    for line in lines:
+    for line in script_lines():
         word = line.split(None, 1)[0].lower()
         if word == "function":
             current = functions.setdefault(line.split(None, 1)[1].strip(), [])
@@ -85,6 +91,44 @@ def is_teardown(line):
 def installs_files(line):
     word = line.split()[0].lower()
     return word == "file" and "$PLUGINSDIR" not in line
+
+
+# what removing the old version does; each step must wait for the OK on the prompt
+TEARDOWN_STEPS = {
+    "unregister the TSF DLLs": is_teardown,
+    "delete the Apps & features entry":
+        lambda line: line.startswith("DeleteRegKey") and "\\Uninstall\\PIME" in line,
+    "remove the autostart":
+        lambda line: line.startswith("DeleteRegValue") and "\\Run" in line,
+    "delete Software\\PIME":
+        lambda line: line.startswith("DeleteRegKey") and line.endswith('"Software\\PIME"'),
+    "delete the python tree":
+        lambda line: line.startswith("RMDir /r") and "$INSTDIR\\python" in line,
+    "delete the Start-menu folder":
+        lambda line: line.startswith("RMDir /r") and "$SMPROGRAMS" in line,
+}
+
+
+def assignment(line):
+    """(variable, value) for `StrCpy $var value`, else None."""
+    match = re.match(r"StrCpy\s+\$(\w+)\s+(\S+)$", line)
+    return match and (match.group(1), match.group(2).strip('"'))
+
+
+def guarded_range(body, start):
+    """Indexes of the lines run when the ${If} at body[start] is true: up to its
+    ${Else}, ${ElseIf} or ${EndIf}."""
+    depth = 0
+    for index in range(start + 1, len(body)):
+        if re.match(r"\$\{(If|IfNot|Unless)\}", body[index]):
+            depth += 1
+        elif re.match(r"\$\{(EndIf|EndUnless)\}", body[index]):
+            if depth == 0:
+                return range(start + 1, index)
+            depth -= 1
+        elif depth == 0 and re.match(r"\$\{(Else|ElseIf|ElseUnless)\}", body[index]):
+            return range(start + 1, index)
+    raise AssertionError("no ${EndIf} for " + body[start])
 
 
 class OnInitTests(unittest.TestCase):
@@ -147,6 +191,70 @@ class SectionOrderTests(unittest.TestCase):
         for header, body in self.sections:
             with self.subTest(section=header):
                 self.assertNotIn(".onInstFailed", called(body))
+
+
+class AnswerTests(unittest.TestCase):
+    """The prompt in .onInit and the removal in the Prepare section are tied together
+    only by a variable. Dropping the assignment, or renaming the variable on one side,
+    still compiles and leaves the order above intact, but then every upgrade silently
+    skips the removal: old DLLs stay registered, the old python tree and Start-menu
+    folder stay, and so do the old registry entries."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.functions, sections = read_script()
+        cls.sections = [(header, expand(body, cls.functions)) for header, body in sections]
+        # the function that shows the prompt, not expanded: relative jumps count
+        # its own instructions
+        cls.asker = next(body for body in cls.functions.values()
+                         if any("$(UNINSTALL_OLD)" in line for line in body))
+        cls.prompt = next(i for i, line in enumerate(cls.asker) if "$(UNINSTALL_OLD)" in line)
+
+    def answer(self):
+        """(variable, value) recorded when the user clicks OK: the instruction the
+        prompt's IDOK jumps to."""
+        jump = re.search(r"\bIDOK\s+(\S+)", self.asker[self.prompt].replace("/SD IDOK", ""))
+        self.assertIsNotNone(jump, "OK must jump past the Abort")
+        target = jump.group(1)
+        if target.startswith("+"):
+            target = self.prompt + int(target)
+            # one line, one instruction: no macros (they expand to several) in between
+            for line in self.asker[self.prompt + 1:target]:
+                self.assertFalse(line.startswith(("${", "!")), line)
+        else:
+            target = self.asker.index(target + ":") + 1
+        recorded = assignment(self.asker[target])
+        self.assertIsNotNone(recorded, "OK must record the answer: " + self.asker[target])
+        return recorded
+
+    def test_ok_records_the_answer(self):
+        variable, agreed = self.answer()
+        # reset before asking, so the removal never runs on a stale answer
+        earlier = [assignment(line) for line in self.asker[:self.prompt]]
+        earlier = [value for name, value in filter(None, earlier) if name == variable]
+        self.assertTrue(earlier, "no default for $" + variable)
+        self.assertNotEqual(earlier[-1], agreed)
+
+    def test_nothing_else_records_agreement(self):
+        # the removal runs only because the user clicked OK: the assignment the OK
+        # jumps to is the only one in the script
+        variable, agreed = self.answer()
+        found = [line for line in script_lines() if assignment(line) == (variable, agreed)]
+        self.assertEqual(len(found), 1, found)
+
+    def test_removal_waits_for_that_answer(self):
+        variable, agreed = self.answer()
+        body = next(body for header, body in self.sections if any(map(is_teardown, body)))
+        guards = [i for i, line in enumerate(body)
+                  if re.fullmatch(r'\$\{If\}\s+\$%s\s+==\s+"?%s"?'
+                                  % (re.escape(variable), re.escape(agreed)), line)]
+        self.assertEqual(len(guards), 1, "Prepare must check $%s == %s" % (variable, agreed))
+        guarded = guarded_range(body, guards[0])
+        for step, predicate in TEARDOWN_STEPS.items():
+            with self.subTest(step=step):
+                where = [i for i, line in enumerate(body) if predicate(line)]
+                self.assertTrue(where, "the removal no longer does this")
+                self.assertTrue(all(i in guarded for i in where), where)
 
 
 if __name__ == "__main__":
