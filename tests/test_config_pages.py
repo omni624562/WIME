@@ -156,6 +156,21 @@ class ConfigPageTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertLess(match.start(), defaults.index("if (!modernDefaultIme)"))
 
+    def test_pages_mark_the_max_width_as_migrated_on_save(self):
+        # The backend replaces a stored candidateMaxWidth of 300 (the old default)
+        # with the new default unless this marker is set, so a 300 picked on the
+        # page came back as 320/340. Every save from either page sets it.
+        for path, config in ((os.path.join(CINBASE_CONFIG_DIR, "js", "config.js"), "checjConfig"),
+                             (os.path.join(CHEWING_DIR, "js", "config.js"), "chewingConfig")):
+            with self.subTest(page=os.path.relpath(path, ROOT)):
+                body = function_body(path, "saveConfig")
+                indent = re.match(r"(?:[ \t]*\n)*([ \t]*)\S", body).group(1)
+                # unconditional: at the function body's own indentation, before the request is built
+                match = re.search(r"^%s%s\.candidateMaxWidthMigrated = true;$" % (indent, config), body, re.M)
+                self.assertIsNotNone(match)
+                self.assertRegex(body, r'"?config"?: %s\b' % config)
+                self.assertLess(match.start(), body.index("JSON.stringify(data)"))
+
     def test_cinbase_pages_load_the_data_format_rules(self):
         # checkDataFormat() in js/config.js calls findDataFormatError(); without the
         # script every 套用設定 that changed a text tab would throw and save nothing
