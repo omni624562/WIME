@@ -128,6 +128,9 @@ private:
 	ULONGLONG lastSuccessfulRpcTick_;
 	ULONGLONG lastFocusPingTick_;
 	bool discardingOrphanedUi_; // set while discardOrphanedUi() ends the composition
+	// a request lost the connection since discardOrphanedUi() last ran: the UI on
+	// screen may belong to a backend client that no longer exists
+	bool connectionLost_;
 };
 
 }

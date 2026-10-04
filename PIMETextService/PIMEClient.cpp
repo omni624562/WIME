@@ -283,7 +283,8 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) },
 	lastSuccessfulRpcTick_{ 0 },
 	lastFocusPingTick_{ 0 },
-	discardingOrphanedUi_{ false } {
+	discardingOrphanedUi_{ false },
+	connectionLost_{ false } {
 	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
@@ -877,6 +878,10 @@ void Client::onSetFocus() {
 		return;
 	lastFocusPingTick_ = now;
 
+	// the ping below may reconnect to a fresh backend client (see callKeyRpcMethod())
+	if (connectionLost_)
+		discardOrphanedUi();
+
 	json req = createRpcRequest("ping");
 	json ret;
 	if (!callRpcMethod(req, ret, kFocusPingRpcTimeoutMs, kFocusPingConnectTimeoutMs, kFocusPingConnectAttempts)) {
@@ -1274,6 +1279,14 @@ bool Client::recoverStaleBackendClient(json& request, json& response) {
 }
 
 bool Client::callKeyRpcMethod(json& request, json& response) {
+	// An earlier request lost the connection (e.g. onKillFocus or a preserved key
+	// timed out). This key goes to a brand-new backend client, reconnected by
+	// callRpcMethod() below or already by some request in between, so
+	// recoverStaleBackendClient() never sees it. Keys are never sent from inside
+	// updateStatus(), so this is a safe place to end the stale composition.
+	if (connectionLost_)
+		discardOrphanedUi();
+
 	bool hadConnectedPipe = pipe_ != INVALID_HANDLE_VALUE;
 	if (!callRpcMethod(
 		request,
@@ -1325,6 +1338,11 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 	if (!success) { // fail to send the request to the server
 		closeRpcConnection(); // close the pipe connection since it's broken
 		resetTextServiceState();  // since we lost the connection, the state is unknonw so we reset.
+		// The launcher drops the backend client with the pipe. Its composition and
+		// candidate window are discarded before the next key or focus ping rather
+		// than here: this can run inside updateStatus() (e.g. the nested
+		// onCompositionTerminated request), in the middle of applying a reply.
+		connectionLost_ = true;
 	}
 	else {
 		lastSuccessfulRpcTick_ = ::GetTickCount64();
@@ -1490,6 +1508,7 @@ void Client::resetTextServiceState() {
 // the old one left on screen. Space, Esc, Enter and Backspace would then pass to
 // the app while that stale UI still looks alive, so drop it before reconnecting.
 void Client::discardOrphanedUi() {
+	connectionLost_ = false;
 	if (textService_->isComposing()) {
 		if (auto context = textService_->currentContext()) {
 			// requests its own synchronous edit session; whatever preedit text is
