@@ -93,6 +93,7 @@ private:
 
 	bool init();
 	void resetTextServiceState();
+	void discardOrphanedUi();
 
 	void addKeyEventToRpcRequest(nlohmann::json& request, Ime::KeyEvent& keyEvent);
 	bool sendOnMenu(std::string button_id, nlohmann::json& result);
@@ -126,6 +127,7 @@ private:
 	HANDLE ioEvent_;
 	ULONGLONG lastSuccessfulRpcTick_;
 	ULONGLONG lastFocusPingTick_;
+	bool discardingOrphanedUi_; // set while discardOrphanedUi() ends the composition
 };
 
 }

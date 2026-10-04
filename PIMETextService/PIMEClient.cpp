@@ -276,7 +276,8 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	shouldWaitConnection_{ true },
 	ioEvent_{ CreateEvent(NULL, TRUE, FALSE, NULL) },
 	lastSuccessfulRpcTick_{ 0 },
-	lastFocusPingTick_{ 0 } {
+	lastFocusPingTick_{ 0 },
+	discardingOrphanedUi_{ false } {
 	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
@@ -862,6 +863,7 @@ void Client::onSetFocus() {
 	if (isRecoverableBackendStateFailure(ret)) {
 		closeRpcConnection();
 		resetTextServiceState();
+		discardOrphanedUi();
 		json retryReq = createRpcRequest("ping");
 		json retryRet;
 		callRpcMethod(retryReq, retryRet, kFocusPingRpcTimeoutMs, kFocusPingConnectTimeoutMs, kFocusPingConnectAttempts);
@@ -1100,6 +1102,11 @@ void Client::onKeyboardStatusChanged(bool opened) {
 
 // called just before current composition is terminated for doing cleanup.
 void Client::onCompositionTerminated(bool forced) {
+	// discardOrphanedUi() ends a composition the lost backend left behind. The
+	// new backend client never saw it, and telling it would only make this RPC
+	// reconnect first, stalling again if the backend is still unreachable.
+	if (discardingOrphanedUi_)
+		return;
 	json req = createRpcRequest("onCompositionTerminated");
 	req["forced"] = forced;
 
@@ -1233,6 +1240,7 @@ int Client::keyEventRpcTimeout() const {
 bool Client::recoverStaleBackendClient(json& request, json& response) {
 	closeRpcConnection();
 	resetTextServiceState();
+	discardOrphanedUi();
 
 	response = json();
 	return callRpcMethod(
@@ -1453,6 +1461,28 @@ void Client::resetTextServiceState() {
 		}
 		buttons_.clear();
 	}
+}
+
+// The connection to the backend was lost and the next request goes to a brand-new
+// backend client, which knows nothing about the composition or candidate window
+// the old one left on screen. Space, Esc, Enter and Backspace would then pass to
+// the app while that stale UI still looks alive, so drop it before reconnecting.
+void Client::discardOrphanedUi() {
+	if (textService_->isComposing()) {
+		if (auto context = textService_->currentContext()) {
+			// requests its own synchronous edit session; whatever preedit text is
+			// in the document stays there as typed
+			discardingOrphanedUi_ = true;
+			textService_->endComposition(context);
+			discardingOrphanedUi_ = false;
+		}
+	}
+	textService_->hideCandidates();
+	textService_->candidates_.clear();
+	textService_->resetCandidateMessageDisplayStyle();
+	textService_->setCandidateMessage(L"");
+	textService_->setCandidateHeader(L"");
+	textService_->setCandidatePageInfo(L"");
 }
 
 void Client::closeRpcConnection() {
