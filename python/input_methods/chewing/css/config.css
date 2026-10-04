@@ -670,6 +670,9 @@ textarea {
     max-width: none;
     padding-left: 24px;
     padding-right: 24px;
+    /* Bootstrap 的 .container 是 width: 100%，加上側欄的 margin-left 會比視窗寬 210px，
+       每個分頁都出現水平捲軸；auto 讓它只佔側欄右邊剩下的寬度 */
+    width: auto;
 }
 
 .setting-hint {
