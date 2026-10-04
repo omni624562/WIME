@@ -4,8 +4,9 @@ placeholder that only the backend's next reply replaces
 composition without such a reply, TextService::endCompositionDroppingPlaceholder()
 clears a placeholder-only composition first. Ending it with plain
 endComposition() left an invisible character in the user's text (search, URLs,
-file names, code): the reconnect path of PR #26 (Client::discardOrphanedUi())
-and closing the keyboard both did.
+file names, code): the reconnect path of PR #26 (Client::discardOrphanedUi()),
+closing the keyboard and switching to another keyboard (libIME2's Deactivate())
+all did.
 
 The C++ cannot run here, so the first tests read its source the way
 test_candidate_theme.py does; the last ones check with the real libchewing that
@@ -64,6 +65,12 @@ class PlaceholderSourceTests(unittest.TestCase):
         self.assertDropsPlaceholder(
             _function(self.service_cpp, "void TextService::onKeyboardStatusChanged(bool opened)"),
             "TextService::onKeyboardStatusChanged()")
+
+    def test_switching_to_another_keyboard_drops_the_placeholder(self):
+        code = _function(self.service_cpp, "STDMETHODIMP TextService::Deactivate()")
+        # before libIME2's Deactivate(), which ends the composition as is
+        self.assertLess(code.index("endCompositionDroppingPlaceholder();"),
+                        code.index("Ime::TextService::Deactivate()"))
 
     def test_placeholder_is_cleared_in_the_compositions_document_before_ending_it(self):
         code = _function(self.service_cpp, "void TextService::endCompositionDroppingPlaceholder()")

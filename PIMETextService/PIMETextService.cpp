@@ -108,6 +108,15 @@ void TextService::onDeactivate() {
 	}
 }
 
+// ITfTextInputProcessor
+STDMETHODIMP TextService::Deactivate() {
+	// Switching to another keyboard (Win+Space, Alt+Shift) right after typing a
+	// lone bopomofo in 新酷音 would leave its U+200B placeholder in the text:
+	// libIME2 ends the composition as is. Ended here, the base finds none.
+	endCompositionDroppingPlaceholder();
+	return Ime::TextService::Deactivate();
+}
+
 // virtual
 void TextService::onFocus() {
 }

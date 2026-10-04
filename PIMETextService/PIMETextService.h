@@ -40,6 +40,10 @@ public:
 	virtual void onActivate();
 	virtual void onDeactivate();
 
+	// ITfTextInputProcessor: switching to another keyboard deactivates the text
+	// service, and libIME2's Deactivate() ends an open composition as is
+	STDMETHODIMP Deactivate() override;
+
 	virtual void onFocus();
 	virtual void onSetFocus();
 	virtual void onKillFocus();
@@ -84,8 +88,10 @@ public:
 	void startComposition(ITfContext* context);
 
 	// Ends the composition when no backend reply will replace its text (a lost
-	// backend client, the keyboard closed). The text stays in the document as
-	// typed, except 新酷音's U+200B placeholder, which is cleared first.
+	// backend client, the keyboard closed, the text service deactivated). The
+	// text stays in the document as typed, except 新酷音's U+200B placeholder,
+	// which is cleared first. Not covered: libIME2's OnEndEdit() ending it when
+	// the selection leaves it, and the app terminating it.
 	void endCompositionDroppingPlaceholder();
 
 	int candPerRow() const {
