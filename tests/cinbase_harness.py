@@ -195,16 +195,22 @@ def _send(service, method, message, key):
         raise BackendError("%s raised on key %r:\n%s" % (method, key, traceback.format_exc()))
 
 
-def press(service, key, shift=False, ctrl=False):
+def press_replies(service, key, shift=False, ctrl=False):
     """Send one key like the C++ side does (onKeyDown/onKeyUp only when the
-    matching filter call returned True); return the onKeyDown reply or {}."""
+    matching filter call returned True); return (onKeyDown reply, onKeyUp reply),
+    {} for a call that was not made."""
     down, up = key_event(key, shift, ctrl), key_event(key, shift, ctrl, down=False)
-    reply = {}
+    down_reply, up_reply = {}, {}
     if _send(service, "filterKeyDown", down, key).get("return"):
-        reply = _send(service, "onKeyDown", down, key)
+        down_reply = _send(service, "onKeyDown", down, key)
     if _send(service, "filterKeyUp", up, key).get("return"):
-        _send(service, "onKeyUp", up, key)
-    return reply
+        up_reply = _send(service, "onKeyUp", up, key)
+    return down_reply, up_reply
+
+
+def press(service, key, shift=False, ctrl=False):
+    """Send one key like the C++ side does; return the onKeyDown reply or {}."""
+    return press_replies(service, key, shift, ctrl)[0]
 
 
 def type_keys(service, keys):

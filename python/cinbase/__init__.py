@@ -772,8 +772,8 @@ class CinBase:
                 cbTS, pagecandidates, currentCandPage, candCursor)
             cbTS.setCandidateList(pagecandidates[currentCandPage])
             candCount = len(cbTS.candidateList)
-            if not cbTS.isSelKeysChanged:
-                cbTS.setShowCandidates(True)
+            # 選字鍵剛換掉也直接顯示：C++ 端先套用 setSelKeys 再畫候選清單
+            cbTS.setShowCandidates(True)
             cbTS.resetMenuCand = False
             itemName = ""
 
@@ -2007,8 +2007,10 @@ class CinBase:
                     cbTS.setCandidateList(pagecandidates[currentCandPage])
                     candCount = len(cbTS.candidateList)
 
-                    if not cbTS.isSelKeysChanged:
-                        cbTS.setShowCandidates(True)
+                    # 選字鍵剛換掉也在這裡就顯示（C++ 端先套用 setSelKeys 再畫清單）。
+                    # 以前留到 onKeyUp 才顯示，按鍵按下時送出的清單沒有 showCandidates，
+                    # C++ 端照樣把視窗秀出來卻沒記成「顯示中」，切到別的程式也不會收掉
+                    cbTS.setShowCandidates(True)
 
                     self.setModernCandidatePageInfo(cbTS, currentCandPage, pagecandidates)
 
@@ -2592,9 +2594,10 @@ class CinBase:
             self.abandonComposition(cbTS)
 
         if cbTS.isSelKeysChanged:
-            cbTS.setCandidateList(cbTS.candidateList)
-            if cbTS.isShowCandidates:
-                cbTS.setShowCandidates(True)
+            # 按下時的回覆已帶 setSelKeys 與候選清單，C++ 端也先換選字鍵再畫清單，
+            # 這裡只要清掉旗標。以前在這裡重送清單：頁碼（1/2）被 header 補成空字串
+            # 而消失；候選窗沒在顯示時（` 選單按 Esc、第一個鍵就送出字）重送的清單
+            # 沒有 showCandidates，C++ 端照樣秀出一個收不掉的空候選窗
             cbTS.isSelKeysChanged = False
 
         if cbTS.showPhrase and cbTS.phrasemode and cbTS.isShowPhraseCandidates:
