@@ -58,6 +58,11 @@ _INT_RANGES = (
 #     the next key (no timer), and the mode-switch prompts are never shown
 _RETIRED_KEYS = ("candidateModernStyle", "messageDurationTime", "hidePromptMessages")
 
+# 以前出貨的候選窗最大寬度。100% 縮放時一列 6 個候選（12pt 每個 44px，加間距與邊界）
+# 要 306px，300 讓第 6 個候選被擠到第二列；預設已改成 320。存過設定的使用者
+# config.json 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設
+LEGACY_CANDIDATE_MAX_WIDTH = 300
+
 # 反查字根可選的碼表（設定頁 selRCins 的順序）
 RCIN_FILE_LIST = (
     "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json", "cnscj.json", "thcj.json", "newcj3.json", "cj5.json", "newcj.json", "scj6.json", "cj-fast.json",
@@ -156,7 +161,7 @@ class CinBaseConfig:
         self.candidateStableWidth = False
         self.candidateMinWidth = 0
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 300
+        self.candidateMaxWidth = 320
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,
@@ -230,6 +235,8 @@ class CinBaseConfig:
         for key in _RETIRED_KEYS:
             self.__dict__.pop(key, None)
         self.normalize(shipped)
+        if self.candidateMaxWidth == LEGACY_CANDIDATE_MAX_WIDTH:
+            self.candidateMaxWidth = shipped["candidateMaxWidth"]
         self.update()
 
     @staticmethod

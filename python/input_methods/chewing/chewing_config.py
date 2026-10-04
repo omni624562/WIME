@@ -63,6 +63,12 @@ _INT_RANGES = {
 }
 _C_INT_RANGE = (-2 ** 31, 2 ** 31 - 1)
 
+# 以前出貨的候選窗最大寬度，太窄：100% 縮放時一列 6 個候選擠不下，第 6 個被換到
+# 第二列（大易/酷倉 12pt 要 306px）。預設已改成 320；存過設定的使用者 config.json
+# 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。
+# 設定工具顯示的值也經過 normalizeValues，兩邊一致
+LEGACY_CANDIDATE_MAX_WIDTH = 300
+
 
 def _toInt(value):
     """5 / True / 5.0 / " 7 " -> int；None、""、"abc"、list… -> None"""
@@ -94,7 +100,8 @@ def _toBool(value):
 
 def normalizeValues(values, defaults):
     """回傳 values 的副本：已知設定的值轉成程式預期的型別與範圍，無效的值改用
-    defaults 裡的預設值；不認得的鍵原樣保留。"""
+    defaults 裡的預設值，舊的出貨預設值（LEGACY_CANDIDATE_MAX_WIDTH）換成新的；
+    不認得的鍵原樣保留。"""
     result = dict(values)
     for key, default in defaults.items():
         if key not in result:
@@ -120,6 +127,8 @@ def normalizeValues(values, defaults):
         if value is None:
             value = copy.deepcopy(default)
         result[key] = value
+    if result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults:
+        result["candidateMaxWidth"] = defaults["candidateMaxWidth"]
     return result
 
 
@@ -198,7 +207,7 @@ class ChewingConfig:
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
-        self.candidateMaxWidth = 300
+        self.candidateMaxWidth = 320
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

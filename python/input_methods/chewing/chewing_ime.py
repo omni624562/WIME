@@ -242,7 +242,7 @@ class ChewingTextService(TextService):
             "candidateStableWidth": getattr(cfg, 'candidateStableWidth', False),
             "candidateMinWidth": getattr(cfg, 'candidateMinWidth', 0),
             "candidateWrapToMaxWidth": getattr(cfg, 'candidateWrapToMaxWidth', True),
-            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 300),
+            "candidateMaxWidth": getattr(cfg, 'candidateMaxWidth', 320),
         }
         if not force and getattr(self, '_lastCandidateUIArgs', None) == ui_args:
             return

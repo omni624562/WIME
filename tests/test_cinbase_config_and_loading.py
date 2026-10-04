@@ -10,6 +10,8 @@
   and while it was missing every key - Ctrl+C, Enter, arrows - was swallowed.
 - A missing or corrupt table showed "loading, please wait" forever instead of
   saying the load failed.
+- The old default candidateMaxWidth (300) is too narrow for 6 candidates; users
+  who saved their settings have it stored, so it is migrated on load.
 - Missing reverse-lookup / homophone tables started a thread on every request.
 """
 
@@ -76,6 +78,19 @@ class ConfigLoadingTests(unittest.TestCase):
             self.assertFalse(hasattr(cfg, key), key)
             self.assertNotIn(key, cfg.toJson())
         self.assertEqual(cfg.candPerPage, 5)
+
+    def test_candidate_max_width_fits_six_candidates(self):
+        # 300 (the old default) put the 6th candidate on a second row at 100% scaling
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                self.assertEqual(fresh_config(ime).candidateMaxWidth, 320)
+
+    def test_old_default_candidate_max_width_is_migrated(self):
+        # saving the settings page writes every value, so most users have 300 stored
+        for stored, expected in ((300, 320), ("300", 320), (360, 360), (280, 280)):
+            with self.subTest(stored=stored):
+                h.write_user_config("chedayi", {"candidateMaxWidth": stored})
+                self.assertEqual(fresh_config("chedayi").candidateMaxWidth, expected)
 
     def test_user_config_with_bom_is_loaded(self):
         path = os.path.join(_appdata.ime_dir("chedayi"), "config.json")
