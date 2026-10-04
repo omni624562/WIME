@@ -8,6 +8,8 @@ talks HTTP to it, covering:
 - the token-in-URL login and cookie flags,
 - rejection of unauthenticated / wrong-token / non-loopback-Host requests,
 - that the main page and every local asset it references are served,
+- that a 大易/酷倉 save that cannot write config.json answers HTTP 500 (it
+  used to answer {"return": true}, so the page said 設定已套用),
 - that the process really exits on its idle timeout (it used to leak forever
   because quit() called IOLoop.close() inside the running loop).
 """
@@ -169,6 +171,41 @@ class CinbaseConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
         json_dir = os.path.join(PYTHON_DIR, "cinbase", "json")
         expected = [i for i, name in enumerate(RCIN_FILE_LIST) if os.path.exists(os.path.join(json_dir, name))]
         self.assertEqual(data["rcinAvailable"], expected)
+
+    def test_8_failed_save_is_reported(self):
+        opener, _ = self._logged_in_opener()
+        config_dir = os.path.join(self.tempdir.name, "Roaming", "PIME", "chedayi")
+        config_file = os.path.join(config_dir, "config.json")
+
+        def post(data):
+            request = urllib.request.Request(self.base + "/config", data=json.dumps(data).encode("utf-8"),
+                                             method="POST", headers={"Content-Type": "application/json"})
+            try:
+                response = opener.open(request, timeout=10)
+            except urllib.error.HTTPError as error:
+                response = error
+            with response:
+                return getattr(response, "status", None) or response.code
+
+        def saved_config():
+            with open(config_file, encoding="utf-8") as f:
+                return json.load(f)
+
+        self.assertEqual(post({"config": {"candidatePerRow": 4}}), 200)
+        self.assertEqual(saved_config(), {"candidatePerRow": 4})
+
+        # Another process reading config.json (Python's open(), like the backend
+        # does, shares read/write but not delete) makes os.replace() fail.
+        with open(config_file, "rb"):
+            status = post({"config": {"candidatePerRow": 5}, "symbols": "測試=★"})
+        self.assertEqual(status, 500)  # 200 {"return": true} before, shown as 設定已套用
+        self.assertEqual(saved_config(), {"candidatePerRow": 4})
+        # config.json is written first, so nothing after it was saved either
+        self.assertFalse(os.path.exists(os.path.join(config_dir, "symbols.dat")))
+        self.assertEqual([name for name in os.listdir(config_dir) if name.endswith(".tmp")], [])
+
+        self.assertEqual(post({"config": {"candidatePerRow": 5}}), 200)  # once the file is free again
+        self.assertEqual(saved_config(), {"candidatePerRow": 5})
 
 
 class ChewingConfigToolTests(ConfigToolTestMixin, unittest.TestCase):

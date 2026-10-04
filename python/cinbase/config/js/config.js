@@ -97,7 +97,15 @@ function showConfigLoadError(xhr) {
 
 // 儲存失敗一定要讓使用者知道，否則會以為已經存好了。
 function showConfigSaveError(xhr) {
-    var message = serverErrorMessage(xhr, "儲存設定") + "<br>這次的變更尚未儲存。";
+    var message;
+    if (xhr && xhr.status === 500) {
+        // 設定工具寫不進設定檔（例如 config.json 正被其他程式開著）。工作階段還有效，
+        // 關掉頁面反而會丟掉這次的變更，請使用者稍後再按一次即可。
+        message = "儲存設定失敗：設定檔無法寫入（可能正被其他程式開著）。<br>" +
+            "頁面上的變更還在，請稍後再按一次「套用設定」。";
+    } else {
+        message = serverErrorMessage(xhr, "儲存設定") + "<br>這次的變更尚未儲存。";
+    }
     if ($.jAlert) {
         $.jAlert({
             'title': '儲存失敗',
