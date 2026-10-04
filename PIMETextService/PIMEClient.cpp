@@ -107,6 +107,12 @@ static bool isNonEmptyStringMember(const json& msg, const char* name) {
 	return it != msg.end() && it->is_string() && !it->get_ref<const std::string&>().empty();
 }
 
+// msg[name] is the empty string (missing or any other type does not count)
+static bool isEmptyStringMember(const json& msg, const char* name) {
+	auto it = msg.find(name);
+	return it != msg.end() && it->is_string() && it->get_ref<const std::string&>().empty();
+}
+
 static std::string normalizedThemeName(const std::string& theme) {
 	std::string normalized;
 	for (unsigned char ch : theme) {
@@ -635,6 +641,7 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 	// turns a message into candidateMessage + showCandidates
 	const bool replyShowsCandidates = isTrueMember(msg, "showCandidates");
 	const bool replySetsComposition = isNonEmptyStringMember(msg, "compositionString");
+	const bool replyClearsComposition = isEmptyStringMember(msg, "compositionString");
 	const bool replyHidesMessage = isTrueMember(msg, "hideMessage");
 
 	// show message (in the candidate window)
@@ -651,24 +658,37 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 
 		updateComposition(msg, session, endComposition);
 
-		if (replyShowsMessage) {
-			// A message on its own while nothing was being composed (e.g. the
-			// wildcard root hint sent on the commit key's key-up, or the notice
-			// 正在載入輸入法碼表 while the table loads): updateCandidateList()
-			// started a composition only to place the window at the caret. The
-			// backend is idle, so keeping it open would send Enter/Backspace/arrows
-			// to the app in the middle of an empty composition. The window stays
-			// where it was placed; filterKeyDown() hides it on the next key the
-			// backend does not take.
-			if (!wasComposing && !replyShowsCandidates && !replySetsComposition &&
-				textService_->candidates_.empty() && textService_->isComposing()) {
-				textService_->endComposition(session->context());
-			}
+		// After this reply the backend composes nothing, but the TSF composition
+		// stays open because a message window is up (updateComposition() keeps an
+		// empty composition while the window shows, and a message counts as
+		// shown). The backend is idle, so keeping it open would send Enter,
+		// Backspace and arrows to the app in the middle of an empty composition.
+		// Two ways to get here:
+		// - a message on its own while nothing was being composed (e.g. the
+		//   wildcard root hint sent on the commit key's key-up, or the notice
+		//   正在載入輸入法碼表 while the table loads): updateCandidateList()
+		//   started a composition only to place the window at the caret;
+		// - a reply that empties the composition without committing it, e.g.
+		//   新酷音 Esc or Backspace after Ctrl+2 showed 加入：你好, or its
+		//   engine-fault notice sent together with the cleared composition.
+		// Never when the reply itself shows candidates: 大易/酷倉 compose their
+		// roots in the header with an empty composition string and showCandidates.
+		// A message window stays where it was placed; filterKeyDown() hides it on
+		// the next key the backend does not take.
+		const bool backendLeftNothingComposed = wasComposing
+			? replyClearsComposition
+			: (replyShowsMessage && !replySetsComposition);
+		if (backendLeftNothingComposed && !replyShowsCandidates &&
+			textService_->isComposing() && textService_->showingMessageOnly()) {
+			textService_->endComposition(session->context());
 		}
-		else if (wasComposing && !textService_->isComposing() && textService_->showingMessageOnly()) {
-			// The reply ended the composition (e.g. 新酷音 Enter commits after
-			// Ctrl+2 showed 加入：你好) and brought no new message: a window left
-			// with only the old message belongs to nothing any more.
+
+		if (!replyShowsMessage && wasComposing && !textService_->isComposing() &&
+			textService_->showingMessageOnly()) {
+			// The reply ended the composition (e.g. 新酷音 Enter commits, or Esc
+			// clears it, after Ctrl+2 showed 加入：你好) and brought no new
+			// message: a window left with only the old message belongs to nothing
+			// any more.
 			hideCandidateMessage(session);
 		}
 	}
