@@ -5,9 +5,11 @@ filterKeyDown -> onKeyDown -> filterKeyUp -> onKeyUp through TextService.handleR
 Tables come from python/cinbase/json/, which build.bat (tools/cintojson.py)
 generates and git ignores; tests using this harness are skipped if they are
 missing. APPDATA is redirected to a temporary directory for the whole test
-class, so the user's real config.json / cincount.json are never read or written.
+class, so the user's real config.json / cincount.json are never read or written,
+and the IME cannot start programs (the settings tool, web pages) meanwhile.
 """
 
+import ctypes
 import importlib.util
 import json
 import os
@@ -61,8 +63,30 @@ class DummyClient:
     isConsole = False
 
 
+def _launch_recorder(name, calls):
+    def record(*args, **kwargs):
+        calls.append((name, args))
+        return 42 if name == "ShellExecuteW" else None   # ShellExecuteW: > 32 is success
+    record.blocks_launches = True
+    return record
+
+
+def launches_blocked():
+    """True while an IsolatedAppData keeps the IME from starting programs."""
+    return all(getattr(func, "blocks_launches", False)
+               for func in (ctypes.windll.shell32.ShellExecuteW, os.startfile))
+
+
 class IsolatedAppData:
-    """Point APPDATA/HOME at a temp dir; restore on close()."""
+    """Point APPDATA/HOME at a temp dir and keep the IME from starting programs;
+    restore both on close().
+
+    The ` function menu's 開啟設定視窗… item (the cursor fuzz test reaches it) and
+    the language bar menus start configtool.py / config_tool.py through
+    ShellExecuteW: the tool opens the user's browser and keeps running while
+    the page is open. Other menu items open web pages with os.startfile. Both
+    are replaced by recorders; the calls are kept in self.launches as
+    (name, args)."""
 
     def __init__(self):
         # libchewing keeps its user phrase database open until the context is freed
@@ -71,6 +95,13 @@ class IsolatedAppData:
         self._saved = {k: os.environ.get(k) for k in ("APPDATA", "USERPROFILE", "HOME")}
         for key in self._saved:
             os.environ[key] = self.path
+        # cinbase and chewing_ime call windll.shell32.ShellExecuteW: ctypes.windll
+        # caches the shell32 WinDLL, so they all look the function up on this object
+        self.launches = []
+        self._shell32 = ctypes.windll.shell32
+        self._saved_launchers = (self._shell32.ShellExecuteW, os.startfile)
+        self._shell32.ShellExecuteW = _launch_recorder("ShellExecuteW", self.launches)
+        os.startfile = _launch_recorder("startfile", self.launches)
 
     def ime_dir(self, ime):
         path = os.path.join(self.path, "PIME", ime)
@@ -78,6 +109,7 @@ class IsolatedAppData:
         return path
 
     def close(self):
+        self._shell32.ShellExecuteW, os.startfile = self._saved_launchers
         for key, value in self._saved.items():
             if value is None:
                 os.environ.pop(key, None)

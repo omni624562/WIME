@@ -113,6 +113,27 @@ class FunctionMenuTests(unittest.TestCase):
         h.press(service, service.selKeys[service.candidateList.index(item)])   # used to raise ValueError
         self.assertEqual(service.showPhrase, before)
 
+    def test_settings_item_is_not_started_by_tests(self):
+        # 選單的「開啟設定視窗…」用 ShellExecuteW 執行 configtool.py，它會打開使用者的
+        # 瀏覽器，而且頁面開著就不會結束。游標 fuzz 測試會按到這一項：以前每跑一次
+        # 完整測試就多開兩個設定頁。IsolatedAppData 必須把它換成記錄，先確認再按
+        self.assertTrue(h.launches_blocked())
+        start = len(_appdata.launches)
+        service = h.make_service("chedayi")
+        for _ in range(3):
+            h.press(service, "`")
+            if "特殊符號" in (service.candidateList or []):
+                break
+        settings = next(item for item in service.candidateList
+                        if h.cinbase.menu.mainMenuId(item) == "settings")
+        h.press(service, service.selKeys[service.candidateList.index(settings)])
+        launches = _appdata.launches[start:]
+        self.assertEqual(len(launches), 1, launches)
+        name, args = launches[0]
+        self.assertEqual(name, "ShellExecuteW")
+        self.assertTrue(args[3].endswith('configtool.py" config chedayi'), args)
+        self.assertFalse(service.showmenu)
+
 
 @h.requires_tables
 class SelKeysSwitchTests(unittest.TestCase):
