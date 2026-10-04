@@ -95,6 +95,18 @@ static void parseHexColorMember(const json& object, const char* name, COLORREF& 
 		parseHexColor(*it, color);
 }
 
+// msg[name] is the boolean true (missing or any other type counts as false)
+static bool isTrueMember(const json& msg, const char* name) {
+	auto it = msg.find(name);
+	return it != msg.end() && it->is_boolean() && it->get<bool>();
+}
+
+// msg[name] is a non-empty string
+static bool isNonEmptyStringMember(const json& msg, const char* name) {
+	auto it = msg.find(name);
+	return it != msg.end() && it->is_string() && !it->get_ref<const std::string&>().empty();
+}
+
 static std::string normalizedThemeName(const std::string& theme) {
 	std::string normalized;
 	for (unsigned char ch : theme) {
@@ -425,6 +437,9 @@ void Client::updateSelectionKeys(json& msg) {
 // in its message row; there is no separate message window any more (it belonged to
 // the removed classic candidate style). The candidate list update applies them, so
 // this only rewrites the request, and only for requests with an edit session.
+// "duration" is not used: updateStatus() and filterKeyDown() hide the message
+// instead (on "hideMessage", when the composition ends, or on the next key the
+// backend passes to the app).
 void Client::routeMessageToCandidateWindow(json& msg, Ime::EditSession* session) {
 	auto& showMessageVal = msg["showMessage"];
 	if (showMessageVal.is_object() && session != nullptr) {
@@ -613,17 +628,52 @@ void Client::updateStatus(json& msg, Ime::EditSession* session) {
 
 	updateSelectionKeys(msg);
 
+	// what the reply itself asks for, read before routeMessageToCandidateWindow()
+	// turns a message into candidateMessage + showCandidates
+	const bool replyShowsCandidates = isTrueMember(msg, "showCandidates");
+	const bool replySetsComposition = isNonEmptyStringMember(msg, "compositionString");
+	const bool replyHidesMessage = isTrueMember(msg, "hideMessage");
+
 	// show message (in the candidate window)
 	routeMessageToCandidateWindow(msg, session);
+	const bool replyShowsMessage = isNonEmptyStringMember(msg, "candidateMessage");
 	bool endComposition = false;
 
 	if (session != nullptr) { // if an edit session is available
+		const bool wasComposing = textService_->isComposing();
+
 		updateCandidateList(msg, session);
 
 		updateCommitString(msg, session);
 
 		updateComposition(msg, session, endComposition);
 
+		if (replyShowsMessage) {
+			// A message on its own while nothing was being composed (e.g. the
+			// wildcard root hint sent on the commit key's key-up, or the notice
+			// 正在載入輸入法碼表 while the table loads): updateCandidateList()
+			// started a composition only to place the window at the caret. The
+			// backend is idle, so keeping it open would send Enter/Backspace/arrows
+			// to the app in the middle of an empty composition. The window stays
+			// where it was placed; filterKeyDown() hides it on the next key the
+			// backend does not take.
+			if (!wasComposing && !replyShowsCandidates && !replySetsComposition &&
+				textService_->candidates_.empty() && textService_->isComposing()) {
+				textService_->endComposition(session->context());
+			}
+		}
+		else if (wasComposing && !textService_->isComposing() && textService_->showingMessageOnly()) {
+			// The reply ended the composition (e.g. 新酷音 Enter commits after
+			// Ctrl+2 showed 加入：你好) and brought no new message: a window left
+			// with only the old message belongs to nothing any more.
+			hideCandidateMessage(session);
+		}
+	}
+
+	// The backend withdraws its message (cinbase does so on the key-up of the
+	// next key it passes to the app). Ignored when the same reply shows a new one.
+	if (replyHidesMessage && !replyShowsMessage) {
+		hideCandidateMessage(session);
 	}
 
 	updateLanguageButtons(msg);
@@ -726,6 +776,11 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 	}
 	else if (hasCandidateMessage) {
 		textService_->candidates_.clear();
+		// the page indicator belonged to the list just dropped (a commit reply
+		// leaves e.g. "1/4" behind, which then showed next to the root hint)
+		if (!candidatePageInfoVal.is_string()) {
+			textService_->setCandidatePageInfo(L"");
+		}
 		textService_->updateCandidates(session);
 	}
 	else if (!wasShowingCandidates && textService_->showingCandidates()) {
@@ -739,6 +794,24 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 			textService_->candidateWindow_->setCurrentSel(candidateCursorVal.get<int>());
 			textService_->refreshCandidates();
 		}
+	}
+}
+
+// Drop the backend message from the candidate window. A window that showed only
+// the message (no candidates, nothing being composed) goes away with it; one that
+// also lists candidates or composing roots is redrawn without it, which needs an
+// edit session (without one the message row stays until the next refresh).
+void Client::hideCandidateMessage(Ime::EditSession* session) {
+	if (textService_->candidateMessage_.empty())
+		return;
+	const bool hideWindow = textService_->showingMessageOnly() && !textService_->isComposing();
+	textService_->resetCandidateMessageDisplayStyle();
+	textService_->setCandidateMessage(L"");
+	if (hideWindow) {
+		textService_->hideCandidates();
+	}
+	else if (textService_->showingCandidates() && session != nullptr) {
+		textService_->updateCandidates(session);
 	}
 }
 
@@ -813,7 +886,15 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	json ret;
 	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
-		return ret.value("return", false);
+		bool eaten = ret.value("return", false);
+		// The key goes to the app (Esc, Enter, Backspace, arrows, a Shift tap
+		// switching to English...): a message window left up while nothing is
+		// composed has served its purpose. Done here for every IME rather than
+		// relying on each backend to send hideMessage.
+		if (!eaten && textService_->showingMessageOnly() && !textService_->isComposing()) {
+			hideCandidateMessage(nullptr);
+		}
+		return eaten;
 	}
 	return shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent);
 }

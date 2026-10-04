@@ -110,6 +110,7 @@ private:
 	void updatePreservedKeys(nlohmann::json& msg);
 	void updateKeyboardStatus(nlohmann::json& msg);
 	void updateCandidateList(nlohmann::json& msg, Ime::EditSession* session);
+	void hideCandidateMessage(Ime::EditSession* session);
 	void updateUI(nlohmann::json& data);
 	void updateStatus(nlohmann::json& msg, Ime::EditSession* session = nullptr);
 
