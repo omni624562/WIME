@@ -8,6 +8,8 @@
   as "") raised on IME creation or on every keystroke.
 - A code table that failed to load was never loaded again by that instance,
   and while it was missing every key - Ctrl+C, Enter, arrows - was swallowed.
+- A missing or corrupt table showed "loading, please wait" forever instead of
+  saying the load failed.
 - Missing reverse-lookup / homophone tables started a thread on every request.
 """
 
@@ -197,6 +199,7 @@ class _TableTestBase(unittest.TestCase):
         # leave a clean slate: the next service loads its table synchronously again
         for table in (self.module.CinTable, self.module.RCinTable, self.module.HCinTable):
             table.lastLoadFailure = 0.0
+        self.table.loadFailed = False
         self.table.cin = None
         self.table.curCinType = None
 
@@ -206,11 +209,21 @@ class _TableTestBase(unittest.TestCase):
 
 @h.requires_tables
 class MissingTableTests(_TableTestBase):
+    LOADING = "正在載入輸入法碼表，請稍候..."
+    FAILED = "輸入法碼表載入失敗，請重新安裝 WIME 或檢查碼表檔案"
+
     def make_service_without_tables(self):
         self.table.cin = None
         self.table.curCinType = None
         with mock.patch.object(type(CinBaseConfig), "getJsonDir", return_value=self.empty_dir):
             return h.make_service(self.IME)
+
+    def selected_table_file(self):
+        # the shipped default (大易三碼); the service is created only afterwards
+        return h._ime_class(self.IME).CIN_FILE_LIST[fresh_config(self.IME).selCinType]
+
+    def key_message(self, service, key="x"):
+        return h.press(service, key).get("showMessage", {}).get("message")
 
     def test_other_keys_still_reach_the_application(self):
         service = self.make_service_without_tables()
@@ -253,6 +266,53 @@ class MissingTableTests(_TableTestBase):
     def test_deactivate_without_a_table(self):
         service = self.make_service_without_tables()
         h.request(service, "onDeactivate")
+
+    def test_missing_table_says_the_load_failed(self):
+        service = self.make_service_without_tables()
+        self.assertEqual(self.key_message(service), self.FAILED)
+
+        # each retry overwrites lastLoadFailure; the message must not go back to "loading"
+        self.expire_retry_interval()
+        service.checkConfigChange()
+        self.assertEqual(len(self.starts), 1)
+        self.assertIsNone(service.cin)
+        self.assertEqual(self.key_message(service), self.FAILED)
+
+        # ... nor while a retry is running
+        self.table.loading = True
+        try:
+            self.assertEqual(self.key_message(service), self.FAILED)
+        finally:
+            self.table.loading = False
+
+    def test_corrupt_table_says_the_load_failed_until_it_is_repaired(self):
+        name = self.selected_table_file()
+        with open(os.path.join(h.JSON_DIR, name), "rb") as f:
+            head = f.read(64 * 1024)                  # a truncated copy
+        with open(os.path.join(self.empty_dir, name), "wb") as f:
+            f.write(head)
+        service = self.make_service_without_tables()
+        self.assertIsNone(service.cin)
+        self.assertTrue(self.table.loadFailed)
+        self.assertEqual(self.key_message(service), self.FAILED)
+
+        shutil.copy(os.path.join(h.JSON_DIR, name), self.empty_dir)
+        self.expire_retry_interval()
+        service.checkConfigChange()
+        self.assertIsNotNone(service.cin)
+        self.assertFalse(self.table.loadFailed)
+        commits, reply = h.type_keys(service, ["x", "SPACE"])
+        self.assertEqual(len(commits), 1)
+        self.assertNotIn("showMessage", reply)
+
+    def test_first_load_in_progress_still_says_loading(self):
+        service = self.make_service_without_tables()
+        self.table.loadFailed = False       # nothing has failed: the table is just not ready yet
+        self.table.loading = True
+        try:
+            self.assertEqual(self.key_message(service), self.LOADING)
+        finally:
+            self.table.loading = False
 
 
 @h.requires_tables

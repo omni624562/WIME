@@ -1015,7 +1015,13 @@ class CinBase:
 
         if CinTable.loading or not getattr(cbTS, 'cin', None):
             if not cbTS.client.isUiLess:
-                messagestr = '正在載入輸入法碼表，請稍候...'
+                if not getattr(cbTS, 'cin', None) and getattr(CinTable, 'loadFailed', False):
+                    # 碼表檔缺失或損毀：背景每 TABLE_RETRY_INTERVAL 秒仍會重試，但以前
+                    # 一直顯示「正在載入」，使用者只會乾等。重試進行中（loading）也維持
+                    # 這個訊息，免得文字在兩者間跳來跳去
+                    messagestr = '輸入法碼表載入失敗，請重新安裝 WIME 或檢查碼表檔案'
+                else:
+                    messagestr = '正在載入輸入法碼表，請稍候...'
                 cbTS.isShowMessage = True
                 cbTS.showMessage(messagestr)
             return True
@@ -3869,6 +3875,9 @@ class LoadCinTable(threading.Thread):
                         newCin = Cin(fs, cbTS.imeDirName, cbTS.ignorePrivateUseArea)
                 except Exception:
                     self.CinTable.lastLoadFailure = time.time()
+                    # lastLoadFailure 只是重試節流，每次重試都會覆寫；這個旗標一直
+                    # 留到真的載入成功為止，onKeyDown 靠它分辨「載入中」與「載入失敗」
+                    self.CinTable.loadFailed = True
                     if current is None:
                         cbTS.cin = self.CinTable.cin   # 還有別的實例載好的表就先用
                     raise
@@ -3880,6 +3889,7 @@ class LoadCinTable(threading.Thread):
                 self.CinTable.cin = newCin
                 self.CinTable.curCinType = cfg.selCinType
                 self.CinTable.lastLoadFailure = 0.0
+                self.CinTable.loadFailed = False
 
             if not hasattr(cbTS, 'extendtable'):
                 cbTS.extendtable = CinBase.loadDataFile(cfg, "extendtable.dat", extendtable)
