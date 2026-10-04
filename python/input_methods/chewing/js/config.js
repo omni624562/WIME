@@ -61,6 +61,8 @@ $(function () {
     function applyCandidateDefaults() {
         // 舊版的「使用新版候選窗 UI」開關已移除，一律使用新版候選窗
         delete chewingConfig.candidateModernStyle;
+        // 舊版候選窗的每列字數 (candPerRow) 已沒有作用，新版只看 candidatePerRow；存檔時不再寫回
+        delete chewingConfig.candPerRow;
         if (typeof chewingConfig.candidateStableWidth === "undefined") {
             chewingConfig.candidateStableWidth = true;
         }
@@ -749,9 +751,6 @@ $(function () {
             }
         });
 
-        // Setup select phrase example & Bind updateSelExample event
-        updateSelExample();
-        $("#ui_tab input, #ui_tab select").on("change keyup", updateSelExample);
         renderCandidateThemeGallery();
         renderCandidateKeyStyleGallery();
         renderCandidateMessageStyleGallery();
@@ -880,33 +879,6 @@ $(function () {
         }
         candidatePositionMode.children().eq(chewingConfig.candidatePositionMode || 0).prop("selected", true);
         setCandidateNumber("candidateOpacity", 100);
-    }
-
-    // Use for select phrase example
-    function updateSelExample() {
-        var example = ["選", "字", "視", "窗", "大", "小", "範", "例"];
-        var selectedIndex = parseInt($("#selKeyType").val(), 10);
-        var selectedOption = $("#selKeyType option").eq(isNaN(selectedIndex) ? 0 : selectedIndex);
-        var selectItems = selectedOption.length ? selectedOption.html() : "1234567890";
-        var candPerPage = parseInt($("#candPerPage").val(), 10) || example.length;
-        var candPerRow = parseInt($("#candPerRow").val(), 10) || example.length;
-        var html = "";
-
-        for (var number = 0, i = 0, row = 0; number < candPerPage; number++, i++, row++) {
-            if (example[i] == null) {
-                i = 0;
-            }
-
-            if (row == candPerRow) {
-                row = 0;
-                html += "<br>";
-            }
-
-            html += "<span>" + selectItems.substr(number, 1) + ".</span>" + example[i];
-        }
-
-        $("#selExample").html(html);
-        $("#selExample").css("font-size", $("#fontSize").val() + "pt");
     }
 
     // workaround the same origin policy of IE.
