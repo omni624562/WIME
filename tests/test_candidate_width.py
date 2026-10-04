@@ -12,9 +12,10 @@ measured through GDI with the font PIMETextService creates
 (DEFAULT_GUI_FONT with lfHeight -MulDiv(size, dpi, 72), Microsoft JhengHei) and
 the spacing scaled by MulDiv(value, dpi, 96) (TextService::scaleForCandDpi()).
 Keep it in sync with recalculateSize() and the modernCandidate*() helpers.
-Both key styles users end up with are checked: keycap is the backend default
-that the first load writes to config.json, and the settings pages always save
-word-first.
+The selection keys are always drawn word-first: it is the only style the
+settings pages offer, and both backends load any stored style as word-first.
+The old-width check uses keycap, the backend default the 5+1 / 5+4 rows were
+seen with.
 """
 
 import ctypes
@@ -28,7 +29,7 @@ import cinbase_harness as h
 from cinbase import selkeys
 
 DPIS = (96, 120, 144, 168, 192)     # 100% .. 200%
-KEY_STYLES = ("keycap", "word-first")
+KEY_STYLES = ("word-first",)
 SAMPLE_CANDIDATES = "你七鹿擬虍乙"   # CJK ideographs all have the same advance
 FONT_FACE = "Microsoft JhengHei"    # candFontName sent by cinbase and chewing_ime
 DEFAULT_GUI_FONT = 17

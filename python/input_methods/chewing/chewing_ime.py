@@ -235,7 +235,10 @@ class ChewingTextService(TextService):
             "candidatePositionMode": getattr(cfg, 'candidatePositionMode', 0),
             "candidateOpacity": getattr(cfg, 'candidateOpacity', 100),
             "candidateTheme": resolveCandidateTheme(cfg),
-            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'word-first'),
+            # 設定頁沒有這個選項；以前沒送，C++ 端用預設的 badge，和大易/酷倉固定的
+            # accent 不一樣
+            "candidateHeaderStyle": "accent",
             "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),
