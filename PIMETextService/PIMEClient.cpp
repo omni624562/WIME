@@ -287,7 +287,9 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateTheme(panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
-		textService_->setCandidateMaxWidth(true, 300);
+		// six keycap candidates at 100% need 306 px (6 x 44 + 5 x 6 + 2 x 6);
+		// 300 wrapped the sixth one onto a row of its own
+		textService_->setCandidateMaxWidth(true, 320);
 		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelBadge);
 	}
 }
