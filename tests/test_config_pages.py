@@ -25,6 +25,9 @@ it is the page size, which the backend caps at the number of selection keys
 候選窗最大寬度. The page let 大易 pick 7-10 and its preview wrapped at the width
 of the theme card instead of where the window does.
 
+大易/酷倉 使用說明 (help.htm): 大易 does not pick with the digits; the help now
+shows 大易's selection keys on its page and the digits on the others.
+
 大易/酷倉 text data (js/data_format.js, run in node when it is installed): the
 page refused data the backend reads fine. A blank line (a trailing newline), a
 UTF-8 BOM or an empty 簡易符號 box in any text tab blocked 套用設定 for every
@@ -663,12 +666,119 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
         self.assertNotIn("<b>", result["alerts"][0])
 
 
-def backend_max_cand_per_page():
-    """maxCandPerPage() of cinbase/pager.py, loaded by itself."""
-    spec = importlib.util.spec_from_file_location("_pager", os.path.join(PYTHON_DIR, "cinbase", "pager.py"))
+def cinbase_module(name):
+    """cinbase/<name>.py, loaded by itself (the package imports the whole IME)."""
+    spec = importlib.util.spec_from_file_location("_" + name, os.path.join(PYTHON_DIR, "cinbase", name + ".py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.maxCandPerPage
+    return module
+
+
+class _ClassedText(html.parser.HTMLParser):
+    """Text of a page, each piece with the classes of the elements around it."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.open = []    # (tag, classes) of the open elements
+        self.pieces = []  # (text, classes around it)
+        self.scripts = []
+        self.styles = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in _VOID:
+            self.open.append((tag, set((dict(attrs).get("class") or "").split())))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.open) - 1, -1, -1):
+            if self.open[i][0] == tag:
+                del self.open[i:]
+                break
+
+    def handle_data(self, data):
+        tags = [tag for tag, _ in self.open]
+        if tags and tags[-1] == "script":
+            self.scripts.append(data)
+        elif tags and tags[-1] == "style":
+            self.styles.append(data)
+        elif data.strip():
+            self.pieces.append((data.strip(), {c for _, classes in self.open for c in classes}))
+
+
+class HelpPageTests(unittest.TestCase):
+    """使用說明 (cinbase/config/help.htm) is shared by 大易 and the other CIN IMEs.
+    大易 picks candidates with ␣ ' [ ] - \\ (selkeys.DAYI_CAND_SELKEYS) and 聯想字詞
+    with ' [ ] - \\ without Shift; its digits are roots. The help told everyone to
+    press the digits, with Shift for 聯想字詞."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.page = _ClassedText()
+        with open(os.path.join(CINBASE_CONFIG_DIR, "help.htm"), encoding="utf-8-sig") as f:
+            cls.page.feed(f.read())
+        cls.page.close()
+
+    def pieces(self, needle):
+        return [(text, classes) for text, classes in self.page.pieces if needle in text]
+
+    def test_digit_selection_is_not_shown_for_dayi(self):
+        # candidate list and 聯想字詞; the 功能選單 uses digits in 大易 too (applyDefaultSelKeys())
+        digit_lines = self.pieces("送出項目編號後方的字串")
+        self.assertEqual(len(digit_lines), 3)
+        menu, candidates, phrases = digit_lines
+        self.assertIn("執行項目編號的功能", menu[0])
+        self.assertNotIn("ime-not-dayi", menu[1])
+        self.assertIn("ime-not-dayi", candidates[1])
+        self.assertIn("ime-not-dayi", phrases[1])
+        self.assertIn("SHIFT", phrases[0])
+
+    def test_dayi_selection_keys_are_explained(self):
+        selkeys = cinbase_module("selkeys")
+        dayi = [text for text, classes in self.page.pieces if "ime-dayi" in classes]
+        self.assertEqual(len(dayi), 3)
+        menu, candidates, phrases = dayi
+        self.assertIn("數字鍵", menu)
+        keys = "「" + " ".join(selkeys.DAYI_DISPLAY_SELKEYS) + "」"   # ' [ ] - \
+        for text in (candidates, phrases):
+            self.assertTrue(text.startswith(("大易：", "* 大易：")), text)
+            self.assertIn(keys, text)
+            self.assertIn("第 2～6 個", text)
+            self.assertIn("空白鍵", text)
+        self.assertIn("數字鍵是字根", candidates)
+        self.assertIn("「" + selkeys.DAYI_CAND_SELKEYS[0] + "」", candidates)
+        self.assertIn("不需押住 SHIFT 鍵", phrases)
+        for text, classes in self.page.pieces:
+            self.assertFalse({"ime-dayi", "ime-not-dayi"} <= classes, text)
+
+    def test_only_the_current_ime_s_text_is_shown(self):
+        style = "".join(self.page.styles)
+        self.assertRegex(style, r"html\.dayi-help \.ime-not-dayi,\s*html\.default-help \.ime-dayi \{\s*display: none;")
+        if not NODE:
+            self.skipTest("node is not installed")
+        # the inline script, as the settings page's iframe runs it, and opened by itself
+        runner = r"""
+const vm = require("vm"), fs = require("fs");
+const script = fs.readFileSync(0, "utf8");
+const parents = [{ imeFolderName: "chedayi" }, { imeFolderName: "checj" }, {}, null];
+process.stdout.write(JSON.stringify(parents.map(parent => {
+    const window = {};
+    if (parent === null) {
+        Object.defineProperty(window, "parent", { get() { throw new Error("cross-origin"); } });
+    } else {
+        window.parent = parent;
+    }
+    const document = { documentElement: { className: "" } };
+    vm.runInNewContext(script, { window, document });
+    return document.documentElement.className;
+})));
+"""
+        result = subprocess.run([NODE, "-e", runner], input="".join(self.page.scripts),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), ["dayi-help", "default-help", "", ""])
+
+
+def backend_max_cand_per_page():
+    return cinbase_module("pager").maxCandPerPage
 
 
 @unittest.skipUnless(NODE, "node is not installed")
