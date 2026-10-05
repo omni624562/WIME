@@ -9,6 +9,20 @@ if PYTHON_DIR not in sys.path:
     sys.path.insert(0, PYTHON_DIR)
 
 
+import cinbase_harness
+
+
+# 這些測試會建立真的大易／酷倉服務，設定類別會讀寫 %APPDATA%\PIME（config.json、
+# 排除聯想字詞、cincount.json）。以前沒有隔離，跑整套測試就會讀到使用者真正的設定。
+def setUpModule():
+    global _appdata
+    _appdata = cinbase_harness.IsolatedAppData()
+
+
+def tearDownModule():
+    _appdata.close()
+
+
 class FakeTextService:
     """Stands in for textService.TextService: records setSelKeys per client."""
 

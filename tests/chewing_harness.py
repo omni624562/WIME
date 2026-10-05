@@ -51,6 +51,13 @@ class ConfigOverride:
 
     def __init__(self, **overrides):
         self.cfg = config()
+        # Take a pending reload first: the shared object still holds the file version
+        # of the APPDATA the previous test module used. Reloaded during the override
+        # (the next check after 3 s), it saved the overridden values as this APPDATA's
+        # config.json, restore() brought back the old version, and the next check
+        # loaded them for every later test (a layout override broke all typing).
+        self.cfg._lastUpdateTime = None
+        self.cfg.update()
         self.saved = copy.deepcopy(self.cfg.__dict__)
         for key, value in overrides.items():
             setattr(self.cfg, key, value)

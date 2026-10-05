@@ -22,6 +22,7 @@
 !include "Winver.nsh" ; Windows version detection
 !include "LogicLib.nsh" ; for ${If}, ${Switch} commands
 !include "Sections.nsh" ; for selecting sections in silent installs
+!include "FileFunc.nsh" ; for ${GetSize}
 
 ; We need the StdUtils plugin
 !addincludedir "StdUtils.2015-11-16\Include"
@@ -41,9 +42,20 @@ AllowSkipFiles off ; cannot skip a file
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\orange-uninstall.ico"
 
 !define /file PRODUCT_VERSION "..\version.txt"
+!include "version.nsh" ; VI_VERSION, e.g. 1.3.0.14 for 1.3.0-beta14
+
+; Version resource of the setup program (Properties > Details; without it the file
+; showed no name, description or version). The per-language keys are set by LANG_LOAD.
+VIProductVersion "${VI_VERSION}"
+VIFileVersion "${VI_VERSION}"
 
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
 !define HOMEPAGE_URL "https://github.com/omni624562/WIME"
+; The Start-menu folder, in the all-users Start menu like the rest of the install
+; (Program Files, HKLM). A fixed name rather than $(PRODUCT_NAME): the uninstaller does
+; not know the language picked in the installer, so it removed the other language's
+; folder and left this one behind.
+!define START_MENU_FOLDER "WIME"
 
 Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"
@@ -74,6 +86,10 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_INSTFILES
 
 ; finish page
+; Nothing else tells a new user how to reach the keyboards or the settings tools. The
+; hint also covers PCs without the 中文 (台灣) language, where the keyboards (all
+; registered under zh-Hant-TW) do not show up at all.
+!define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
 !define MUI_FINISHPAGE_LINK_LOCATION "${HOMEPAGE_URL}"
 !define MUI_FINISHPAGE_LINK "$(PRODUCT_PAGE) ${MUI_FINISHPAGE_LINK_LOCATION}"
 !insertmacro MUI_PAGE_FINISH
@@ -86,11 +102,20 @@ RequestExecutionLevel admin
 !macro LANG_LOAD LANGLOAD
   !insertmacro MUI_LANGUAGE "${LANGLOAD}"
   !include "locale\${LANGLOAD}.nsh"
+  ; the version keys that need no translation (the locale file sets ProductName,
+  ; CompanyName and FileDescription)
+  VIAddVersionKey /LANG=${LANG_${LANG}} "FileVersion" "${VI_VERSION}"
+  VIAddVersionKey /LANG=${LANG_${LANG}} "ProductVersion" "${PRODUCT_VERSION}"
+  VIAddVersionKey /LANG=${LANG_${LANG}} "LegalCopyright" "Copyright (C) 2013-2016 PIME developers, WIME development team"
   !undef LANG
 !macroend
 
 !macro LANG_STRING NAME VALUE
   LangString "${NAME}" "${LANG_${LANG}}" "${VALUE}"
+!macroend
+
+!macro LANG_VERSION_KEY NAME VALUE
+  VIAddVersionKey /LANG=${LANG_${LANG}} "${NAME}" "${VALUE}"
 !macroend
 
 !macro LANG_UNSTRING NAME VALUE
@@ -174,6 +199,34 @@ FunctionEnd
 !macroend
 !insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR ""
 !insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR "un."
+
+; The Start-menu folders earlier versions created: named after the language picked in
+; the installer (PIME before the rename) and, as there was no SetShellVarContext, in
+; the Start menu of the account the elevated installer ran as. Only these exact names
+; are removed; copies in other accounts' Start menus cannot be reached from here.
+!macro RMDIR_OLD_START_MENU_FOLDERS
+	RMDir /r "$SMPROGRAMS\WIME 輸入法"
+	RMDir /r "$SMPROGRAMS\WIME Input Methods"
+	RMDir /r "$SMPROGRAMS\WIME 输入法"
+	RMDir /r "$SMPROGRAMS\PIME 輸入法"
+	RMDir /r "$SMPROGRAMS\PIME Input Methods"
+	RMDir /r "$SMPROGRAMS\PIME 输入法"
+!macroend
+
+; Remove the Start-menu folder and the old ones, from both the current user's and the
+; all-users Start menu. Leaves the shell context at "all", which every $SMPROGRAMS use
+; in this script expects.
+!macro DEFINE_REMOVE_START_MENU_FOLDERS UN
+Function ${UN}removeStartMenuFolders
+	SetShellVarContext current
+	!insertmacro RMDIR_OLD_START_MENU_FOLDERS
+	SetShellVarContext all
+	!insertmacro RMDIR_OLD_START_MENU_FOLDERS
+	RMDir /r "$SMPROGRAMS\${START_MENU_FOLDER}"
+FunctionEnd
+!macroend
+!insertmacro DEFINE_REMOVE_START_MENU_FOLDERS ""
+!insertmacro DEFINE_REMOVE_START_MENU_FOLDERS "un."
 
 ; Refuse to install while an earlier uninstall/upgrade still has boot-time deletes
 ; pending for files in the install dir: Windows deletes by path at the next boot, so
@@ -313,7 +366,7 @@ Function removeOldVersion
 		RMDir /r "$INSTDIR\server"
 
 		; Delete shortcuts in Start Menu
-		RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
+		Call removeStartMenuFolders
 
 		Delete "$INSTDIR\version.txt"
 		Delete "$INSTDIR\Uninstall.exe"
@@ -424,9 +477,13 @@ Function .onInit
 			Abort
 	${EndIf}
 
-	; Currently, we're not able to support Windows xp since it has an incomplete TSF.
-	${IfNot} ${AtLeastWinVista}
-		MessageBox MB_ICONSTOP|MB_OK $(AtLeastWinVista_MESSAGE)
+	; The embedded Python 3.12 supports Windows 8.1 and later, and both it and the launcher
+	; import Windows 8 APIs (PathCchCombineEx; ProcessPrng, WaitOnAddress,
+	; GetSystemTimePreciseAsFileTime). Letting Vista/7 through only gave an install
+	; that looked fine while the launcher failed to load at every logon. (The version
+	; is reported correctly because NSIS manifests the installer for Windows 8.1/10.)
+	${IfNot} ${AtLeastWin8.1}
+		MessageBox MB_ICONSTOP|MB_OK $(AtLeastWin81_MESSAGE) /SD IDOK
 		Quit
 	${EndIf}
 
@@ -488,8 +545,9 @@ Function ensureUCRT
 	; python3\ carries its own vcruntime140.dll, so no VC++ redistributable is needed
 	; (the old check downloaded one, and on 64-bit Windows only the x64 package, which
 	; did not help the 32-bit launcher). The embedded Python still needs the Universal
-	; C Runtime: built into Windows 10 and later, an update (KB2999226) on Windows 8.1.
-	; $SYSDIR is SysWOW64 for this 32-bit installer, i.e. the 32-bit UCRT Python uses.
+	; C Runtime: built into Windows 10 and later, an update (KB2999226) on Windows 8.1,
+	; the oldest version .onInit lets through. $SYSDIR is SysWOW64 for this 32-bit
+	; installer, i.e. the 32-bit UCRT Python uses.
 	${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
 		MessageBox MB_ICONSTOP|MB_OK $(UCRT_MISSING_MESSAGE)
 		ExecShell "open" "https://support.microsoft.com/kb/2999226"
@@ -814,9 +872,19 @@ Section "" Register
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" $(PRODUCT_NAME)
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "Publisher" $(PRODUCT_PUBLISHER)
-	; WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\x86\PIMETextService.dll"
+	; The icon Settings > Apps shows. PIMETextService.dll has no icon resource, so use
+	; the 大易 one when 大易 is installed, else the uninstaller's.
+	${If} ${SectionIsSelected} ${chedayi}
+		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\python\input_methods\chedayi\icon.ico"
+	${Else}
+		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Uninstall.exe"
+	${EndIf}
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${HOMEPAGE_URL}"
+	; Uninstall is the only action there is: without NoModify, Programs and Features
+	; labels the button Uninstall/Change, and either way it runs the uninstaller
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoModify" 1
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoRepair" 1
 	WriteUninstaller "$INSTDIR\Uninstall.exe" ;Create uninstaller
 
 	; Compile all installed python modules to *.pyc files
@@ -826,53 +894,62 @@ Section "" Register
 		nsExec::ExecToLog  '"$INSTDIR\python\python3\python.exe" -m compileall -o 0 -o 1 "$INSTDIR\python"'
 	${EndIf}
 
+	; The size Settings > Apps shows (in KB), measured once everything, the .pyc files
+	; above included, is in place
+	${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "EstimatedSize" $0
+
 	; Launch the python server as current user (non-elevated process)
 	${StdUtils.ExecShellAsUser} $0 "$INSTDIR\PIMELauncher.exe" "open" ""
 
-	; Create shortcuts
-	CreateDirectory "$SMPROGRAMS\$(PRODUCT_NAME)"
+	; Create shortcuts. Clear out the old folders first also when removeOldVersion did not
+	; run (no uninstall entry): an older uninstaller left the folder of the language it
+	; did not run in.
+	Call removeStartMenuFolders
+	SetShellVarContext all
+	CreateDirectory "$SMPROGRAMS\${START_MENU_FOLDER}"
 	${If} ${SectionIsSelected} ${chewing}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEWING).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" config' "$INSTDIR\python\input_methods\chewing\images\setting.ico" 0
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" user_phrase_editor' "$INSTDIR\python\input_methods\chewing\images\phrase_editor.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" config' "$INSTDIR\python\input_methods\chewing\images\setting.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" user_phrase_editor' "$INSTDIR\python\input_methods\chewing\images\phrase_editor.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${checj}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${cheliu}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chearray}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
 	${EndIf}
 !endif
 
 	${If} ${SectionIsSelected} ${chedayi}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${chepinyin}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chesimplex}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chephonetic}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${cheez}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
 	${EndIf}
 !endif
 
-	CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
+	CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
 ;Assign language strings to sections
@@ -954,7 +1031,7 @@ Section "Uninstall"
     Delete "$INSTDIR\backends.json"
 
 	; Delete shortcuts in Start Menu
-	RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
+	Call un.removeStartMenuFolders
 
 	Delete "$INSTDIR\version.txt"
 	Delete "$INSTDIR\Uninstall.exe"

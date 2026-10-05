@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from keycodes import *  # for VK_XXX constants
+from textService import COMMAND_LEFT_CLICK, COMMAND_MENU
 import os.path
 import time
 
@@ -75,6 +76,12 @@ ID_LITTLEDICT = 11
 ID_PROVERBDICT = 12
 ID_OUTPUT_SIMP_CHINESE = 13
 
+# 系統匣模式圖示提示文字裡的輸入法名稱（與各 ime.json 的名稱相同，不含「輸入法 (WIME)」）
+IME_SHORT_NAMES = {
+    "chedayi": "大易", "checj": "酷倉", "chearray": "行列", "cheliu": "蝦米",
+    "cheez": "輕鬆", "chephonetic": "注音", "chepinyin": "拼音", "chesimplex": "速成",
+}
+
 # 鍵盤掃描碼（set 1）：左、右 Shift 的虛擬鍵都是 VK_SHIFT，只能靠掃描碼分辨
 LEFT_SHIFT_SCAN_CODE = 0x2A
 RIGHT_SHIFT_SCAN_CODE = 0x36
@@ -126,7 +133,9 @@ class CinBase:
         with io.open(os.path.join(os.path.dirname(__file__), "data", "emoji.json"), 'r', encoding='utf8') as fs:
             self.emoji = emoji(fs)
 
-        self.emojimenulist = ["表情符號", "圖形符號", "其它符號", "雜錦符號", "交通運輸", "調色盤"]
+        # 依位置對應 emoji.json 的各組（menutype 7）。第一類以前也叫「表情符號」，跟主選單
+        # 項目同名；「其他」統一用這個寫法（特殊符號頁也是「其他符號」）
+        self.emojimenulist = ["表情與手勢", "圖形符號", "其他符號", "雜錦符號", "交通運輸", "調色盤"]
         self.imeNameList = ["checj", "chephonetic", "chearray", "chedayi", "cheez", "chepinyin", "chesimplex", "cheliu"]
         self.hcinFileList = ["thphonetic.json", "CnsPhonetic.json", "bpmf.json"]
 
@@ -265,6 +274,12 @@ class CinBase:
     # 輸入法被使用者啟用
     def onActivate(self, cbTS):
         cfg = cbTS.cfg
+        # 建立時（initCinBaseContext、applyConfig）排進去的 changeButton 還在 currentReply：
+        # server.py 的 init 不回傳它們，會跟這個回覆一起送出，C++ 端先套用 addButton、
+        # 再套用 changeButton。那時還沒啟用，以前把「預設以停用輸入法模式啟動」的停用
+        # 圖示蓋回「中」，鍵盤原本就關著時不會再有 onKeyboardStatusChanged 改回來。
+        # 下面的 addButton 已帶完整狀態
+        cbTS.currentReply.pop("changeButton", None)
         keyboardWillOpen = getattr(cbTS, "keyboardOpen", True)
         if cbTS.client.isWindows8Above:
             keyboardWillOpen = not cfg.disableOnStartup
@@ -283,25 +298,15 @@ class CinBase:
 
         # Windows 8 以上已取消語言列功能，改用 systray IME mode icon
         if cbTS.client.isWindows8Above:
-            if cbTS.langMode == CHINESE_MODE:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "chi_full_capson.ico" if cbTS.capsStates else "chi_full_capsoff.ico"
-                else:
-                    icon_name = "chi_half_capson.ico" if cbTS.capsStates else "chi_half_capsoff.ico"
-            else:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "eng_full_capson.ico" if cbTS.capsStates else "eng_full_capsoff.ico"
-                else:
-                    icon_name = "eng_half_capson.ico" if cbTS.capsStates else "eng_half_capsoff.ico"
+            # 啟動時預設停用中文輸入（先設好，模式圖示一開始就顯示停用狀態）
+            cbTS.setKeyboardOpen(not cfg.disableOnStartup)
 
+            icon_path, tooltip = self.modeIconState(cbTS)
             cbTS.addButton("windows-mode-icon",
-                icon=os.path.join(self.icondir, icon_name),
-                tooltip="中英文切換",
+                icon=icon_path,
+                tooltip=tooltip,
                 commandId=ID_MODE_ICON
             )
-
-            # 啟動時預設停用中文輸入
-            cbTS.setKeyboardOpen(not cfg.disableOnStartup)
 
         # 切換全半形
         icon_name = "full.ico" if cbTS.shapeMode == FULLSHAPE_MODE else "half.ico"
@@ -874,7 +879,7 @@ class CinBase:
                 elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "toggles": # 切至功能開關頁面
                     cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                     pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
-                    menu.pushPath(cbTS, "功能開關")
+                    menu.pushPath(cbTS, menu.TOGGLES_PAGE_TITLE)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 1, ["0," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "symbols": # 切至特殊符號頁面
                     cbTS.menucandidates = menu.withBack(cbTS.symbols.getKeyNames())
@@ -911,6 +916,8 @@ class CinBase:
                     cbTS.smenucandidates, cbTS.smenuitems = menu.buildToggleItems(cbTS)
                     cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                     pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                elif cbTS.menutype == 2 and cbTS.symbols.isLeaf(itemName): # 最上層的單一符號直接送出
+                    self.commitMenuItem(cbTS, itemName, "menusymbols", itemName)
                 elif cbTS.menutype == 2: # 切至特殊符號子頁面
                     if cbTS.compositionBufferMode:
                         cbTS.compositionBufferMenuItem = itemName
@@ -919,14 +926,7 @@ class CinBase:
                     menu.pushPath(cbTS, itemName)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 3, ["2," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 3: # 執行特殊符號子頁面項目
-                    if cbTS.compositionBufferMode:
-                        self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
-                        self.setCompositionBufferString(cbTS, cbTS.candidateList[candCursor], 0)
-                        cbTS.compositionBufferType = "menusymbols"
-                        self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cbTS.compositionBufferMenuItem, cbTS.compositionBufferCursor)
-                    else:
-                        cbTS.setCommitString(cbTS.candidateList[candCursor])
-                    cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                    self.commitMenuItem(cbTS, cbTS.candidateList[candCursor], "menusymbols", cbTS.compositionBufferMenuItem)
                 elif cbTS.menutype == 4: # 執行注音符號頁面項目
                     if cbTS.compositionBufferMode:
                         self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
@@ -936,6 +936,8 @@ class CinBase:
                     else:
                         cbTS.setCommitString(cbTS.candidateList[candCursor])
                     cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                elif cbTS.menutype == 5 and cbTS.flangs.isLeaf(itemName): # 最上層的單一文字直接送出
+                    self.commitMenuItem(cbTS, itemName, "menuflangs", itemName)
                 elif cbTS.menutype == 5: # 切至外語文字子頁面
                     if cbTS.compositionBufferMode:
                         cbTS.compositionBufferMenuItem = itemName
@@ -944,14 +946,7 @@ class CinBase:
                     menu.pushPath(cbTS, itemName)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 6, ["5," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 6: # 執行外語文字子頁面項目
-                    if cbTS.compositionBufferMode:
-                        self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
-                        self.setCompositionBufferString(cbTS, cbTS.candidateList[candCursor], 0)
-                        cbTS.compositionBufferType = "menuflangs"
-                        self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cbTS.compositionBufferMenuItem, cbTS.compositionBufferCursor)
-                    else:
-                        cbTS.setCommitString(cbTS.candidateList[candCursor])
-                    cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                    self.commitMenuItem(cbTS, cbTS.candidateList[candCursor], "menuflangs", cbTS.compositionBufferMenuItem)
                 elif cbTS.menutype == 7: # 切換至表情符號分類頁面
                     menutype = 8
                     i = self.emojimenulist.index(itemName)
@@ -2669,10 +2664,16 @@ class CinBase:
     def onCommand(self, cbTS, commandId, commandType):
         # 用滑鼠或語言列切換中英文、全半形等不會送出按鍵，自動送字後要忽略的空白也一併取消
         cbTS.skipSpaceDeadline = 0.0
-        if commandId == ID_SWITCH_LANG and commandType == 0:  # 切換中英文模式
+        # 語言列按鈕的左鍵，或右鍵選單的「中文模式」「全形」（COMMAND_MENU）
+        if commandId == ID_SWITCH_LANG and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換中英文模式
             self.abandonComposition(cbTS)
-            self.toggleLanguageMode(cbTS)
-        elif commandId == ID_SWITCH_SHAPE and commandType == 0:  # 切換全形/半形
+            if commandType == COMMAND_MENU and self.keyboardClosed(cbTS):
+                # 鍵盤關著時「中文模式」沒打勾，選它就是要打中文：開啟輸入法並切到中文
+                cbTS.langMode = CHINESE_MODE
+                self.reopenKeyboard(cbTS)
+            else:
+                self.toggleLanguageMode(cbTS)
+        elif commandId == ID_SWITCH_SHAPE and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換全形/半形
             self.abandonComposition(cbTS)
             self.toggleShapeMode(cbTS)
         elif commandId == ID_SETTINGS:  # 開啟設定工具
@@ -2682,9 +2683,16 @@ class CinBase:
             # 使用我們自帶的 python runtime exe 執行 config tool
             # 此處也可以用 subprocess，不過使用 windows API 比較方便
             r = windll.shell32.ShellExecuteW(None, "open", python_exe, config_tool, self.cinbasecurdir, 0)  # SW_HIDE = 0 (hide the window)
-        elif commandId == ID_MODE_ICON: # windows 8 mode icon
+        # windows 8 mode icon：只有左鍵切換。右鍵本來開選單，onMenu 失敗（後端卡住、
+        # 管道剛斷）時 C++ 端改送 COMMAND_RIGHT_CLICK，以前也切換，右鍵一下就默默變英文
+        elif commandId == ID_MODE_ICON and commandType == COMMAND_LEFT_CLICK:
             self.abandonComposition(cbTS)
-            self.toggleLanguageMode(cbTS)  # 切換中英文模式
+            if self.keyboardClosed(cbTS):
+                # 鍵盤關著（Ctrl+空白鍵、預設以停用輸入法模式啟動）時點圖示是要重新開啟：
+                # 以前照樣切換中英文，輸入仍是英文，圖示卻在中、英之間跳
+                self.reopenKeyboard(cbTS)
+            else:
+                self.toggleLanguageMode(cbTS)  # 切換中英文模式
         elif commandId == ID_WEBSITE: # visit chewing website
             os.startfile("https://github.com/omni624562/WIME")
         elif commandId == ID_BUGREPORT: # visit bug tracker page
@@ -2707,7 +2715,7 @@ class CinBase:
         # 設定按鈕 (windows 8 mode icon 按鈕也使用同一個選單)
         if buttonId == "settings" or buttonId == "windows-mode-icon":
             # 用 json 語法表示選單結構
-            return [
+            return self.modeMenuItems(cbTS) + [
                 {"text": "參觀 WIME 官方網站(&W)", "id": ID_WEBSITE},
                 {},
                 {"text": "WIME 錯誤回報(&B)", "id": ID_BUGREPORT},
@@ -2726,22 +2734,51 @@ class CinBase:
         return None
 
 
+    # 右鍵選單最上面的「中文模式」「全形」，打勾表示目前狀態。Win10/11 預設不顯示
+    # 語言列，「中英文切換」「全形/半形切換」兩個按鈕看不到：以前選單裡沒有這兩項，
+    # 不小心按到 Shift+空白鍵變成全形後，只能再按一次快速鍵切回來
+    def modeMenuItems(self, cbTS):
+        cfg = cbTS.cfg
+        langKey = ""
+        if cfg.switchLangWithShift:
+            langKey = {SWITCH_LANG_WITH_LEFT_SHIFT: "左 Shift",
+                       SWITCH_LANG_WITH_RIGHT_SHIFT: "右 Shift"}.get(cfg.switchLangWithWhichShift, "Shift")
+        return [
+            {"text": "中文模式" + ("（%s）" % langKey if langKey else ""), "id": ID_SWITCH_LANG,
+             "checked": cbTS.langMode == CHINESE_MODE and not self.keyboardClosed(cbTS)},
+            {"text": "全形" + ("（Shift+空白鍵）" if cfg.enableShiftSpace else ""), "id": ID_SWITCH_SHAPE,
+             "checked": cbTS.shapeMode == FULLSHAPE_MODE},
+            {},
+        ]
+
+
     # 鍵盤開啟/關閉時會被呼叫 (在 Windows 10 Ctrl+Space 時)
     def onKeyboardStatusChanged(self, cbTS, opened):
         cbTS.skipSpaceDeadline = 0.0
         if opened: # 鍵盤開啟
             self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
-            self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=True)
+            self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=False)
         else: # 鍵盤關閉，輸入法停用
             self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
 
-        # Windows 8 systray IME mode icon
-        if cbTS.client.isWindows8Above:
-            # 若鍵盤關閉，我們需要把 widnows 8 mode icon 設定為 disabled
-            cbTS.changeButton("windows-mode-icon", enable=opened)
-        # FIXME: 是否需要同時 disable 其他語言列按鈕？
+        # Windows 8 systray IME mode icon：關閉時改成英文圖示、提示「已停用」。
+        # 以前只把圖示設成 disabled，照樣顯示「中」，而且點了也不會重新開啟
+        self.updateLangButtons(cbTS)
+
+
+    def keyboardClosed(self, cbTS):
+        # keyboardOpen 只在啟用期間有意義：TextService 建立時是 False，onActivate 才帶入
+        return cbTS.isActivated and not cbTS.keyboardOpen
+
+
+    # 從系統匣圖示或選單重新開啟鍵盤。C++ 端套用 openKeyboard 後會再送來
+    # onKeyboardStatusChanged(True)，這裡先切回中文、更新圖示，不必等它
+    def reopenKeyboard(self, cbTS):
+        cbTS.setKeyboardOpen(True)
+        self.restoreChineseModeOnKeyboardOpen(cbTS, True, updateButtons=False)
+        self.updateLangButtons(cbTS)
 
 
     # 當中文編輯結束時會被呼叫。若中文編輯不是正常結束，而是因為使用者
@@ -2850,24 +2887,33 @@ class CinBase:
         cbTS.capsStates = True if self.getKeyState(VK_CAPITAL) else False
 
         if cbTS.client.isWindows8Above:  # windows 8 mode icon
-            if cbTS.langMode == CHINESE_MODE:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "chi_full_capson.ico" if cbTS.capsStates else "chi_full_capsoff.ico"
-                else:
-                    icon_name = "chi_half_capson.ico" if cbTS.capsStates else "chi_half_capsoff.ico"
-            else:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "eng_full_capson.ico" if cbTS.capsStates else "eng_full_capsoff.ico"
-                else:
-                    icon_name = "eng_half_capson.ico" if cbTS.capsStates else "eng_half_capsoff.ico"
-
-            icon_path = os.path.join(self.icondir, icon_name)
-            cbTS.changeButton("windows-mode-icon", icon=icon_path)
+            icon_path, tooltip = self.modeIconState(cbTS)
+            cbTS.changeButton("windows-mode-icon", icon=icon_path, tooltip=tooltip)
 
         # 如果全形半形模式改變
         icon_name = "full.ico" if cbTS.shapeMode == FULLSHAPE_MODE else "half.ico"
         icon_path = os.path.join(self.icondir, icon_name)
         cbTS.changeButton("switch-shape", icon=icon_path)
+
+
+    # 系統匣模式圖示的 (圖示路徑, 提示文字)。提示文字寫出輸入法名稱與目前狀態：
+    # 大易、酷倉共用同一組圖示，以前提示也一律是「中英文切換」，看不出是哪個輸入法、
+    # 現在是中文還是英文、全形還是半形（全形、半形只差在圖示右半邊是不是灰色）
+    def modeIconState(self, cbTS):
+        name = cbTS.imeDisplayName or IME_SHORT_NAMES.get(cbTS.imeDirName, "")
+        prefix = name + "：" if name else ""
+        if self.keyboardClosed(cbTS):
+            # 鍵盤關閉時打的是英文：顯示英文半形圖示（eng.ico 是白字透明底，淺色工作列
+            # 上看不見）。關閉期間按鍵不會送到後端，CapsLock 變了也無從更新，不分大小寫
+            return (os.path.join(self.icondir, "eng_half_capsoff.ico"),
+                    prefix + "已關閉（按一下或按 Ctrl+空白鍵開啟）")
+        chinese = cbTS.langMode == CHINESE_MODE
+        full = cbTS.shapeMode == FULLSHAPE_MODE
+        icon_name = "%s_%s_%s.ico" % ("chi" if chinese else "eng", "full" if full else "half",
+                                       "capson" if cbTS.capsStates else "capsoff")
+        tooltip = "%s%s、%s（按一下切換中英文）" % (prefix, "中文" if chinese else "英文",
+                                              "全形" if full else "半形")
+        return os.path.join(self.icondir, icon_name), tooltip
 
 
     # 按下「`」鍵的選單命令
@@ -2936,6 +2982,19 @@ class CinBase:
             else:
                 cbTS.prevmenutypelist = prevmenutypelist
         return True
+
+
+    # 送出選單裡選到的符號並關閉選單。組字緩衝模式下改放進緩衝區，記下來源
+    # （bufferType、bufferMenuItem），之後游標移回這個字按 ↓ 時才列得出同一組候選
+    def commitMenuItem(self, cbTS, text, bufferType, bufferMenuItem):
+        if cbTS.compositionBufferMode:
+            self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
+            self.setCompositionBufferString(cbTS, text, 0)
+            cbTS.compositionBufferType = bufferType
+            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, bufferMenuItem, cbTS.compositionBufferCursor)
+        else:
+            cbTS.setCommitString(text)
+        cbTS.resetMenuCand = self.closeMenuCand(cbTS)
 
 
     def closeMenuCand(self, cbTS):
@@ -3692,8 +3751,6 @@ class CinBase:
         # Shift + 空白鍵切換全形/半形?（建立時還沒啟用，不會宣告）
         self.updateShiftSpaceKey(cbTS)
 
-        self.updateLangButtons(cbTS)
-
         # Shift 輸入全形標點?
         cbTS.fullShapeSymbols = cfg.fullShapeSymbols
 
@@ -3709,7 +3766,9 @@ class CinBase:
         # 優先以聯想字詞排序候選清單?
         cbTS.sortByPhrase = cfg.sortByPhrase
 
-        # 智慧選字 (依使用者選字頻率自動排序候選清單)?
+        # 智慧選字?（純上下文預測：在同一個前一字之後選過的字才排到前面，沒有前一字
+        # 紀錄時維持碼表順序，不依全域選字次數重排。近期選字優先只在這些字之間比先後；
+        # 關掉前一字上下文就不再重排，但仍會記錄選字。見 cin.sortByCount）
         cbTS.intelligentSelect = getattr(cfg, 'intelligentSelect', True)
         cbTS.intelligentSelectRecent = getattr(cfg, 'intelligentSelectRecent', True)
         cbTS.intelligentSelectContext = getattr(cfg, 'intelligentSelectContext', True)
@@ -3718,6 +3777,10 @@ class CinBase:
         cbTS.hideComposition = getattr(cfg, 'hideComposition', False)
         cbTS.hideCompositionLabel = getattr(cfg, 'hideCompositionLabel', '')
         cbTS.imeDisplayName = getattr(cfg, 'imeDisplayName', '')
+
+        # 系統匣模式圖示的提示寫出上面的顯示名稱，要在它之後更新：以前排在前面，
+        # 啟用中改了名稱，提示要等到下次切換中英、全半形才換
+        self.updateLangButtons(cbTS)
 
         # 拆錯字碼時發出警告嗶聲提示?
         cbTS.playSoundWhenNonCand  = cfg.playSoundWhenNonCand 

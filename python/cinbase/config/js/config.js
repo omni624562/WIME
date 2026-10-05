@@ -253,6 +253,11 @@ function applyCandidateDefaults() {
     ["candidateModernStyle", "messageDurationTime", "hidePromptMessages"].forEach(function(key) {
         delete checjConfig[key];
     });
+    // 橫排時這個數字就是每頁候選數，後端把它限制在選字鍵數以內（pager.clampCandPerPage()）。
+    // 大易存了 7～10 時候選窗實際只有 6 個，頁面也顯示成 6
+    if (typeof checjConfig.candidatePerRow === "number" && checjConfig.candidatePerRow > candidatePageSizeLimit()) {
+        checjConfig.candidatePerRow = candidatePageSizeLimit();
+    }
     var modernDefaultIme = ["chedayi", "checj", "cheliu"].indexOf(currentIme) >= 0;
     if (!modernDefaultIme) {
         return;
@@ -289,6 +294,93 @@ function applyCandidateDefaults() {
 
 // 候選窗外觀資料（themeNames / palette / 各樣式 options / classNames）
 // 已抽至 js/candidate_appearance.js（重構 A），於此檔前先行載入。
+
+// 候選窗最小、最大寬度欄位的上限
+var CANDIDATE_MAX_WIDTH_LIMIT = 720;
+
+// 每頁最多幾個候選字：不可超過選字鍵數（與 cinbase/pager.py 的 maxCandPerPage() 相同）。
+// 大易的候選鍵是「␣'[]-\」6 個，其餘輸入法是 1234567890
+function candidatePageSizeLimit() {
+    var currentIme = typeof imeFolderName !== "undefined" ? imeFolderName : "";
+    return currentIme == "chedayi" ? 6 : 10;
+}
+
+// 候選窗實際的排版，與 libIME2 CandidateWindow::recalculateSize() 的算法相同
+// （tests/test_candidate_width.py 以 GDI 量到的字寬驗證同一套算法）。以 100% 縮放、
+// 單字候選估算，字寬是微軟正黑體在 GDI 下的寬度：中文字與大易的「␣」都是一個字高
+// （字型裡沒有「␣」，GDI 借用的字型是全形；瀏覽器借的字型不同，所以不用 canvas 量），
+// 數字約 1187/2048 字高。layout: { fontSize, selKeys, items, perRow, style, wrap, maxWidth }
+function candidateWindowLayout(layout) {
+    var px = Math.round(layout.fontSize * 96 / 72);  // lfHeight = -MulDiv(fontSize, dpi, 72)
+    var style = layout.style || {};
+    // 沒有設定時用 cinbase/config.py 的 candidateStyle 預設值
+    var margin = typeof style.contentMargin === "number" ? style.contentMargin : 6;
+    var textMargin = typeof style.textMargin === "number" ? style.textMargin : 4;
+    var colSpacing = Math.max(6, textMargin + 2);
+    var keyWidth = 0;
+    for (var i = 0; i < layout.items; ++i) {
+        var key = layout.selKeys.charAt(i % layout.selKeys.length);
+        keyWidth = Math.max(keyWidth, key.charCodeAt(0) > 0x7f ? px : Math.round(px * 1187 / 2048));
+    }
+    // 選字符樣式固定是 word-first：modernCandidateKeyMinWidth() 為 0，modernCandidateExtraWidth() 如下
+    var extra = textMargin * 2 + Math.max(3, Math.floor(textMargin / 2)) + Math.max(2, Math.floor(textMargin / 2));
+    var stride = keyWidth + px + extra;
+    var columns = Math.max(1, layout.perRow);
+    if (layout.wrap && layout.maxWidth > 0) {
+        var contentLimit = Math.max(1, layout.maxWidth - margin * 2);
+        columns = Math.max(1, Math.min(columns, Math.floor((contentLimit + colSpacing) / (stride + colSpacing))));
+    }
+    columns = Math.max(1, Math.min(columns, layout.items));
+    function rowWidth(count) {
+        return count * stride + (count - 1) * colSpacing + margin * 2;
+    }
+    return {
+        items: layout.items,
+        maxWidth: layout.maxWidth,
+        columns: columns,
+        stride: stride,
+        colSpacing: colSpacing,
+        width: rowWidth(columns),       // 換行後一列的寬度
+        fullRowWidth: rowWidth(layout.items)  // 一整頁排成一列要的寬度
+    };
+}
+
+// 依頁面目前的欄位算出候選窗的排版。preview 是預覽卡片要畫的排版：預覽的字最大
+// 48pt（candidatePreviewFontSize()），字體設得更大時畫 48pt 的字與欄寬，欄數與換行
+// 的位置仍是實際候選窗的
+function currentCandidateWindowLayout(sample) {
+    var perRow = parseInt($("#candidatePerRow").val(), 10) || 4;
+    perRow = Math.max(1, Math.min(perRow, 10));
+    var maxWidth = parseInt($("#candidateMaxWidth").val(), 10) || checjConfig.candidateMaxWidth || 320;
+    function layoutAt(fontSize, columns, wrap) {
+        return candidateWindowLayout({
+            fontSize: fontSize,
+            selKeys: sample.selKeys || "1234567890",
+            // 橫排時每列的字數就是每頁候選數，超過選字鍵數的部分後端不會顯示
+            items: Math.min(perRow, candidatePageSizeLimit()),
+            perRow: columns,
+            style: checjConfig.candidateStyle,
+            wrap: wrap,
+            maxWidth: maxWidth
+        });
+    }
+    var layout = layoutAt(candidateFontSize(), perRow, $("#candidateWrapToMaxWidth").prop("checked"));
+    layout.preview = layoutAt(candidatePreviewFontSize(), layout.columns, false);
+    return layout;
+}
+
+// 一頁排不成一列時的說明：候選窗會換行，以及要排成一列約需的最大寬度
+function candidatePerRowHintText(layout) {
+    if (layout.columns >= layout.items) {
+        return "";
+    }
+    var text = "候選窗最大寬度 " + layout.maxWidth + " 一列只放得下 " + layout.columns +
+        " 個候選字，其餘會換到下一列";
+    if (layout.fullRowWidth <= CANDIDATE_MAX_WIDTH_LIMIT) {
+        return text + "；要排成一列，請把最大寬度調到約 " + layout.fullRowWidth + " 以上。";
+    }
+    return text + "；這個字體大小下，最大寬度調到上限 " + CANDIDATE_MAX_WIDTH_LIMIT + " 也排不成一列。";
+}
 
 function getCandidatePreviewSample() {
     var previewName = checjConfig.imeDisplayName || "大易";
@@ -356,13 +448,18 @@ function applyCandidatePreviewKeyStyle(preview, keyStyle) {
 }
 
 function fillCandidatePreviewItems(preview, sample) {
-    var count = parseInt($("#candidatePerRow").val(), 10) || 4;
-    count = Math.max(1, Math.min(count, 10));
+    var layout = currentCandidateWindowLayout(sample).preview;
     var selKeys = sample.selKeys || "1234567890";
     var body = preview.find(".candidate-preview-body");
     body.empty();
+    // 欄數與欄寬照實際的候選窗：超過最大寬度時在同一個地方換行（以前預覽是在卡片的
+    // 寬度換行，或不換行），大易也只顯示 6 個
+    body.css({
+        "grid-template-columns": "repeat(" + layout.columns + ", " + layout.stride + "px)",
+        "column-gap": layout.colSpacing + "px"
+    });
 
-    for (var i = 0; i < count; ++i) {
+    for (var i = 0; i < layout.items; ++i) {
         var item = $("<span>").addClass("candidate-preview-item");
         if (i == 0) {
             item.addClass("active");
@@ -373,9 +470,15 @@ function fillCandidatePreviewItems(preview, sample) {
     }
 }
 
-function candidatePreviewFontSize() {
+// 候選窗的字體大小，範圍與 cinbase/config.py 的 _INT_RANGES 相同
+function candidateFontSize() {
     var fontSize = parseInt($("#fontSize").val(), 10) || 12;
-    return Math.max(6, Math.min(fontSize, 48));
+    return Math.max(6, Math.min(fontSize, 200));
+}
+
+// 預覽的字最大 48pt，再大預覽卡片放不下
+function candidatePreviewFontSize() {
+    return Math.min(candidateFontSize(), 48);
 }
 
 function createCandidatePreview(sample, keyStyle, headerStyle) {
@@ -548,9 +651,15 @@ function updateCandidateThemeGallery() {
     var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var sample = getCandidatePreviewSample();
+    var layout = currentCandidateWindowLayout(sample);
     $("#candidateMinWidth").prop("disabled", !stableWidth);
     $("#candidateMaxWidth").prop("disabled", !wrapToMaxWidth);
     $("#candidateThemeCurrent").text(selectedTheme);
+    var hint = candidatePerRowHintText(layout);
+    $("#candidatePerRowHint").text(hint).toggle(hint !== "");
+    // 預覽的候選字與實際候選窗同寬（100% 縮放，48pt 以上畫成 48pt），卡片至少要
+    // 放得下一列：卡片的內距與邊框 22px，加上預覽的邊框 2px
+    grid.css("--candidate-preview-card-min", (layout.preview.width + 24) + "px");
 
     grid.find(".candidate-theme-card").each(function() {
         var card = $(this);
@@ -558,7 +667,6 @@ function updateCandidateThemeGallery() {
         var selected = themeName == selectedTheme;
         var preview = card.find(".candidate-preview");
         card.toggleClass("selected", selected);
-        preview.toggleClass("wrap", wrapToMaxWidth);
         preview.css("font-size", candidatePreviewFontSize() + "pt");
         card.find(".candidate-theme-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
@@ -577,7 +685,6 @@ function updateCandidateKeyStyleGallery() {
 
     var selectedStyle = $("#candidateKeyStyle").val() || "word-first";
     var selectedTheme = $("#candidateTheme").val() || "System";
-    var wrapToMaxWidth = $("#candidateWrapToMaxWidth").prop("checked");
     var sample = getCandidatePreviewSample();
     $("#candidateKeyStyleCurrent").text(candidateKeyStyleOptions[selectedStyle] || "");
 
@@ -587,7 +694,6 @@ function updateCandidateKeyStyleGallery() {
         var selected = styleValue == selectedStyle;
         var preview = card.find(".candidate-preview");
         card.toggleClass("selected", selected);
-        preview.toggleClass("wrap", wrapToMaxWidth);
         preview.css("font-size", candidatePreviewFontSize() + "pt");
         card.find(".candidate-style-card-state").text(selected ? "已選" : "");
         preview.find(".candidate-preview-name").text(sample.name);
@@ -1087,9 +1193,9 @@ function pageReady() {
     $("#extendtable").val(extendtableData);
 
     $("#fontSize").TouchSpin({min:6, max:200});
-    $("#candidatePerRow").TouchSpin({min:1, max:10});
-    $("#candidateMinWidth").TouchSpin({min:160, max:720});
-    $("#candidateMaxWidth").TouchSpin({min:220, max:720});
+    $("#candidatePerRow").TouchSpin({min:1, max:candidatePageSizeLimit()});
+    $("#candidateMinWidth").TouchSpin({min:160, max:CANDIDATE_MAX_WIDTH_LIMIT});
+    $("#candidateMaxWidth").TouchSpin({min:220, max:CANDIDATE_MAX_WIDTH_LIMIT});
 
     var selWhichShift = [
         "左右兩邊都使用",
@@ -1271,14 +1377,15 @@ function pageReady() {
         $("#switchLangWithWhichShift").prop("disabled", !this.checked);
     });
 
-    // Phase 0: 父項關閉時，自動停用（並變灰）相依的子選項與下拉
-    function bindDependentEnable(parentId, dependents) {
-        var $parent = $("#" + parentId);
-        if (!$parent.length) {
+    // Phase 0: 父項關閉時，自動停用（並變灰）相依的子選項與下拉。
+    // parentIds 可以是一個 id 或 id 陣列；有多個父項時要全部開啟，子選項才可用
+    function bindDependentEnable(parentIds, dependents) {
+        var $parents = $($.map([].concat(parentIds), function(id) { return "#" + id; }).join(", "));
+        if (!$parents.length) {
             return;
         }
         function apply() {
-            var on = $parent.prop("checked");
+            var on = $parents.filter(":checked").length == $parents.length;
             dependents.forEach(function(dep) {
                 $("#" + dep.field).prop("disabled", !on);
                 if (dep.item) {
@@ -1287,14 +1394,18 @@ function pageReady() {
             });
         }
         apply();
-        $parent.on("click", apply);
+        $parents.on("click", apply);
     }
 
     // selWildcardType / selRCinType / selHCinType 的停用狀態由 disableControlItem()
     // 同時考量「碼表相容性」與「對應功能核取是否開啟」；見該函式末端的相依連動。
     bindDependentEnable("intelligentSelect", [
-        { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" },
         { field: "intelligentSelectContext", item: "intelligentSelectContext_item" }
+    ]);
+    // 近期選字優先只在「前一字上下文」選出的字之間排先後（cin.py sortByCount()），
+    // 關掉上下文時它沒有任何作用
+    bindDependentEnable(["intelligentSelect", "intelligentSelectContext"], [
+        { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" }
     ]);
 
     // Phase 0: 未儲存變更提示。configReady 在初始化完成後才設為 true，

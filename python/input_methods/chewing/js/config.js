@@ -63,6 +63,8 @@ $(function () {
         delete chewingConfig.candidateModernStyle;
         // 舊版候選窗的每列字數 (candPerRow) 已沒有作用，新版只看 candidatePerRow；存檔時不再寫回
         delete chewingConfig.candPerRow;
+        // 「提示強度行為」對新酷音沒有作用（訊息都在確認後才出現），已從頁面移除
+        delete chewingConfig.candidateMessageBehavior;
         if (typeof chewingConfig.candidateStableWidth === "undefined") {
             chewingConfig.candidateStableWidth = true;
         }
@@ -84,9 +86,6 @@ $(function () {
         if (typeof chewingConfig.candidateMessageStyle === "undefined") {
             chewingConfig.candidateMessageStyle = "badge";
         }
-        if (typeof chewingConfig.candidateMessageBehavior === "undefined") {
-            chewingConfig.candidateMessageBehavior = "progressive";
-        }
         // candidateKeyStyle 已固定為 word-first，無需驗證清單
         var validCandidateMessageStyles = {
             badge: true,
@@ -95,13 +94,6 @@ $(function () {
         };
         if (!validCandidateMessageStyles[chewingConfig.candidateMessageStyle]) {
             chewingConfig.candidateMessageStyle = "badge";
-        }
-        var validCandidateMessageBehaviors = {
-            fixed: true,
-            progressive: true
-        };
-        if (!validCandidateMessageBehaviors[chewingConfig.candidateMessageBehavior]) {
-            chewingConfig.candidateMessageBehavior = "progressive";
         }
         if (typeof chewingConfig.candidatePerRow === "undefined") {
             chewingConfig.candidatePerRow = 6;
@@ -294,22 +286,11 @@ $(function () {
         else if (messageStyle === "dot") {
             row.append($("<span>").addClass("candidate-preview-message-dot"));
         }
-        row.append($("<span>").addClass("candidate-preview-message-text").text("查無組字"));
+        // 新酷音真的會顯示的訊息（Ctrl+數字加入詞彙後）；以前是只有大易/酷倉才有的「查無組字」
+        row.append($("<span>").addClass("candidate-preview-message-text").text("加入：你好"));
         body.append(row);
         preview.append(body);
         return preview;
-    }
-
-    function createCandidateMessageBehaviorPreview(sample, behavior, selectedStyle) {
-        var wrap = $("<div>").addClass("candidate-behavior-preview");
-        var typingStyle = behavior === "progressive" ? "dot" : selectedStyle;
-        var confirmedStyle = selectedStyle;
-
-        wrap.append($("<div>").addClass("candidate-behavior-label").text(behavior === "progressive" ? "打字中：低調" : "打字中：固定樣式"));
-        wrap.append(createCandidateMessagePreview(sample, typingStyle));
-        wrap.append($("<div>").addClass("candidate-behavior-label").text(behavior === "progressive" ? "確認後：選用樣式" : "確認後：固定樣式"));
-        wrap.append(createCandidateMessagePreview(sample, confirmedStyle));
-        return wrap;
     }
 
     function renderCandidateThemeGallery() {
@@ -366,26 +347,6 @@ $(function () {
             header.append($("<span>").addClass("candidate-style-card-state"));
             card.append(header);
             card.append(createCandidateMessagePreview(sample, styleValue));
-            grid.append(card);
-        });
-    }
-
-    function renderCandidateMessageBehaviorGallery() {
-        var grid = $("#candidateMessageBehaviorGrid");
-        if (!grid.length) {
-            return;
-        }
-
-        var sample = getCandidatePreviewSample();
-        var selectedStyle = $("#candidateMessageStyle").val() || "badge";
-        grid.empty();
-        $.each(candidateMessageBehaviorOptions, function (behaviorValue, behaviorName) {
-            var card = $("<button>").attr("type", "button").addClass("candidate-style-card candidate-message-behavior-card").data("behavior", behaviorValue);
-            var header = $("<div>").addClass("candidate-style-card-header");
-            header.append($("<span>").addClass("candidate-style-card-name").text(behaviorName));
-            header.append($("<span>").addClass("candidate-style-card-state"));
-            card.append(header);
-            card.append(createCandidateMessageBehaviorPreview(sample, behaviorValue, selectedStyle));
             grid.append(card);
         });
     }
@@ -477,40 +438,10 @@ $(function () {
         });
     }
 
-    function updateCandidateMessageBehaviorGallery() {
-        var grid = $("#candidateMessageBehaviorGrid");
-        if (!grid.length) {
-            return;
-        }
-
-        var selectedBehavior = $("#candidateMessageBehavior").val() || "progressive";
-        var selectedStyle = $("#candidateMessageStyle").val() || "badge";
-        var selectedTheme = $("#candidateTheme").val() || "System";
-        var sample = getCandidatePreviewSample();
-        $("#candidateMessageBehaviorCurrent").text(candidateMessageBehaviorOptions[selectedBehavior] || "");
-
-        grid.find(".candidate-message-behavior-card").each(function () {
-            var card = $(this);
-            var behaviorValue = card.data("behavior");
-            var selected = behaviorValue === selectedBehavior;
-            card.toggleClass("selected", selected);
-            card.find(".candidate-style-card-state").text(selected ? "已選" : "");
-            card.find(".candidate-behavior-preview").remove();
-            card.append(createCandidateMessageBehaviorPreview(sample, behaviorValue, selectedStyle));
-            card.find(".candidate-preview").each(function () {
-                var preview = $(this);
-                preview.css("font-size", candidatePreviewFontSize() + "pt");
-                applyCandidatePreviewTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
-                applyCandidatePreviewMessageTheme(preview, candidateThemePalette[selectedTheme] || candidateThemePalette["Graphite"]);
-            });
-        });
-    }
-
     function updateCandidateAppearanceGalleries() {
         updateCandidateThemeGallery();
         updateCandidateKeyStyleGallery();
         updateCandidateMessageStyleGallery();
-        updateCandidateMessageBehaviorGallery();
     }
 
     function saveConfig(callbackFunc) {
@@ -756,10 +687,18 @@ $(function () {
             }
         });
 
+        // 「中文模式下按住 Shift 快速輸入符號」開著時 Shift＋字母一律輸出簡易符號，
+        // 「按住 Shift：輸出英文大寫字母」沒有作用（輸入法只在快速符號關著時看它），
+        // 以前勾不勾都一樣、也看不出原因。停用的核取方塊照樣存回原本的值
+        function updateUpperCaseWithShift() {
+            $("#upperCaseWithShift").prop("disabled", $("#easySymbolsWithShift").prop("checked"));
+        }
+        updateUpperCaseWithShift();
+        $("#easySymbolsWithShift").on("click", updateUpperCaseWithShift);
+
         renderCandidateThemeGallery();
         renderCandidateKeyStyleGallery();
         renderCandidateMessageStyleGallery();
-        renderCandidateMessageBehaviorGallery();
         updateCandidateAppearanceGalleries();
         $(".candidate-window-settings input, .candidate-window-settings select").on("change keyup", updateCandidateAppearanceGalleries);
         $("#selKeyType").on("change", updateCandidateAppearanceGalleries);
@@ -773,10 +712,6 @@ $(function () {
         });
         $("#candidateMessageStyleGrid").on("click", ".candidate-message-style-card", function () {
             $("#candidateMessageStyle").val($(this).data("style"));
-            updateCandidateAppearanceGalleries();
-        });
-        $("#candidateMessageBehaviorGrid").on("click", ".candidate-message-behavior-card", function () {
-            $("#candidateMessageBehavior").val($(this).data("behavior"));
             updateCandidateAppearanceGalleries();
         });
 
@@ -867,7 +802,6 @@ $(function () {
         appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "System");
         $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "word-first");
         $("#candidateMessageStyle").val(chewingConfig.candidateMessageStyle || "badge");
-        $("#candidateMessageBehavior").val(chewingConfig.candidateMessageBehavior || "progressive");
 
         $("#candidateStableWidth").prop("checked", !!chewingConfig.candidateStableWidth);
         $("#candidateEdgeAvoidance").prop("checked", !!chewingConfig.candidateEdgeAvoidance);

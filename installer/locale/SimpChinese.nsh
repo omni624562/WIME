@@ -10,8 +10,12 @@
 !insertmacro LANG_STRING MB_REBOOT_REQUIRED "安装程序需要重新开机来完成卸载。$\r$\n你要立即重新开机吗？ (若你想要在稍后才重新开机请选择「否」)"
 !insertmacro LANG_STRING PRODUCT_PAGE "WIME 项目主页"
 !insertmacro LANG_STRING PRODUCT_PUBLISHER "WIME 开发团队"
+!insertmacro LANG_VERSION_KEY ProductName "WIME 输入法"
+!insertmacro LANG_VERSION_KEY CompanyName "WIME 开发团队"
+!insertmacro LANG_VERSION_KEY FileDescription "WIME 输入法安装程序"
+!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME)已安装完成。$\r$\n$\r$\n按 Win+空格键，切换到名称带有「(WIME)」的输入法，例如「大易輸入法 (WIME)」。$\r$\n$\r$\n列表里没有的话，请到 Windows「设置 > 时间和语言 > 语言」（Windows 11 为「语言和区域」）添加「中文(繁体，台湾)」语言，或在它的语言选项里添加键盘。$\r$\n$\r$\n设置工具在开始菜单的「${START_MENU_FOLDER}」文件夹里。"
 
-!insertmacro LANG_STRING AtLeastWinVista_MESSAGE "抱歉，本程序目前只能支持 Windows Vista 以上版本"
+!insertmacro LANG_STRING AtLeastWin81_MESSAGE "抱歉，本程序需要 Windows 8.1 以上版本"
 !insertmacro LANG_STRING REBOOT_QUESTION "安装发生错误，无法完成。$\r$\n有时是有文件正在使用中，暂时无法删除或覆写。$\n$\n建议重新开机后，再次执行安装程序。$\r$\n你要立即重新开机吗？ (若你想要在稍后才重新开机请选择「否」)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "安装发生错误，无法完成。$\n$\n有时是有文件正在使用中，暂时无法删除或覆写。$\n$\n建议重新开机后，再次执行安装程序。"
 !insertmacro LANG_STRING PENDING_DELETE_MESSAGE "先前的卸载或升级已安排在下次开机时删除 WIME 的文件。若现在安装，新装的文件会在下次开机时被删掉。$\r$\n请先重新开机，再执行安装程序。"

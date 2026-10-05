@@ -7,6 +7,8 @@ a temporary directory, prepared with problem files before it starts.
   reach the page as-is (the swkb format check then blocked every save).
 - A symbols.dat line over 511 bytes is cut by libchewing in the middle of a
   character, so the tool must refuse it.
+- Each 特殊符號 editing session added a blank line to symbols.dat (an empty
+  item in the ` menu).
 - One user phrase that is not valid UTF-8 made the whole phrase list fail.
 - 匯入詞庫 always said "format error" (the validation cursor kept the temp file
   open) but had already overwritten the live database, and it accepted any file
@@ -155,6 +157,24 @@ class ChewingConfigToolDataTests(unittest.TestCase):
         self.assertEqual((status, json.loads(body)), (200, {"return": True}))
         with open(os.path.join(self.dir, "config.json"), encoding="utf-8") as f:
             self.assertEqual(json.load(f), {"candPerPage": 7})
+
+    def test_5b_symbols_are_saved_without_blank_lines(self):
+        # The page adds a "\n" when the text does not end with one, and the tool used
+        # to write another: each editing session left one more blank line, which
+        # libchewing shows as an empty ` menu item
+        path = os.path.join(self.dir, "symbols.dat")
+        self.addCleanup(os.remove, path)
+        text = "測試=★☆\n★\n"
+        for _ in range(3):  # load the page, save the text it shows unchanged
+            status, _ = self.post_json("/config", {"symbols": text})
+            self.assertEqual(status, 200)
+            text = self.get_json("/config")["symbols"]
+            self.assertEqual(text, "測試=★☆\n★\n")
+        with open(path, "rb") as f:
+            self.assertEqual(f.read(), "測試=★☆\r\n★\r\n".encode("utf-8"))
+        # blank lines already in the text go too; a line of spaces is a symbol
+        self.post_json("/config", {"symbols": "\n測試=★☆\n\n\n \n★\n\n\n"})
+        self.assertEqual(self.get_json("/config")["symbols"], "測試=★☆\n \n★\n")
 
     def test_6_invalid_imports_leave_the_database_alone(self):
         before = self.db_digest()

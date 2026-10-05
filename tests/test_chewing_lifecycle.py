@@ -10,6 +10,7 @@
   中/英 mode.
 - Invalid UTF-8 from libchewing (a symbols.dat line over 511 bytes is cut in the
   middle of a character) made every following key raise.
+- Blank lines the settings page left in symbols.dat were empty ` menu items.
 - A non-ASCII %APPDATA% (e.g. a Chinese user name) made libchewing ignore the
   user's own symbol files, because the path was passed as UTF-8.
 """
@@ -217,6 +218,18 @@ class DataReloadTests(ChewingTestCase):
         ch.request(s, "onKillFocus")
         self.assertIsNot(s.chewingContext, old)
         self.assertEqual(s.chewingContext.get_ChiEngMode(), 0)  # every app went back to Chinese before
+
+    def test_blank_symbols_lines_are_not_menu_items(self):
+        # the settings page used to add a blank line to symbols.dat each time the
+        # 特殊符號 were edited; libchewing showed each one as an empty ` menu item
+        s = self.service()
+        self.write_user_file("symbols.dat", "\u3000\n甲=１２\n\n乙=３４\n\n\n")
+        self.type(s, ["`"])  # the first request after the change rebuilds the context
+        self.assertEqual(s.candidateList, ["\u3000", "甲", "乙"])  # [..., "", ""] before
+        with open(os.path.join(config_dir(), "symbols.dat"), "rb") as f:
+            self.assertEqual(f.read(), "\u3000\r\n甲=１２\r\n乙=３４\r\n".encode("utf-8"))
+        self.type(s, ["3", "1"])
+        self.assertEqual(self.type(s, ["ENTER"]), "３")
 
     def test_invalid_utf8_from_a_long_symbols_line(self):
         # libchewing reads symbols.dat with a 512-byte buffer: this line is cut

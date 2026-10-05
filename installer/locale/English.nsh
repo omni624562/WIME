@@ -10,8 +10,12 @@
 !insertmacro LANG_STRING MB_REBOOT_REQUIRED "A reboot is required to complete the uninstallation。$\r$\nDo you want to reboot now? (Select $\"No$\" if you want to reboot at a later time)"
 !insertmacro LANG_STRING PRODUCT_PAGE "WIME project home page"
 !insertmacro LANG_STRING PRODUCT_PUBLISHER "WIME development team"
+!insertmacro LANG_VERSION_KEY ProductName "WIME Input Methods"
+!insertmacro LANG_VERSION_KEY CompanyName "WIME development team"
+!insertmacro LANG_VERSION_KEY FileDescription "WIME Input Methods Setup"
+!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME) has been installed.$\r$\n$\r$\nPress Win+Space to switch to an input method marked $\"(WIME)$\", such as $\"大易輸入法 (WIME)$\" (Dayi).$\r$\n$\r$\nIf none is listed, add the Chinese (Traditional, Taiwan) language, or add the keyboard in that language's options, under Settings > Time && language > Language (Language && region on Windows 11).$\r$\n$\r$\nThe settings tools of the input methods are in the $\"${START_MENU_FOLDER}$\" folder of the Start menu."
 
-!insertmacro LANG_STRING AtLeastWinVista_MESSAGE "Sorry，this program currently only supports Windows Vista or later"
+!insertmacro LANG_STRING AtLeastWin81_MESSAGE "Sorry, this program requires Windows 8.1 or later"
 !insertmacro LANG_STRING REBOOT_QUESTION "The installation failed and could no be completed.$\r$\nA file may be in use, that prevents it from being deleted or overwritten.$\n$\nIt is recommended that you reboot the system and run the installer again.$\r$\nDo you want to reboot now? (Select $\"No$\" if you want to reboot at a later time)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "The installation failed and could no be completed.$\n$\rA file may be in use, that prevents it from being deleted or overwritten.$\n$\nIt is recommended that you reboot the system and run the installer again."
 !insertmacro LANG_STRING PENDING_DELETE_MESSAGE "A previous uninstall or upgrade scheduled WIME files for deletion at the next reboot. Installing now would have the newly installed files deleted at that reboot.$\r$\nPlease reboot first, then run the installer again."

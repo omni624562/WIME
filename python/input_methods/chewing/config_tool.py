@@ -87,6 +87,14 @@ def read_text_file(path):
     return text.replace("\r\n", "\n")  # 與以前的文字模式讀檔相同
 
 
+def normalize_symbols(text):
+    """symbols.dat 的每一行都是 ` 符號選單的一項，libchewing 把空行讀成沒有名稱的
+    空白選項。去掉空行、結尾剛好一個換行。以前設定頁與這裡各補一個換行，每編輯一次
+    特殊符號，檔案結尾就多一個空行、選單就多一個空白選項"""
+    lines = [line for line in text.replace("\r\n", "\n").split("\n") if line.rstrip("\r")]
+    return "".join(line + "\n" for line in lines)
+
+
 def save_file(filename, data):
     """寫入 config_dir 下的檔案 (先寫暫存檔再取代)；失敗時丟出例外"""
     target = os.path.join(config_dir, filename)
@@ -94,8 +102,6 @@ def save_file(filename, data):
     try:
         with open(tmp_target, "w", encoding="UTF-8") as f:
             f.write(data)
-            if filename == "symbols.dat":
-                f.write("\n")
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp_target, target)
@@ -177,7 +183,7 @@ class ConfigHandler(BaseHandler):
             if config is not None:
                 save_file("config.json", json.dumps(config, indent=2))
             if symbols is not None:
-                save_file("symbols.dat", symbols)
+                save_file("symbols.dat", normalize_symbols(symbols))
             if swkb is not None:
                 save_file("swkb.dat", swkb)
         except OSError as err:

@@ -81,7 +81,10 @@ LEGACY_CANDIDATE_MAX_WIDTH = 300
 # 設定頁儲存時就不會再寫回去
 #   candPerRow: 舊版候選窗「每列顯示候選字個數」。舊版候選窗移除後沒有任何作用，
 #     每列幾個候選由 candidatePerRow（候選窗外觀的「每列候選字數」）決定
-_RETIRED_KEYS = ("candPerRow",)
+#   candidateMessageBehavior: 「提示強度行為」(打字中的提示低調、確認後才明顯)。只有
+#     大易/酷倉在打字中送出提示；新酷音的訊息 (加入：…、刪除「…」成功) 都在確認後
+#     出現，一律是「提示訊息樣式」選的樣子，輸入法從來沒讀過這個設定
+_RETIRED_KEYS = ("candPerRow", "candidateMessageBehavior")
 
 
 def _toInt(value):
@@ -222,7 +225,6 @@ class ChewingConfig:
         self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
         self.candidateKeyStyle = "word-first"  # 固定值，見 _FIXED_VALUES
         self.candidateMessageStyle = "badge"
-        self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
@@ -264,6 +266,7 @@ class ChewingConfig:
         filename = self.getConfigFile()
         if not _hasContent(filename):
             self.migrateLegacyConfig()
+        self.removeBlankSymbolLines()  # 先於記下版本：剛改過的檔案不會讓輸入法再重建一次
         version = self._currentVersion()  # 讀檔前先記下版本，讀檔期間的變更下次還會重讀
         if _hasContent(filename):
             try:
@@ -311,6 +314,41 @@ class ChewingConfig:
             self.copytree(src_dir, dst_dir)
         except Exception as err:
             print("chewing: cannot migrate %s: %s" % (src_dir, err), file=sys.stderr)
+
+    # libchewing 把 symbols.dat 的每個空行讀成一個沒有名稱的分類，` 符號選單裡出現
+    # 選了也不會輸入的空白選項。以前設定頁每編輯一次特殊符號就在結尾多存一個空行
+    # (設定工具現在存檔時會去掉)，已經存了空行的檔案要等使用者再改一次特殊符號才會
+    # 好。所以讀設定與 symbols.dat 有變動時，把使用者檔案裡的空行去掉，其他內容
+    # (含換行符號、只有空白的行) 原樣保留。只動 %APPDATA% 裡使用者自己的檔案；
+    # 讀不到或寫不進去就算了。有改檔案時傳回 True
+    def removeBlankSymbolLines(self):
+        path = self.getConfigFile("symbols.dat")
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+        except OSError:
+            return False
+        lines = raw.split(b"\n")
+        rest = lines.pop()  # 最後一個換行之後的內容 (通常是空的)
+        kept = [line for line in lines if line.rstrip(b"\r")]
+        if len(kept) == len(lines):
+            return False
+        tmp_path = "%s.%d.tmp" % (path, os.getpid())  # 不和設定工具的暫存檔撞名
+        try:
+            with open(tmp_path, "wb") as f:
+                f.write(b"".join(line + b"\n" for line in kept) + rest)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, path)
+            return True
+        except OSError as err:
+            print("chewing: cannot remove the blank lines of %s: %s" % (path, err), file=sys.stderr)
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
+            return False
 
     def toJson(self):
         return {key: value for key, value in self.__dict__.items() if not key.startswith("_")}
@@ -391,6 +429,8 @@ class ChewingConfig:
         self._lastUpdateTime = now
 
         version = self._currentVersion()
+        if version[1] != self._version[1] and self.removeBlankSymbolLines():
+            version = self._currentVersion()  # 剛改過的檔案，見 removeBlankSymbolLines
         configChanged = version[0] != self._version[0]
         self._version = version
         # the main config file is changed, reload it

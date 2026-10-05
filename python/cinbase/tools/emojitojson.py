@@ -85,10 +85,10 @@ class emoji():
 #                except KeyError:
 #                    self.dingbats["punctuationmarks"] = [chr(i)]
 
-        self.emoticons = {} # 表情符號
+        self.emoticons = {} # 表情與手勢
         self.emoticons_keynames = ["表情", "貓咪", "動物", "手勢"]
 
-        for i in range(0x1F600, 0x1F650): # 表情符號 (Emoticons)
+        for i in range(0x1F600, 0x1F650): # 表情與手勢 (Emoticons)
             if i in range(0x1F600, 0x1F638) or i in range(0x1F641, 0x1F645): # 表情
                 try:
                     self.emoticons["faces"].append(chr(i))
@@ -105,11 +105,11 @@ class emoji():
                 except KeyError:
                     self.emoticons["gesture"] = [chr(i)]
 
-        self.miscellaneous = {} # 其它符號
-        self.miscellaneous_keynames = (["天氣與占星", "其它符號", "棋牌與博弈", "指向符號", "警告標誌", "醫療符號", "宗教與政治", "易經八掛", "表情符號",
+        self.miscellaneous = {} # 其他符號
+        self.miscellaneous_keynames = (["天氣與占星", "雜項", "棋牌與博弈", "指向符號", "警告標誌", "醫療符號", "宗教與政治", "易經八卦", "臉孔",
                                         "星座符號", "音樂符號", "十字架", "資源回收筒", "地圖指標", "性別符號", "圈號與星號", "系譜符號", "體育運動", "交通標誌"])
 
-        for i in range(0x2600, 0x2700): # 其它符號 (Miscellaneous Symbols)
+        for i in range(0x2600, 0x2700): # 其他符號 (Miscellaneous Symbols)
             if (i in range(0x2600, 0x260E) or i in range(0x2614, 0x2615) or i in range(0x263C, 0x263D) or i in range(0x263D, 0x2648) or
                 i in range(0x26B3, 0x26BD) or i in range(0x26C4, 0x26C9) or i in range(0x26E2, 0x26E3)): # 天氣與占星
                 try:
@@ -117,7 +117,7 @@ class emoji():
                 except KeyError:
                     self.miscellaneous["weathers"] = [chr(i)]
             elif (i in range(0x260E, 0x2614) or i in range(0x2615, 0x2616) or i in range(0x2618, 0x261A) or i in range(0x2638, 0x2639) or
-                i in range(0x2668, 0x2669) or i in range(0x267E, 0x2680) or i in range(0x2686, 0x268A) or i in range(0x269C, 0x26A0)): # 其它符號
+                i in range(0x2668, 0x2669) or i in range(0x267E, 0x2680) or i in range(0x2686, 0x268A) or i in range(0x269C, 0x26A0)): # 雜項
                 try:
                     self.miscellaneous["miscellaneous"].append(chr(i))
                 except KeyError:
@@ -148,12 +148,12 @@ class emoji():
                     self.miscellaneous["religiousandpolitical"].append(chr(i))
                 except KeyError:
                     self.miscellaneous["religiousandpolitical"] = [chr(i)]
-            elif i in range(0x2630, 0x2638) or i in range(0x268A, 0x2690): # 易經八掛
+            elif i in range(0x2630, 0x2638) or i in range(0x268A, 0x2690): # 易經八卦
                 try:
                     self.miscellaneous["yijingtrigram"].append(chr(i))
                 except KeyError:
                     self.miscellaneous["yijingtrigram"] = [chr(i)]
-            elif i in range(0x2639, 0x263C): # 表情符號
+            elif i in range(0x2639, 0x263C): # 臉孔
                 try:
                     self.miscellaneous["emoticons"].append(chr(i))
                 except KeyError:
@@ -211,7 +211,7 @@ class emoji():
 
         self.pictographs = {} # 圖形符號
         self.pictographs_keynames = (["人物", "動物", "植物", "浪漫", "愛心", "漫畫風格", "聊天泡泡", "天氣與風景", "地球", "日月星辰", "食物與餐具", "水果與蔬菜",
-                                        "飲料", "慶典", "音樂", "娛樂", "遊戲", "體育", "建築與地標", "旗標", "其它", "臉部", "手部", "服飾", "個人護理",
+                                        "飲料", "慶典", "音樂", "娛樂", "遊戲", "體育", "建築與地標", "旗標", "其他", "臉部", "手部", "服飾", "個人護理",
                                         "醫療", "滿分", "金錢", "辦公", "通訊", "影音", "宗教", "使用者介面", "文字指標", "工具", "幾何形狀", "時鐘", "電腦"])
         self.modifiercolor = [] # 調色盤
 
@@ -287,7 +287,7 @@ class emoji():
                 except KeyError:
                     self.pictographs["flag"] = [chr(i)]
             elif (i in range(0x1F3F5, 0x1F3F8) or i in range(0x1F3FA, 0x1F3FB) or i in range(0x1F51E, 0x1F520) or i in range(0x1F52F, 0x1F532) or
-                i in range(0x1F54F, 0x1F550) or i in range(0x1F56D, 0x1F577) or i in range(0x1F5DE, 0x1F5E4) or i in range(0x1F5F3, 0x1F5FA)): # 其它
+                i in range(0x1F54F, 0x1F550) or i in range(0x1F56D, 0x1F577) or i in range(0x1F5DE, 0x1F5E4) or i in range(0x1F5F3, 0x1F5FA)): # 其他
                 try:
                     self.pictographs["miscellaneous"].append(chr(i))
                 except KeyError:
@@ -431,7 +431,7 @@ class emoji():
                     self.pictographs["portraitandrole"].append(chr(i))
                 except KeyError:
                     self.pictographs["portraitandrole"] = [chr(i)]
-            elif i in range(0x1F940, 0x1F94C): # 其它 (加在 self.pictographs)
+            elif i in range(0x1F940, 0x1F94C): # 其他 (加在 self.pictographs)
                 try:
                     self.pictographs["miscellaneous"].append(chr(i))
                 except KeyError:
@@ -448,7 +448,7 @@ class emoji():
                     self.pictographs["animal"] = [chr(i)]
 
         self.transport = {} # 交通運輸
-        self.transport_keynames = ["交通工具", "交通標誌", "旅遊住宿", "其它"]
+        self.transport_keynames = ["交通工具", "交通標誌", "旅遊住宿", "其他"]
 
         for i in range(0x1F680, 0x1F700): # 交通運輸 (Transport and Map Symbols)
             if i in range(0x1F680, 0x1F6A5) or i in range(0x1F6E5, 0x1F6ED) or i in range(0x1F6F0, 0x1F6F7): # 交通工具
@@ -466,7 +466,7 @@ class emoji():
                     self.transport["accommodation"].append(chr(i))
                 except KeyError:
                     self.transport["accommodation"] = [chr(i)]
-            elif i in range(0x1F6E0, 0x1F6E5): # 其它
+            elif i in range(0x1F6E0, 0x1F6E5): # 其他
                 try:
                     self.transport["miscellaneous"].append(chr(i))
                 except KeyError:

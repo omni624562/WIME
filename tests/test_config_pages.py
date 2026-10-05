@@ -8,11 +8,27 @@ next to 每列候選字數. Another change that removed candPerRow its own way e
 same lines, so merging the two conflicts there: keeping both sides of the HTML
 gives two #candPerPage inputs sharing one id (the form posts both values), and
 taking the other side of the JS brings back an updateSelExample() that nothing
-calls, aimed at the removed #selExample.
+calls, aimed at the removed #selExample. 按住 Shift：輸出英文大寫字母 did
+nothing while 按住 Shift 快速輸入符號 was on, which is the default; it is
+disabled then, with a hint.
 
 大易/酷倉 (cinbase/config: the IME's config/config.html shell + config.htm
 fragments + js/config.js): the page never had #candPerRow, #candPerPage,
 #candMaxItems or #selExample, but config.js still set them up.
+
+大易/酷倉 智慧選字: the hints described frequency and recency ranking, but it
+only moves a character up after a previous character it followed before.
+
+大易/酷倉 每頁候選字數 (#candidatePerRow, run in node): in the horizontal layout
+it is the page size, which the backend caps at the number of selection keys
+(6 for 大易), and the candidate window wraps a page that is wider than
+候選窗最大寬度. The page let 大易 pick 7-10 and its preview wrapped at the width
+of the theme card instead of where the window does. The preview draws at most
+48pt, but its columns and the hint follow the window's font size (up to 200pt).
+
+大易/酷倉 使用說明 (help.htm): 大易 does not pick with the digits; the help now
+shows 大易's selection keys on its page and the digits on the others. The text
+tabs say their 設定檔 is 以下 (below), and 新酷音's 關於 has no Google+ or Flash links.
 
 大易/酷倉 text data (js/data_format.js, run in node when it is installed): the
 page refused data the backend reads fine. A blank line (a trailing newline), a
@@ -139,6 +155,54 @@ class ConfigPageTests(unittest.TestCase):
         ids = page_ids(os.path.join(CHEWING_DIR, "config_tool.html"))
         self.assert_no_script_for_missing_fields(os.path.join(CHEWING_DIR, "js", "config.js"), ids)
 
+    def test_chewing_upper_case_with_shift_follows_easy_symbols(self):
+        # While 中文模式下按住 Shift 快速輸入符號 is on, Shift+letter always types the
+        # 簡易符號 (chewing_ime.py reads upperCaseWithShift only when it is off), so the
+        # 輸出英文大寫字母 checkbox looked active and changed nothing
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        self.assertRegex(page, r'for="upperCaseWithShift">[^<]*</label>\s*'
+                               r'<div class="setting-hint">[^<]*快速輸入符號[^<]*沒有作用')
+        script = os.path.join(CHEWING_DIR, "js", "config.js")
+        self.assertRegex(function_body(script, "updateUpperCaseWithShift"),
+                         r'\$\("#upperCaseWithShift"\)\.prop\("disabled", \$\("#easySymbolsWithShift"\)\.prop\("checked"\)\);')
+        init = function_body(script, "initializeUI")
+        # when the page loads, and whenever the other box is toggled
+        self.assertRegex(init, r"(?m)^\s*updateUpperCaseWithShift\(\);$")
+        self.assertRegex(init, r'\$\("#easySymbolsWithShift"\)\.on\("click", updateUpperCaseWithShift\);')
+        # a disabled checkbox is still saved with its value
+        self.assertNotRegex(function_body(script, "updateConfig"), r"disabled")
+
+    def test_chewing_page_offers_only_message_options_that_work(self):
+        # 提示強度行為 (candidateMessageBehavior) changed nothing in 新酷音: only 大易/酷倉
+        # show a message while typing, and 新酷音's messages (加入：…) all come after
+        # a confirmation, in the 提示訊息樣式 style. The preview showed 查無組字, a
+        # 大易/酷倉 message 新酷音 never shows.
+        names = {name for name, _ in page_ids(os.path.join(CHEWING_DIR, "config_tool.html"))}
+        self.assertEqual({name for name in names if "MessageBehavior" in name}, set())
+        script = os.path.join(CHEWING_DIR, "js", "config.js")
+        # dropped from an old config.json before saving, never set or shown
+        self.assertEqual([line for _, line in script_lines(script, r"MessageBehavior|behavior-")],
+                         ["delete chewingConfig.candidateMessageBehavior;"])
+        with open(os.path.join(CHEWING_DIR, "chewing_ime.py"), encoding="utf-8-sig") as f:
+            self.assertNotIn("candidateMessageBehavior", f.read())
+        preview = function_body(script, "createCandidateMessagePreview")
+        self.assertIn('.text("加入：你好")', preview)
+        self.assertNotIn('"查無組字"', preview)
+
+    def test_chewing_about_dialog_links(self):
+        # the 龔律全 page answers 403, the 陳康本 Google+ profile redirects to a Google
+        # blog post, and the ICOS 2004 slides are a Flash file no browser plays
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        about = page[page.index('id="about_modal"'):page.index('<div class="tab-content">')]
+        links = re.findall(r'<a href="([^"]*)"', about)
+        self.assertIn("https://chewing.im/doc/chewing-report.pdf", links)
+        for url in links:
+            self.assertTrue(url.startswith("https://"), url)
+        for dead in ("~b6506053", "plus.google.com", "chewing-intro.html", "Flash）</a>"):
+            self.assertNotIn(dead, about)
+
     def test_cinbase_script_has_no_retired_fields(self):
         for ime in ("chedayi", "checj"):
             with self.subTest(ime=ime):
@@ -169,6 +233,73 @@ class ConfigPageTests(unittest.TestCase):
                           r'checjConfig\.enableShiftSpace = true;\s*\}', defaults)
         self.assertIsNotNone(match)
         self.assertLess(match.start(), defaults.index("if (!modernDefaultIme)"))
+
+    def test_cinbase_smart_select_hints_describe_context_prediction(self):
+        # 智慧選字 ranks only by the previous character (cin.py sortByCount(),
+        # tests/test_smartselect_spec.py); the hints described frequency and recency
+        # ranking, which it never does. 近期選字優先 only orders the characters a
+        # previous character already picked, so it is off whenever 前一字上下文 is.
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            page = f.read()
+        hints = dict((name, (label, hint)) for name, label, hint in re.findall(
+            r'<label for="(\w+)">([^<]*)</label>\s*<div class="setting-hint">([^<]*)</div>', page))
+
+        label, hint = hints["intelligentSelect"]
+        self.assertEqual(label, "智慧選字")
+        self.assertIn("在同一個前一字之後選過的字", hint)
+        self.assertIn("沒有前一字的紀錄時不改變順序", hint)
+        label, hint = hints["intelligentSelectContext"]
+        self.assertEqual(label, "前一字上下文")  # the ` menu's 「智慧選字：前一字上下文」
+        self.assertIn("關閉時智慧選字不改變候選順序", hint)
+        self.assertIn("仍會記錄選字", hint)      # addIntelligentSelectCount() checks intelligentSelect only
+        label, hint = hints["intelligentSelectRecent"]
+        self.assertEqual(label, "近期選字優先")
+        self.assertIn("同一個前一字之後選過好幾個字時", hint)
+        self.assertIn("需開啟「前一字上下文」", hint)
+        # sortByPhrase() moves what follows the previous character in the phrase table
+        self.assertIn("能和前一個字組成聯想字詞的字", hints["sortByPhrase"][1])
+        smart = "".join(label + hint for name, (label, hint) in hints.items() if name.startswith("intelligentSelect"))
+        for old in ("常用字排到", "使用習慣", "最近選過的字會優先出現", "加權"):
+            self.assertNotIn(old, smart)
+        self.assertLess(page.index('id="intelligentSelectContext_item"'), page.index('id="intelligentSelectRecent_item"'))
+
+        script = os.path.join(CINBASE_CONFIG_DIR, "js", "config.js")
+        bindings = re.findall(r'bindDependentEnable\(([^,\[]+|\[[^\]]*\]), \[\s*(.*?)\s*\]\);',
+                              function_body(script, "pageReady"), re.S)
+        parents = {field: re.findall(r'"(\w+)"', parent)
+                   for parent, dependents in bindings for field in re.findall(r'field: "(\w+)"', dependents)}
+        self.assertEqual(parents["intelligentSelectContext"], ["intelligentSelect"])
+        self.assertEqual(parents["intelligentSelectRecent"], ["intelligentSelect", "intelligentSelectContext"])
+
+    def test_cinbase_text_tabs_point_down_at_their_box(self):
+        # the 設定檔 text sits above its textarea, but three tabs said 以上; two of
+        # them closed a <p> they never opened
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            page = f.read()
+        pages = re.findall(r'<div id="(\w+_page)">(.*?)\n        </div>\n', page, re.S)
+        checked = []
+        for name, body in pages:
+            with self.subTest(page=name):
+                self.assertEqual(len(re.findall(r"<p\b", body)), len(re.findall(r"</p>", body)))
+                for match in re.finditer(r"(以.)是[^。<]*設定", body):
+                    self.assertEqual(match.group(1), "以下", match.group(0))
+                    self.assertLess(match.start(), body.index("<textarea"))
+                    checked.append(name)
+        self.assertEqual(sorted(set(checked)), ["extendtable_page", "ez_symbols_page", "flangs_page",
+                                                "fs_symbols_page", "phrase_page", "symbols_page"])
+
+    def test_chewing_about_has_no_dead_links(self):
+        # Google+ closed in 2019; the ICOS 2004 talk was a Flash presentation
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        about = page[page.index('id="about_modal"'):]
+        # 只看使用者看得到的內容：註解裡記錄了為什麼拿掉這些連結
+        about = re.sub(r"<!--.*?-->", "", about, flags=re.S)
+        self.assertNotIn("plus.google.com", about)
+        self.assertNotIn("Flash", about)
+        self.assertNotIn("chewing-intro.html", about)
+        self.assertNotIn("~b6506053", about)   # 龔律全的台大個人網頁 (403)
+        self.assertIn("陳康本", about)
 
     def test_pages_mark_the_max_width_as_migrated_on_save(self):
         # The backend replaces a stored candidateMaxWidth of 300 (the old default)
@@ -565,6 +696,278 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
         result, = self.save([({"extendtable": self.REFUSED["3"]}, ["extendtable"])])
         self.assertIn("「&lt;b&gt;測&lt;/b&gt; 試」", result["alerts"][0])
         self.assertNotIn("<b>", result["alerts"][0])
+
+
+def cinbase_module(name):
+    """cinbase/<name>.py, loaded by itself (the package imports the whole IME)."""
+    spec = importlib.util.spec_from_file_location("_" + name, os.path.join(PYTHON_DIR, "cinbase", name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _ClassedText(html.parser.HTMLParser):
+    """Text of a page, each piece with the classes of the elements around it."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.open = []    # (tag, classes) of the open elements
+        self.pieces = []  # (text, classes around it)
+        self.scripts = []
+        self.styles = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in _VOID:
+            self.open.append((tag, set((dict(attrs).get("class") or "").split())))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.open) - 1, -1, -1):
+            if self.open[i][0] == tag:
+                del self.open[i:]
+                break
+
+    def handle_data(self, data):
+        tags = [tag for tag, _ in self.open]
+        if tags and tags[-1] == "script":
+            self.scripts.append(data)
+        elif tags and tags[-1] == "style":
+            self.styles.append(data)
+        elif data.strip():
+            self.pieces.append((data.strip(), {c for _, classes in self.open for c in classes}))
+
+
+class HelpPageTests(unittest.TestCase):
+    """使用說明 (cinbase/config/help.htm) is shared by 大易 and the other CIN IMEs.
+    大易 picks candidates with ␣ ' [ ] - \\ (selkeys.DAYI_CAND_SELKEYS) and 聯想字詞
+    with ' [ ] - \\ without Shift; its digits are roots. The help told everyone to
+    press the digits, with Shift for 聯想字詞."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.page = _ClassedText()
+        with open(os.path.join(CINBASE_CONFIG_DIR, "help.htm"), encoding="utf-8-sig") as f:
+            cls.page.feed(f.read())
+        cls.page.close()
+
+    def pieces(self, needle):
+        return [(text, classes) for text, classes in self.page.pieces if needle in text]
+
+    def test_digit_selection_is_not_shown_for_dayi(self):
+        # candidate list and 聯想字詞; the 功能選單 uses digits in 大易 too (applyDefaultSelKeys())
+        digit_lines = self.pieces("送出項目編號後方的字串")
+        self.assertEqual(len(digit_lines), 3)
+        menu, candidates, phrases = digit_lines
+        self.assertIn("執行項目編號的功能", menu[0])
+        self.assertNotIn("ime-not-dayi", menu[1])
+        self.assertIn("ime-not-dayi", candidates[1])
+        self.assertIn("ime-not-dayi", phrases[1])
+        self.assertIn("SHIFT", phrases[0])
+
+    def test_dayi_selection_keys_are_explained(self):
+        selkeys = cinbase_module("selkeys")
+        dayi = [text for text, classes in self.page.pieces if "ime-dayi" in classes]
+        self.assertEqual(len(dayi), 3)
+        menu, candidates, phrases = dayi
+        self.assertIn("數字鍵", menu)
+        keys = "「" + " ".join(selkeys.DAYI_DISPLAY_SELKEYS) + "」"   # ' [ ] - \
+        for text in (candidates, phrases):
+            self.assertTrue(text.startswith(("大易：", "* 大易：")), text)
+            self.assertIn(keys, text)
+            self.assertIn("第 2～6 個", text)
+            self.assertIn("空白鍵", text)
+        self.assertIn("數字鍵是字根", candidates)
+        self.assertIn("「" + selkeys.DAYI_CAND_SELKEYS[0] + "」", candidates)
+        self.assertIn("不需押住 SHIFT 鍵", phrases)
+        for text, classes in self.page.pieces:
+            self.assertFalse({"ime-dayi", "ime-not-dayi"} <= classes, text)
+
+    def test_only_the_current_ime_s_text_is_shown(self):
+        style = "".join(self.page.styles)
+        self.assertRegex(style, r"html\.dayi-help \.ime-not-dayi,\s*html\.default-help \.ime-dayi \{\s*display: none;")
+        if not NODE:
+            self.skipTest("node is not installed")
+        # the inline script, as the settings page's iframe runs it, and opened by itself
+        runner = r"""
+const vm = require("vm"), fs = require("fs");
+const script = fs.readFileSync(0, "utf8");
+const parents = [{ imeFolderName: "chedayi" }, { imeFolderName: "checj" }, {}, null];
+process.stdout.write(JSON.stringify(parents.map(parent => {
+    const window = {};
+    if (parent === null) {
+        Object.defineProperty(window, "parent", { get() { throw new Error("cross-origin"); } });
+    } else {
+        window.parent = parent;
+    }
+    const document = { documentElement: { className: "" } };
+    vm.runInNewContext(script, { window, document });
+    return document.documentElement.className;
+})));
+"""
+        result = subprocess.run([NODE, "-e", runner], input="".join(self.page.scripts),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), ["dayi-help", "default-help", "", ""])
+
+
+def backend_max_cand_per_page():
+    return cinbase_module("pager").maxCandPerPage
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class CandidatePageSizeTests(unittest.TestCase):
+    """每頁候選字數 on the 大易/酷倉 page: the page-size limit, and the candidate
+    window layout the preview draws (js/config.js, run in node)."""
+
+    SCRIPTS = ("candidate_appearance.js", "data_format.js", "config.js")
+
+    RUNNER = r"""
+const fs = require("fs"), vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const source = path => {
+    const text = fs.readFileSync(path, "utf8");
+    return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+};
+const contexts = {};
+const context = ime => {
+    if (contexts[ime]) return contexts[ime];
+    // the page's fields are the run's: {selector: value of val() and prop()}
+    const $ = sel => {
+        if (typeof sel === "function") return;                  // $(ready): no page is built here
+        if (!(sel in sandbox.fields)) throw new Error("no page here: " + sel);
+        const value = sandbox.fields[sel];
+        return { val: () => value, prop: () => value };
+    };
+    $.get = () => ({ fail() {} });                              // loadConfig() when the script loads
+    const sandbox = {
+        fields: {},
+        $, jQuery: $, imeFolderName: ime, includeScriptFile() {},
+        navigator: { userAgent: "", appVersion: "" },
+        document: { getElementsByTagName: () => [{ innerText: "" }] },
+    };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    for (const script of input.scripts) {
+        vm.runInContext(source(script), sandbox, { filename: script });
+    }
+    return contexts[ime] = sandbox;
+};
+process.stdout.write(JSON.stringify(input.runs.map(run => {
+    const sandbox = context(run.ime);
+    sandbox.checjConfig = run.config || {};
+    sandbox.args = run.args;
+    sandbox.fields = run.fields || {};
+    return vm.runInContext(run.expression, sandbox);
+})));
+"""
+
+    def run_js(self, runs):
+        """[(ime, expression, args, checjConfig[, page fields])] -> the value of each expression"""
+        request = {
+            "scripts": [os.path.join(CINBASE_CONFIG_DIR, "js", name) for name in self.SCRIPTS],
+            "runs": [{"ime": run[0], "expression": run[1], "args": run[2], "config": run[3],
+                      "fields": run[4] if len(run) > 4 else {}}
+                     for run in runs],
+        }
+        result = subprocess.run([NODE, "-e", self.RUNNER], input=json.dumps(request),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_page_size_limit_matches_the_backend(self):
+        # more than the selection keys never reach the window (pager.clampCandPerPage())
+        imes = ("chedayi", "checj", "cheliu")
+        limits = self.run_js([(ime, "candidatePageSizeLimit()", None, None) for ime in imes])
+        self.assertEqual(limits, [backend_max_cand_per_page()(ime) for ime in imes])
+        self.assertEqual(limits[0], 6)
+
+        script = os.path.join(CINBASE_CONFIG_DIR, "js", "config.js")
+        self.assertEqual([line for _, line in script_lines(script, r'"#candidatePerRow"\)\.TouchSpin')],
+                         ['$("#candidatePerRow").TouchSpin({min:1, max:candidatePageSizeLimit()});'])
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            # horizontal is the only layout the page offers: a row is a page
+            self.assertIn('<label for="candidatePerRow">每頁候選字數</label>', f.read())
+
+    def test_a_stored_page_size_above_the_limit_is_shown_as_the_limit(self):
+        expression = "applyCandidateDefaults(); checjConfig.candidatePerRow"
+        runs = [(ime, expression, None, {"candidatePerRow": value})
+                for ime in ("chedayi", "checj") for value in (1, 6, 7, 10)]
+        self.assertEqual(self.run_js(runs), [1, 6, 6, 6, 1, 6, 7, 10])
+
+    def test_the_layout_is_the_candidate_windows(self):
+        # the columns and the width of a full row, against test_candidate_width's
+        # model of CandidateWindow::recalculateSize() with the real GDI glyph widths.
+        # The page estimates the widths from the font size; below 12pt GDI draws
+        # 大易's ␣ a pixel or two wider than its em.
+        import test_candidate_width as width
+        from cinbase import selkeys
+        style = {"contentMargin": 6, "textMargin": 4}
+        cases, expected = [], []
+        for ime, keys in (("chedayi", selkeys.DAYI_CAND_SELKEYS), ("checj", selkeys.DEFAULT_SELKEYS)):
+            for font_size in (12, 14, 16, 20, 24):
+                for per_row in range(1, backend_max_cand_per_page()(ime) + 1):
+                    cfg = {"candidatePerRow": per_row, "fontSize": font_size, "candidateStyle": style}
+                    for max_width in (220, 260, 300, 320, 340, 400, 460, 520, 600, 720):
+                        expected.append(list(width.row_layout(cfg, keys, "word-first", 96, max_width)))
+                        cases.append((ime, "(l => [l.columns, l.fullRowWidth])(candidateWindowLayout(args))",
+                                      {"fontSize": font_size, "selKeys": keys, "items": per_row, "perRow": per_row,
+                                       "style": style, "wrap": True, "maxWidth": max_width}, None))
+        self.assertEqual(self.run_js(cases), expected)
+
+    def test_the_hint_says_where_the_window_wraps(self):
+        base = {"fontSize": 12, "selKeys": "1234567890", "style": {"contentMargin": 6, "textMargin": 4},
+                "wrap": True, "maxWidth": 320}
+        cases = [dict(base, items=6, perRow=6), dict(base, items=9, perRow=9),
+                 dict(base, items=9, perRow=9, wrap=False), dict(base, items=10, perRow=10, fontSize=30)]
+        hints = self.run_js([("checj", "candidatePerRowHintText(candidateWindowLayout(args))", args, None)
+                             for args in cases])
+        self.assertEqual(hints[0], "")
+        self.assertEqual(hints[1], "候選窗最大寬度 320 一列只放得下 7 個候選字，其餘會換到下一列；"
+                                   "要排成一列，請把最大寬度調到約 402 以上。")
+        self.assertEqual(hints[2], "")   # does not wrap: one row however wide
+        self.assertIn("最大寬度調到上限 720 也排不成一列", hints[3])
+
+    def page_layouts(self, ime, per_row, max_width, font_sizes, wrap=True):
+        """[columns, fullRowWidth, preview columns, preview stride, hint] for the page's fields"""
+        expression = ("(l => [l.columns, l.fullRowWidth, (l.preview || {}).columns, (l.preview || {}).stride,"
+                      " candidatePerRowHintText(l)])(currentCandidateWindowLayout(getCandidatePreviewSample()))")
+        style = {"contentMargin": 6, "textMargin": 4}
+        return self.run_js([(ime, expression, None, {"candidateStyle": style},
+                             {"#fontSize": str(font_size), "#candidatePerRow": str(per_row),
+                              "#candidateMaxWidth": str(max_width), "#candidateWrapToMaxWidth": wrap})
+                            for font_size in font_sizes])
+
+    def test_a_font_above_the_preview_s_48pt_wraps_where_the_window_does(self):
+        # the preview draws at most 48pt, a bigger font does not fit its card, but the
+        # window uses the font size as it is (6-200, cinbase/config.py): the columns
+        # and the hint are the window's, only the preview's characters are smaller
+        layouts = self.page_layouts("checj", 9, 720, (48, 60, 100, 200, 300))
+        self.assertEqual([l[0] for l in layouts], [5, 4, 3, 1, 1])
+        self.assertEqual([l[2] for l in layouts], [5, 4, 3, 1, 1])
+        self.assertEqual({l[3] for l in layouts}, {114})       # the stride at 48pt
+        self.assertEqual(layouts[1][4], "候選窗最大寬度 720 一列只放得下 4 個候選字，其餘會換到下一列；"
+                                        "這個字體大小下，最大寬度調到上限 720 也排不成一列。")
+        self.assertEqual(layouts[3], layouts[4])               # 300 is 200, as in the backend
+        # without wrapping a page is one row at any size
+        self.assertEqual([[l[0], l[2], l[4]] for l in self.page_layouts("chedayi", 6, 320, (60, 200), wrap=False)],
+                         [[6, 6, ""], [6, 6, ""]])
+
+        # against test_candidate_width's model with the real GDI glyph widths. At
+        # 200pt GDI draws 大易's ␣ a pixel wider than its em: the width of a full
+        # row may be a pixel per candidate off, the columns may not
+        import test_candidate_width as width
+        from cinbase import selkeys
+        style = {"contentMargin": 6, "textMargin": 4}
+        font_sizes = (48, 60, 72, 100, 150, 200)
+        for ime, keys, per_row in (("chedayi", selkeys.DAYI_CAND_SELKEYS, 6), ("checj", selkeys.DEFAULT_SELKEYS, 9)):
+            for max_width in (220, 320, 720):
+                layouts = self.page_layouts(ime, per_row, max_width, font_sizes)
+                for font_size, layout in zip(font_sizes, layouts):
+                    with self.subTest(ime=ime, max_width=max_width, font_size=font_size):
+                        cfg = {"candidatePerRow": per_row, "fontSize": font_size, "candidateStyle": style}
+                        columns, needed = width.row_layout(cfg, keys, "word-first", 96, max_width)
+                        # CandidateWindow::recalculateSize() shows at least one column
+                        self.assertEqual([layout[0], layout[2]], [max(1, columns)] * 2)
+                        self.assertLessEqual(abs(layout[1] - needed), per_row)
 
 
 if __name__ == "__main__":

@@ -9,9 +9,13 @@ Covers the audit findings in the keystroke path:
 - the candidate cursor after the list changes in the "paging" configurations,
 - Ctrl/Alt shortcuts during composition, non-ASCII characters,
 - 中/英 toggling with a pending bopomofo, Ctrl+Shift, left/right Shift,
-- Shift+Space when its toggle is disabled.
+- Shift+Space when its toggle is disabled,
+- the half-width punctuation option on layouts that type bopomofo with = [ '.
 """
 
+import contextlib
+import os
+import time
 import unittest
 
 import cinbase_harness
@@ -129,6 +133,73 @@ class CandidateCursorTests(ChewingTestCase):
         self.type(s, ["UP"])
         self.assertEqual(s.candidateCursor, 0)
 
+    def columns_shown(self, s):
+        """Columns the candidate window gives this page (test_candidate_width's model of
+        CandidateWindow::recalculateSize(), at the DPI the backend assumes)."""
+        import candidate_layout
+        import test_candidate_width
+        cfg = ch.config()
+        return test_candidate_width.page_columns(
+            cfg.fontSize, cfg.candidatePerRow, cfg.getSelKeys(), s.candidateList, cfg.candidateKeyStyle,
+            candidate_layout.systemDpi(), cfg.candidateMaxWidth,
+            cfg.candidateStyle["contentMargin"], cfg.candidateStyle["textMargin"])
+
+    def test_up_down_follow_the_columns_shown(self):
+        # 9 to a row does not fit the default 最大寬度: the window shows 6 + 3
+        s = self.service(candidateLayout="horizontal", candidatePerRow=9, candPerPage=9)
+        self.type(s, list("su3") + ["DOWN"])
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 9)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)  # did not move before
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
+
+    def test_up_down_on_a_page_of_phrases(self):
+        # two-character phrases are wider: 4 to a row with the default settings
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, list("u4u4") + ["HOME", "DOWN"])
+        self.assertEqual({len(candidate) for candidate in s.candidateList}, {2})
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 6)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)  # 6 before: the next row, two columns right
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
+
+    def test_down_into_a_shorter_last_row(self):
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, list("su3") + ["DOWN"] + ["RIGHT"] * 4)
+        self.assertEqual((self.columns_shown(s), len(s.candidateList), s.candidateCursor), (6, 9, 4))
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, 8)  # nothing under column 5: the last one (stayed at 4 before)
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 2)
+
+    def write_user_symbols(self, text):
+        path = os.path.join(ch.config().getConfigDir(), "symbols.dat")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        self.addCleanup(os.remove, path)
+        stamp = time.time() + 10
+        os.utime(path, (stamp, stamp))  # newer than the version the shared config holds
+
+    def test_up_down_on_a_page_of_emoji(self):
+        # emoji in the 特殊符號 are outside the BMP, two UTF-16 units each: the backend
+        # measured only the first surrogate (half the width) and counted 6 to a row,
+        # but the window shows 5, so ↓ landed one column right of the candidate below
+        emoji = [chr(0x1F600 + i) for i in range(9)]
+        self.write_user_symbols("表情=%s\n" % "".join(emoji))
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, ["`", "1"])  # the only category
+        self.assertEqual(s.candidateList, emoji)
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 6)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
+
     def test_ctrl_del_with_the_list_open(self):
         s = self.service()
         self.type(s, list("su3") + ["DOWN", "END", ("DEL", "C")])
@@ -219,6 +290,56 @@ class LanguageToggleTests(ChewingTestCase):
         self.assertEqual(s.langMode, 1)
         self.shift_tap(s, module.LEFT_SHIFT_SCAN_CODE)
         self.assertEqual(s.langMode, 0)
+
+
+class HalfShapeSymbolKeyTests(ChewingTestCase):
+    """非注音符號對應鍵輸出全形標點 off: the = [ \\ ] ' keys type half-width
+    punctuation, except where the keyboard layout types bopomofo with them -
+    精業 (=[' ㄦㄤㄥ), 倚天 41 鍵 (=' ㄦㄘ), DVORAK ([' ㄦㄆ). Those used to type the
+    ASCII symbol as well, and the rest of the syllable became another character."""
+
+    SYMBOL_KEYS = "=[\\]'"
+
+    @contextlib.contextmanager
+    def layout_service(self, layout, full_shape):
+        override = ch.ConfigOverride(keyboardLayout=layout, fullShapeSymbols=full_shape)
+        try:
+            yield ch.make_service()
+        finally:
+            ch.close_all()  # one libchewing context at a time
+            override.restore()
+
+    def symbol_keys(self, layout, full_shape):
+        """{key: (pending bopomofo, committed text)} for each key pressed on its own"""
+        results = {}
+        with self.layout_service(layout, full_shape) as s:
+            for key in self.SYMBOL_KEYS:
+                commits = self.type(s, [key])
+                results[key] = (self.bopomofo(s), commits)
+                self.type(s, ["ESC"])
+                self.assertFalse(s.isComposing())
+        return results
+
+    def test_bopomofo_keys_of_every_layout(self):
+        module = ch.load_module()
+        for layout in range(13):  # the settings page's 13 layouts
+            full, half = self.symbol_keys(layout, True), self.symbol_keys(layout, False)
+            for key in self.SYMBOL_KEYS:
+                with self.subTest(layout=layout, key=key):
+                    bopomofo = full[key][0]
+                    self.assertEqual(bool(bopomofo), key in module.LAYOUT_BOPOMOFO_SYMBOL_KEYS.get(layout, ""))
+                    if bopomofo:
+                        self.assertEqual(half[key], (bopomofo, ""))
+                    else:  # half-width punctuation (DVORAK 許氏 remaps some of them)
+                        self.assertEqual(half[key][0], "")
+                        self.assertRegex(half[key][1], r"^[!-~]$")
+
+    def test_words_typed_with_those_keys(self):
+        for layout, keys, word in ((3, "=z", "二"), (3, "h[z", "上"), (4, "'i2", "才"), (4, "=4", "二"),
+                                   (6, "'gz6", "平"), (6, "[6", "兒")):
+            with self.subTest(layout=layout, keys=keys), self.layout_service(layout, False) as s:
+                # "=", "[", "'捱", "'營" before
+                self.assertEqual(self.type(s, list(keys) + ["ENTER"]), word)
 
 
 class ShiftSpaceTests(ChewingTestCase):

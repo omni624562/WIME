@@ -781,6 +781,17 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		textService_->setCandidatePageInfo(L"");
 	}
 
+	// The cursor is remembered with the list it points into, also while nothing is
+	// shown, so updateCandidates() can highlight it whenever the list is laid out.
+	// 新酷音 keeps its list and cursor when the app ends the composition or the
+	// keyboard is toggled, and re-shows the menu with a bare showCandidates:true;
+	// the window used to highlight the first item while Enter picked another.
+	const auto& candidateCursorVal = msg["candidateCursor"];
+	const bool hasCandidateCursor = candidateCursorVal.is_number_integer();
+	if (hasCandidateCursor) {
+		textService_->candidateCursor_ = candidateCursorVal.get<int>();
+	}
+
 	const auto& candidateListVal = msg["candidateList"];
 	if (candidateListVal.is_array()) {
 		if (!hasCandidateMessage) {
@@ -789,12 +800,20 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		// handle candidates
 		// FIXME: directly access private member is dirty!!!
 		vector<wstring>& candidates = textService_->candidates_;
-		candidates.clear();
+		vector<wstring> newCandidates;
 		for (const auto& candidate : candidateListVal) {
 			if (candidate.is_string()) {
-				candidates.emplace_back(utf8ToUtf16(candidate.get<string>().c_str()));
+				newCandidates.emplace_back(utf8ToUtf16(candidate.get<string>().c_str()));
 			}
 		}
+		// A new list starts at its first item unless the reply moves the cursor.
+		// The shown list sent again unchanged keeps it: 大易, 酷倉 and 新酷音 do
+		// that to refresh the header (新酷音 with every bopomofo key typed in the
+		// ` menu) without moving their cursor.
+		if (!hasCandidateCursor && newCandidates != candidates) {
+			textService_->candidateCursor_ = 0;
+		}
+		candidates = std::move(newCandidates);
 		// Only draw the list into a window that is up, or brought up by this reply
 		// (updateCandidates() creates and shows one if needed). Commit replies carry
 		// the old list next to showCandidates:false, which used to build a window
@@ -808,6 +827,7 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 	}
 	else if (hasCandidateMessage) {
 		textService_->candidates_.clear();
+		textService_->candidateCursor_ = 0;
 		// the page indicator belonged to the list just dropped (a commit reply
 		// leaves e.g. "1/4" behind, which then showed next to the root hint)
 		if (!candidatePageInfoVal.is_string()) {
@@ -816,16 +836,14 @@ void Client::updateCandidateList(json& msg, Ime::EditSession* session) {
 		textService_->updateCandidates(session);
 	}
 	else if (!wasShowingCandidates && textService_->showingCandidates()) {
-		// shown without a new list: lay out the one kept from an earlier reply
+		// shown without a new list: lay out the one kept from an earlier reply,
+		// highlighting the cursor kept with it
 		textService_->updateCandidates(session);
 	}
 
-	const auto& candidateCursorVal = msg["candidateCursor"];
-	if (candidateCursorVal.is_number_integer()) {
-		if (textService_->candidateWindow_ != nullptr) {
-			textService_->candidateWindow_->setCurrentSel(candidateCursorVal.get<int>());
-			textService_->refreshCandidates();
-		}
+	if (hasCandidateCursor && textService_->candidateWindow_ != nullptr) {
+		textService_->candidateWindow_->setCurrentSel(textService_->candidateCursor_);
+		textService_->refreshCandidates();
 	}
 }
 
@@ -1096,8 +1114,31 @@ static HMENU menuFromJson(json& menuInfo) {
 // called when a language bar button needs a menu
 // virtual
 HMENU Client::onMenu(LangBarButton* btn) {
+	// a failed request below can release btn along with the other buttons
+	const std::string buttonId = btn->id();
+	const bool hadConnectedPipe = pipe_ != INVALID_HANDLE_VALUE;
 	json result;
-	if (sendOnMenu(btn->id(), result)) {
+	bool success = sendOnMenu(buttonId, result);
+	if (hadConnectedPipe) {
+		if (pipe_ != INVALID_HANDLE_VALUE && isRecoverableBackendStateFailure(result)) {
+			// a restarted backend that no longer knows this client (see callKeyRpcMethod())
+			closeRpcConnection();
+			resetTextServiceState();
+		}
+		if (pipe_ == INVALID_HANDLE_VALUE) {
+			// The backend client is gone (e.g. a pipe left broken by a launcher
+			// restart while the app kept focus) and every language bar button was
+			// removed, the 中/英 icon just right-clicked included. Nothing else
+			// reconnects before the next key or focus ping, so ask once more, after
+			// dropping the old client's UI as callKeyRpcMethod() does: the
+			// reconnect's init() and onActivate() put the buttons back, and the menu
+			// still opens on this click.
+			discardOrphanedUi();
+			result = json();
+			success = sendOnMenu(buttonId, result);
+		}
+	}
+	if (success) {
 		// See the ITfMenu overload above: menuFromJson() can throw on a malformed
 		// backend reply, and this is also a raw COM entry point.
 		try {
@@ -1528,6 +1569,7 @@ void Client::discardOrphanedUi() {
 	}
 	textService_->hideCandidates();
 	textService_->candidates_.clear();
+	textService_->candidateCursor_ = 0;
 	textService_->resetCandidateMessageDisplayStyle();
 	textService_->setCandidateMessage(L"");
 	textService_->setCandidateHeader(L"");

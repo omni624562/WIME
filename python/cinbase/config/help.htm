@@ -5,6 +5,27 @@
         <meta charset="utf-8">
         <title>輸入法模組使用說明</title>
         <link rel="stylesheet" type="text/css" href="css/config.css">
+        <style>
+            /* 大易的選字鍵與其他輸入法不同，只顯示目前輸入法的說明；
+               直接開啟這個檔案（不知道是哪個輸入法）時兩種都顯示 */
+            html.dayi-help .ime-not-dayi,
+            html.default-help .ime-dayi {
+                display: none;
+            }
+        </style>
+        <script type="text/javascript">
+            // 說明頁放在設定頁的 iframe 裡，由外層頁面的 imeFolderName 判斷是哪個輸入法
+            (function() {
+                var ime = "";
+                try {
+                    ime = window.parent.imeFolderName || "";
+                } catch (e) {
+                }
+                if (ime) {
+                    document.documentElement.className = ime == "chedayi" ? "dayi-help" : "default-help";
+                }
+            })();
+        </script>
     </head>
     <body>
         <div id="helpcontext">
@@ -58,6 +79,7 @@
                 <br>Backspace 鍵可回到上層選單。
                 <br>空白/Enter 鍵為執行選取項目的功能/送出選取項目的字串。
                 <br>鍵盤上方數字鍵 0~9 可直接執行項目編號的功能/送出項目編號後方的字串。
+                <span class="ime-dayi"><br>大易：功能選單裡同樣用數字鍵選項目，與候選清單不同。</span>
             </div>
             
             <p><hr /><h3 id="候選清單操作說明">候選清單操作說明：</h3>
@@ -66,7 +88,8 @@
                 <br>Page Up/Down 鍵可直接換頁。
                 <br>Home/End 鍵可直接切到首/尾項目。
                 <br>空白/Enter 鍵為送出選取項目的字串。
-                <br>鍵盤上方數字鍵 0~9 可直接送出項目編號後方的字串。
+                <span class="ime-not-dayi"><br>鍵盤上方數字鍵 0~9 可直接送出項目編號後方的字串。</span>
+                <span class="ime-dayi"><br>大易：數字鍵是字根，不能用來選字。第 1 個候選字標「␣」，用空白鍵送出；第 2～6 個按「' [ ] - \」直接送出。</span>
             </div>
             
             <p><hr /><h3 id="標點符號輸入說明">標點符號輸入說明：</h3>
@@ -123,7 +146,8 @@
                 <br>* Page Up/Down 鍵可直接換頁。
                 <br>* Home/End 鍵可直接切到首/尾項目。
                 <br>* 空白鍵為送出選取項目的字串。
-                <br>* 押住 SHIFT 鍵，再按下鍵盤上方數字鍵 0~9 可直接送出項目編號後方的字串。
+                <span class="ime-not-dayi"><br>* 押住 SHIFT 鍵，再按下鍵盤上方數字鍵 0~9 可直接送出項目編號後方的字串。</span>
+                <span class="ime-dayi"><br>* 大易：不需押住 SHIFT 鍵，按「' [ ] - \」直接送出第 2～6 個聯想字詞，第 1 個用空白鍵送出。</span>
                 <br>* 按到碼表中有定義的字根鍵，則自動關閉聯想字詞清單，直接拼下個字串。
                 <br>* 按到其它按鍵，則僅自動關閉聯想字詞清單。
             </div>

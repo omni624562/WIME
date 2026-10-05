@@ -279,6 +279,9 @@ private:
 	Ime::ComPtr<Ime::CandidateWindow> candidateWindow_; // this is a ref-counted COM object and should not be managed with std::unique_ptr
 	bool showingCandidates_;
 	std::vector<std::wstring> candidates_; // current candidate list
+	// the backend's cursor in candidates_, kept with the list while the window is
+	// hidden: a bare showCandidates:true re-shows both, and Enter picks this item
+	int candidateCursor_;
 	HFONT font_;
 	bool updateFont_;
 	int candPerRow_;

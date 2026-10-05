@@ -76,6 +76,15 @@ class ToggleMenuTests(unittest.TestCase):
         self.assertNotIn("homophoneQuery", attrs)
         self.assertEqual(len(labels), len(attrs))
 
+    def test_smart_select_labels_describe_the_previous_character_design(self):
+        # 智慧選字只把「在同一個前一字之後選過的字」提前，不依次數或最近選過重排；
+        # 以前的「智慧選字」「近期選字優先」讓人以為常用字會往前排
+        labels = dict(menu.TOGGLE_DEFS)
+        for attr in ("intelligentSelect", "intelligentSelectRecent", "intelligentSelectContext"):
+            with self.subTest(attr=attr):
+                self.assertIn("前一字", labels[attr])
+        self.assertEqual(len(set(labels.values())), len(labels))   # toggleIndex() matches by text
+
     def test_toggle_then_rebuild_updates_mark(self):
         ts = self.make_ts("checj")
         labels, attrs = menu.buildToggleItems(ts)

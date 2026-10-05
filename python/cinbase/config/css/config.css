@@ -108,6 +108,15 @@
     grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
 }
 
+/* 卡片至少要放得下預覽的一整列；--candidate-preview-card-min 由 updateCandidateThemeGallery() 設定 */
+.candidate-theme-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(265px, var(--candidate-preview-card-min, 0px))), 1fr));
+}
+
+.candidate-row-hint {
+    margin: 0;
+}
+
 .candidate-theme-card,
 .candidate-style-card {
     background: #ffffff;
@@ -227,16 +236,15 @@
     margin-left: auto;
 }
 
+/* 欄數、欄寬與欄距由 fillCandidatePreviewItems() 照實際候選窗的排版設定（100% 縮放），
+   內距與預設的 contentMargin 相同 */
 .candidate-preview-body {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
+    display: grid;
+    gap: 4px 6px;
+    grid-template-columns: repeat(6, max-content);
+    justify-content: start;
     min-height: 36px;
     padding: 6px;
-}
-
-.candidate-preview.wrap .candidate-preview-body {
-    flex-wrap: wrap;
 }
 
 .candidate-preview-message-body {
@@ -311,8 +319,8 @@
     gap: 4px;
     justify-content: center;
     min-height: 24px;
-    min-width: 38px;
-    padding: 2px 7px;
+    min-width: 0;
+    padding: 2px 4px;
     white-space: nowrap;
 }
 

@@ -20,6 +20,10 @@ MAIN_MENU = [
 
 _MAIN_MENU_IDS = {label: itemId for itemId, label in MAIN_MENU}
 
+# 功能開關頁的麵包屑。開關只改目前這個程式的狀態、不會存檔，存任何設定後也會
+# 回到設定值（help.htm 有寫，頁面上以前沒有），標題要直接講清楚
+TOGGLES_PAGE_TITLE = "功能開關（暫時，只影響這個程式）"
+
 # 功能開關定義：屬性名 → 顯示文字
 TOGGLE_DEFS = [
     ("fullShapeSymbols", "Shift 輸入全形標點"),
@@ -27,9 +31,12 @@ TOGGLE_DEFS = [
     ("playSoundWhenNonCand", "拆錯字碼時發出警告嗶聲提示"),
     ("showPhrase", "輸出字串後顯示聯想字詞"),
     ("sortByPhrase", "優先以聯想字詞排序候選清單"),
-    ("intelligentSelect", "智慧選字"),
-    ("intelligentSelectRecent", "智慧選字：近期選字優先"),
-    ("intelligentSelectContext", "智慧選字：前一字上下文"),
+    # 智慧選字只看前一個字：在同一個前一字之後選過的字才會提前，沒有紀錄時維持
+    # 碼表順序；「近期」只在這些字之間比先後（cin.sortByCount）。以前寫成
+    # 「智慧選字」「近期選字優先」，像是常用、最近選的字都會往前排
+    ("intelligentSelect", "智慧選字（依前一字排序）"),
+    ("intelligentSelectRecent", "智慧選字：前一字相同時近期優先"),
+    ("intelligentSelectContext", "智慧選字：參考前一字"),
     ("supportWildcard", "萬用字元查詢"),
     ("imeReverseLookup", "反查輸入字根"),
     ("homophoneQuery", "同音字查詢"),
