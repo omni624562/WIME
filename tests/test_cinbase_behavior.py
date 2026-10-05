@@ -3,6 +3,7 @@ wrong or stuck state (keys eaten, stale lists on screen, the wrong item picked).
 Driven through handleRequest with the real 大易/酷倉 tables (cinbase_harness).
 """
 
+import io
 import os
 import time
 import unittest
@@ -234,6 +235,102 @@ class FunctionMenuTests(unittest.TestCase):
         self.assertEqual(name, "ShellExecuteW")
         self.assertTrue(args[3].endswith('configtool.py" config chedayi'), args)
         self.assertFalse(service.showmenu)
+
+
+def open_function_menu(service):
+    for _ in range(3):
+        h.press(service, "`")
+        if "特殊符號" in (service.candidateList or []):
+            return
+    raise AssertionError("function menu not shown: %r" % service.candidateList)
+
+
+def pick(service, item):
+    return h.press(service, service.selKeys[service.candidateList.index(item)])
+
+
+def page_items(service):
+    return [item for item in service.candidateList if item != h.cinbase.menu.BACK_ITEM]
+
+
+class SingleSymbolLineParserTests(unittest.TestCase):
+    """symbols.dat / flangs.dat 裡沒有「=」的行是直接送出的項目，不是分類。"""
+
+    def test_lines_without_a_separator_are_items(self):
+        for parser in (h.cinbase.symbols, h.cinbase.flangs):
+            with self.subTest(parser=parser.__name__):
+                table = parser(io.StringIO("…\n※\n常用符號=，、\n❤️\n"))
+                self.assertEqual(table.getKeyNames(), ["…", "※", "常用符號", "❤️"])
+                self.assertEqual([table.isLeaf(k) for k in table.getKeyNames()], [True, True, False, True])
+                self.assertEqual(table.getCharDef("…"), ["…"])
+                self.assertEqual(table.getCharDef("❤️"), ["❤️"])
+                self.assertEqual(table.getCharDef("常用符號"), ["，", "、"])
+
+    def test_a_category_of_the_same_name_wins(self):
+        for parser in (h.cinbase.symbols, h.cinbase.flangs):
+            with self.subTest(parser=parser.__name__):
+                table = parser(io.StringIO("箭頭\n箭頭=←→\n"))
+                self.assertFalse(table.isLeaf("箭頭"))
+                self.assertEqual(table.getCharDef("箭頭"), ["←", "→"])
+
+    def test_space_separated_lines_stay_categories(self):
+        table = h.cinbase.symbols(io.StringIO("希臘 αβ\n"))
+        self.assertFalse(table.isLeaf("希臘"))
+        self.assertEqual(table.getCharDef("希臘"), ["α", "β"])
+
+
+@h.requires_tables
+class SingleSymbolMenuItemTests(unittest.TestCase):
+    """內建 symbols.dat 前兩行是「…」「※」：以前當成只含自己的分類，選了只開出
+    「↩ 返回、…」的子頁（標題「特殊符號 › …」），要再選一次才送出。"""
+
+    def test_top_level_symbols_commit_at_once(self):
+        for ime in ("chedayi", "checj"):
+            for symbol in ("…", "※"):
+                with self.subTest(ime=ime, symbol=symbol):
+                    service = h.make_service(ime)
+                    open_function_menu(service)
+                    pick(service, "特殊符號")
+                    reply = pick(service, symbol)
+                    self.assertEqual(reply.get("commitString"), symbol)
+                    self.assertFalse(service.showmenu)
+
+    def test_categories_still_open_a_page(self):
+        service = h.make_service("chedayi")
+        open_function_menu(service)
+        pick(service, "特殊符號")
+        reply = pick(service, "常用符號")
+        self.assertNotIn("commitString", reply)
+        self.assertEqual(reply.get("candidateHeader"), "選單 特殊符號 › 常用符號")
+
+    def test_composition_buffer_mode(self):
+        service = h.make_service("chedayi", compositionBufferMode=True)
+        open_function_menu(service)
+        pick(service, "特殊符號")
+        pick(service, "…")
+        self.assertFalse(service.showmenu)
+        self.assertEqual(service.compositionBufferString, "…")
+        h.type_keys(service, ["LEFT", "DOWN"])      # 回到這個符號重新選
+        self.assertIn("…", service.candidateList)
+        h.type_keys(service, ["ESC"])
+        commits, _ = h.type_keys(service, ["ENTER"])
+        self.assertEqual(commits, ["…"])
+
+    def test_user_foreign_text_item(self):
+        ime_dir = _appdata.ime_dir("chedayi")
+        path = os.path.join(ime_dir, "flangs.dat")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("ß\n德語=äöü\n")
+        try:
+            service = h.make_service("chedayi")
+            open_function_menu(service)
+            pick(service, "外語文字")
+            self.assertEqual(page_items(service), ["ß", "德語"])
+            reply = pick(service, "ß")
+            self.assertEqual(reply.get("commitString"), "ß")
+            self.assertFalse(service.showmenu)
+        finally:
+            os.remove(path)
 
 
 @h.requires_tables

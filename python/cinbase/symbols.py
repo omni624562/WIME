@@ -12,7 +12,9 @@ class symbols(object):
 
         self.keynames = []
         self.chardefs = {}
+        self.leaves = set()
         seen = set()
+        categories = set()
 
         for line in fs:
             # 使用者可編輯的檔案：去掉 UTF-8 BOM（否則第一個分類永遠比對不到），
@@ -24,20 +26,32 @@ class symbols(object):
 
             key, root = safeSplit(line)
             key = key.strip()
-            root = root.strip()
-            if not key or not root:
-                continue
-
-            # 以符號為單位切，不是逐碼位：❤️、👍🏻、🇹🇼 等由多個碼位組成
-            for rootstr in symbolClusters(root):
-                try:
-                    self.chardefs[key].append(rootstr)
-                except KeyError:
-                    self.chardefs[key] = [rootstr]
+            if root is None:
+                # 一行只放一個符號：放在最上層選單、選了直接送出（設定頁的說明、
+                # libchewing 讀同一種檔案都是這樣）。以前當成只含自己的分類，選「…」
+                # 「※」還要在只有一項的子頁再選一次
+                self.leaves.add(key)
+            else:
+                root = root.strip()
+                if not key or not root:
+                    continue
+                categories.add(key)
+                # 以符號為單位切，不是逐碼位：❤️、👍🏻、🇹🇼 等由多個碼位組成
+                for rootstr in symbolClusters(root):
+                    try:
+                        self.chardefs[key].append(rootstr)
+                    except KeyError:
+                        self.chardefs[key] = [rootstr]
 
             if key not in seen:
                 seen.add(key)
                 self.keynames.append(key)
+
+        # 同名的分類也存在時仍是分類。getCharDef 回傳它自己：組字緩衝模式裡
+        # 游標移回這個符號按 ↓ 時，以它列出候選
+        self.leaves -= categories
+        for key in self.leaves:
+            self.chardefs[key] = [key]
 
     def __del__(self):
         del self.keynames
@@ -57,8 +71,13 @@ class symbols(object):
     def getKeyNames(self):
         return self.keynames
 
+    def isLeaf(self, key):
+        """key 是直接送出的單一符號（不是分類）。"""
+        return key in self.leaves
+
 
 def safeSplit(line):
+    """(分類名稱, 內容)；沒有分隔字元的行回傳 (line, None)。"""
     if '=' in line:
         return line.split('=', 1)
     elif ' ' in line:
@@ -66,6 +85,6 @@ def safeSplit(line):
     elif '\t' in line:
         return line.split('\t', 1)
     else:
-        return line, line
+        return line, None
 
 __all__ = ["symbols"]

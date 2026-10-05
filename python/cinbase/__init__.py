@@ -908,6 +908,8 @@ class CinBase:
                     cbTS.smenucandidates, cbTS.smenuitems = menu.buildToggleItems(cbTS)
                     cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                     pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
+                elif cbTS.menutype == 2 and cbTS.symbols.isLeaf(itemName): # 最上層的單一符號直接送出
+                    self.commitMenuItem(cbTS, itemName, "menusymbols", itemName)
                 elif cbTS.menutype == 2: # 切至特殊符號子頁面
                     if cbTS.compositionBufferMode:
                         cbTS.compositionBufferMenuItem = itemName
@@ -916,14 +918,7 @@ class CinBase:
                     menu.pushPath(cbTS, itemName)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 3, ["2," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 3: # 執行特殊符號子頁面項目
-                    if cbTS.compositionBufferMode:
-                        self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
-                        self.setCompositionBufferString(cbTS, cbTS.candidateList[candCursor], 0)
-                        cbTS.compositionBufferType = "menusymbols"
-                        self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cbTS.compositionBufferMenuItem, cbTS.compositionBufferCursor)
-                    else:
-                        cbTS.setCommitString(cbTS.candidateList[candCursor])
-                    cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                    self.commitMenuItem(cbTS, cbTS.candidateList[candCursor], "menusymbols", cbTS.compositionBufferMenuItem)
                 elif cbTS.menutype == 4: # 執行注音符號頁面項目
                     if cbTS.compositionBufferMode:
                         self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
@@ -933,6 +928,8 @@ class CinBase:
                     else:
                         cbTS.setCommitString(cbTS.candidateList[candCursor])
                     cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                elif cbTS.menutype == 5 and cbTS.flangs.isLeaf(itemName): # 最上層的單一文字直接送出
+                    self.commitMenuItem(cbTS, itemName, "menuflangs", itemName)
                 elif cbTS.menutype == 5: # 切至外語文字子頁面
                     if cbTS.compositionBufferMode:
                         cbTS.compositionBufferMenuItem = itemName
@@ -941,14 +938,7 @@ class CinBase:
                     menu.pushPath(cbTS, itemName)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 6, ["5," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 6: # 執行外語文字子頁面項目
-                    if cbTS.compositionBufferMode:
-                        self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
-                        self.setCompositionBufferString(cbTS, cbTS.candidateList[candCursor], 0)
-                        cbTS.compositionBufferType = "menuflangs"
-                        self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, cbTS.compositionBufferMenuItem, cbTS.compositionBufferCursor)
-                    else:
-                        cbTS.setCommitString(cbTS.candidateList[candCursor])
-                    cbTS.resetMenuCand = self.closeMenuCand(cbTS)
+                    self.commitMenuItem(cbTS, cbTS.candidateList[candCursor], "menuflangs", cbTS.compositionBufferMenuItem)
                 elif cbTS.menutype == 7: # 切換至表情符號分類頁面
                     menutype = 8
                     i = self.emojimenulist.index(itemName)
@@ -2986,6 +2976,19 @@ class CinBase:
             else:
                 cbTS.prevmenutypelist = prevmenutypelist
         return True
+
+
+    # 送出選單裡選到的符號並關閉選單。組字緩衝模式下改放進緩衝區，記下來源
+    # （bufferType、bufferMenuItem），之後游標移回這個字按 ↓ 時才列得出同一組候選
+    def commitMenuItem(self, cbTS, text, bufferType, bufferMenuItem):
+        if cbTS.compositionBufferMode:
+            self.removeCompositionBufferString(cbTS, len(cbTS.compositionChar), True)
+            self.setCompositionBufferString(cbTS, text, 0)
+            cbTS.compositionBufferType = bufferType
+            self.setCompositionBufferChar(cbTS, cbTS.compositionBufferType, bufferMenuItem, cbTS.compositionBufferCursor)
+        else:
+            cbTS.setCommitString(text)
+        cbTS.resetMenuCand = self.closeMenuCand(cbTS)
 
 
     def closeMenuCand(self, cbTS):
