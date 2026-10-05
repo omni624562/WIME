@@ -345,18 +345,50 @@ class MenuLabelTests(unittest.TestCase):
 
     def test_emoji_category_names(self):
         # 錯字「易經八掛」；「表情符號」同時是主選單項目、表情符號頁的第一類，
-        # 又是「其它符號」底下 ☹☺☻ 的名稱
+        # 又是「其它符號」底下 ☹☺☻ 的名稱；「其它符號」也是它自己底下的一類
         service = h.make_service("chedayi")
         open_function_menu(service)
         pick(service, "表情符號")
-        pick(service, "其它符號")
+        self.assertNotIn("表情符號", service.menucandidates)
+        pick(service, "表情與手勢")
+        self.assertEqual(page_items(service)[:2], ["表情", "貓咪"])
+        h.press(service, "BACK")
+        pick(service, "其他符號")
         names = service.menucandidates
         self.assertIn("易經八卦", names)
         self.assertNotIn("易經八掛", names)
         self.assertNotIn("表情符號", names)
+        self.assertNotIn("其他符號", names)
         emoji = h.cinbase.CinBase.emoji
         self.assertEqual(emoji.getCharDef("miscellaneous", "臉孔"), ["☹", "☺", "☻"])
         self.assertEqual(emoji.getCharDef("miscellaneous", "易經八卦")[0], "☰")
+        self.assertEqual(emoji.getCharDef("miscellaneous", "雜項")[:2], ["☎", "☏"])
+
+    def test_emoji_tree_has_no_repeated_names(self):
+        # 依 menutype 7 的位置對應：表情符號頁的第 i 類開出第 i 組名稱（調色盤直接是顏色）
+        base = h.cinbase.CinBase
+        emoji = base.emoji
+        groups = (emoji.emoticons_keynames, emoji.pictographs_keynames, emoji.miscellaneous_keynames,
+                  emoji.dingbats_keynames, emoji.transport_keynames)
+        self.assertNotIn("表情符號", base.emojimenulist)
+        for parent, children in zip(base.emojimenulist, groups):
+            with self.subTest(parent=parent):
+                self.assertNotIn(parent, children)
+                self.assertNotIn("表情符號", children)
+
+    def test_other_is_spelled_one_way(self):
+        # 同一個選單樹裡「其他」「其它」混著用：特殊符號頁是「其他符號」，表情符號頁是
+        # 「其它符號」。一律寫成「其他」
+        base = h.cinbase.CinBase
+        emoji = base.emoji
+        service = h.make_service("chedayi")
+        names = (list(base.emojimenulist) + emoji.emoticons_keynames + emoji.pictographs_keynames
+                 + emoji.miscellaneous_keynames + emoji.dingbats_keynames + emoji.transport_keynames
+                 + service.symbols.getKeyNames() + service.flangs.getKeyNames())
+        self.assertEqual([name for name in names if "其它" in name], [])
+        self.assertIn("其他符號", base.emojimenulist)
+        self.assertIn("其他", emoji.pictographs_keynames)
+        self.assertIn("其他", emoji.transport_keynames)
 
 
 @h.requires_tables

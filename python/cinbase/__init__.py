@@ -133,7 +133,9 @@ class CinBase:
         with io.open(os.path.join(os.path.dirname(__file__), "data", "emoji.json"), 'r', encoding='utf8') as fs:
             self.emoji = emoji(fs)
 
-        self.emojimenulist = ["表情符號", "圖形符號", "其它符號", "雜錦符號", "交通運輸", "調色盤"]
+        # 依位置對應 emoji.json 的各組（menutype 7）。第一類以前也叫「表情符號」，跟主選單
+        # 項目同名；「其他」統一用這個寫法（特殊符號頁也是「其他符號」）
+        self.emojimenulist = ["表情與手勢", "圖形符號", "其他符號", "雜錦符號", "交通運輸", "調色盤"]
         self.imeNameList = ["checj", "chephonetic", "chearray", "chedayi", "cheez", "chepinyin", "chesimplex", "cheliu"]
         self.hcinFileList = ["thphonetic.json", "CnsPhonetic.json", "bpmf.json"]
 
