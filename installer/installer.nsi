@@ -44,6 +44,11 @@ AllowSkipFiles off ; cannot skip a file
 
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
 !define HOMEPAGE_URL "https://github.com/omni624562/WIME"
+; The Start-menu folder, in the all-users Start menu like the rest of the install
+; (Program Files, HKLM). A fixed name rather than $(PRODUCT_NAME): the uninstaller does
+; not know the language picked in the installer, so it removed the other language's
+; folder and left this one behind.
+!define START_MENU_FOLDER "WIME"
 
 Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"
@@ -174,6 +179,34 @@ FunctionEnd
 !macroend
 !insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR ""
 !insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR "un."
+
+; The Start-menu folders earlier versions created: named after the language picked in
+; the installer (PIME before the rename) and, as there was no SetShellVarContext, in
+; the Start menu of the account the elevated installer ran as. Only these exact names
+; are removed; copies in other accounts' Start menus cannot be reached from here.
+!macro RMDIR_OLD_START_MENU_FOLDERS
+	RMDir /r "$SMPROGRAMS\WIME 輸入法"
+	RMDir /r "$SMPROGRAMS\WIME Input Methods"
+	RMDir /r "$SMPROGRAMS\WIME 输入法"
+	RMDir /r "$SMPROGRAMS\PIME 輸入法"
+	RMDir /r "$SMPROGRAMS\PIME Input Methods"
+	RMDir /r "$SMPROGRAMS\PIME 输入法"
+!macroend
+
+; Remove the Start-menu folder and the old ones, from both the current user's and the
+; all-users Start menu. Leaves the shell context at "all", which every $SMPROGRAMS use
+; in this script expects.
+!macro DEFINE_REMOVE_START_MENU_FOLDERS UN
+Function ${UN}removeStartMenuFolders
+	SetShellVarContext current
+	!insertmacro RMDIR_OLD_START_MENU_FOLDERS
+	SetShellVarContext all
+	!insertmacro RMDIR_OLD_START_MENU_FOLDERS
+	RMDir /r "$SMPROGRAMS\${START_MENU_FOLDER}"
+FunctionEnd
+!macroend
+!insertmacro DEFINE_REMOVE_START_MENU_FOLDERS ""
+!insertmacro DEFINE_REMOVE_START_MENU_FOLDERS "un."
 
 ; Refuse to install while an earlier uninstall/upgrade still has boot-time deletes
 ; pending for files in the install dir: Windows deletes by path at the next boot, so
@@ -313,7 +346,7 @@ Function removeOldVersion
 		RMDir /r "$INSTDIR\server"
 
 		; Delete shortcuts in Start Menu
-		RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
+		Call removeStartMenuFolders
 
 		Delete "$INSTDIR\version.txt"
 		Delete "$INSTDIR\Uninstall.exe"
@@ -834,50 +867,54 @@ Section "" Register
 	; Launch the python server as current user (non-elevated process)
 	${StdUtils.ExecShellAsUser} $0 "$INSTDIR\PIMELauncher.exe" "open" ""
 
-	; Create shortcuts
-	CreateDirectory "$SMPROGRAMS\$(PRODUCT_NAME)"
+	; Create shortcuts. Clear out the old folders first also when removeOldVersion did not
+	; run (no uninstall entry): an older uninstaller left the folder of the language it
+	; did not run in.
+	Call removeStartMenuFolders
+	SetShellVarContext all
+	CreateDirectory "$SMPROGRAMS\${START_MENU_FOLDER}"
 	${If} ${SectionIsSelected} ${chewing}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEWING).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" config' "$INSTDIR\python\input_methods\chewing\images\setting.ico" 0
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" user_phrase_editor' "$INSTDIR\python\input_methods\chewing\images\phrase_editor.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" config' "$INSTDIR\python\input_methods\chewing\images\setting.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" user_phrase_editor' "$INSTDIR\python\input_methods\chewing\images\phrase_editor.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${checj}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${cheliu}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chearray}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
 	${EndIf}
 !endif
 
 	${If} ${SectionIsSelected} ${chedayi}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${chepinyin}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chesimplex}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${chephonetic}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${cheez}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
 	${EndIf}
 !endif
 
-	CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
+	CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
 ;Assign language strings to sections
@@ -959,7 +996,7 @@ Section "Uninstall"
     Delete "$INSTDIR\backends.json"
 
 	; Delete shortcuts in Start Menu
-	RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
+	Call un.removeStartMenuFolders
 
 	Delete "$INSTDIR\version.txt"
 	Delete "$INSTDIR\Uninstall.exe"
