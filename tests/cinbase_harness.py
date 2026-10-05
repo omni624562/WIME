@@ -146,10 +146,13 @@ def remove_user_config(ime):
 MODERN_LAYOUT = dict(candidateLayout="horizontal", candidatePerRow=6)
 
 
-def make_service(ime="chedayi", user_config=None, **overrides):
+def make_service(ime="chedayi", user_config=None, keep_reply=False, **overrides):
     """A fresh text service with the shipped defaults applied.
     user_config: written as the user's config.json before the service is created
     (use it for settings that pick a table, e.g. selCinType).
+    keep_reply: keep what building the service queued in currentReply. server.py
+    does not send it in the init reply, so it goes out with the first request
+    (onActivate) - pass True to test that reply as the C++ side receives it.
     overrides: set on the config object afterwards and applied with applyConfig."""
     if user_config is not None:
         write_user_config(ime, user_config)
@@ -163,7 +166,8 @@ def make_service(ime="chedayi", user_config=None, **overrides):
         setattr(service.cfg, key, value)
     if overrides:
         cinbase.CinBase.applyConfig(service)
-    service.currentReply = {}
+    if not keep_reply:
+        service.currentReply = {}
     return service
 
 

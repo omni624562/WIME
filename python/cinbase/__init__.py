@@ -272,6 +272,12 @@ class CinBase:
     # 輸入法被使用者啟用
     def onActivate(self, cbTS):
         cfg = cbTS.cfg
+        # 建立時（initCinBaseContext、applyConfig）排進去的 changeButton 還在 currentReply：
+        # server.py 的 init 不回傳它們，會跟這個回覆一起送出，C++ 端先套用 addButton、
+        # 再套用 changeButton。那時還沒啟用，以前把「預設以停用輸入法模式啟動」的停用
+        # 圖示蓋回「中」，鍵盤原本就關著時不會再有 onKeyboardStatusChanged 改回來。
+        # 下面的 addButton 已帶完整狀態
+        cbTS.currentReply.pop("changeButton", None)
         keyboardWillOpen = getattr(cbTS, "keyboardOpen", True)
         if cbTS.client.isWindows8Above:
             keyboardWillOpen = not cfg.disableOnStartup
@@ -2761,9 +2767,7 @@ class CinBase:
 
 
     def keyboardClosed(self, cbTS):
-        # keyboardOpen 只在啟用期間有意義：TextService 建立時是 False，onActivate 才帶入。
-        # 建立時（initCinBaseContext、applyConfig）的 changeButton 會留在 currentReply，
-        # 跟 onActivate 的 addButton 一起送出，C++ 端先 add 再 change，不能被蓋成停用
+        # keyboardOpen 只在啟用期間有意義：TextService 建立時是 False，onActivate 才帶入
         return cbTS.isActivated and not cbTS.keyboardOpen
 
 
@@ -3745,8 +3749,6 @@ class CinBase:
         # Shift + 空白鍵切換全形/半形?（建立時還沒啟用，不會宣告）
         self.updateShiftSpaceKey(cbTS)
 
-        self.updateLangButtons(cbTS)
-
         # Shift 輸入全形標點?
         cbTS.fullShapeSymbols = cfg.fullShapeSymbols
 
@@ -3773,6 +3775,10 @@ class CinBase:
         cbTS.hideComposition = getattr(cfg, 'hideComposition', False)
         cbTS.hideCompositionLabel = getattr(cfg, 'hideCompositionLabel', '')
         cbTS.imeDisplayName = getattr(cfg, 'imeDisplayName', '')
+
+        # 系統匣模式圖示的提示寫出上面的顯示名稱，要在它之後更新：以前排在前面，
+        # 啟用中改了名稱，提示要等到下次切換中英、全半形才換
+        self.updateLangButtons(cbTS)
 
         # 拆錯字碼時發出警告嗶聲提示?
         cbTS.playSoundWhenNonCand  = cfg.playSoundWhenNonCand 

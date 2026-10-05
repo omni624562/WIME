@@ -23,9 +23,11 @@ def tearDownModule():
     _appdata.close()
 
 
-def activate(ime="chedayi", **config):
-    service = h.make_service(ime, user_config=config or None)
-    reply = h.request(service, "onActivate", isKeyboardOpen=True)
+def activate(ime="chedayi", keyboard_open=True, **config):
+    # 像 server.py 那樣：init 的回覆不帶 currentReply，建立時排進去的 changeButton
+    # 會跟著第一個 onActivate 的回覆送出
+    service = h.make_service(ime, user_config=config or None, keep_reply=True)
+    reply = h.request(service, "onActivate", isKeyboardOpen=keyboard_open)
     return service, reply
 
 
@@ -33,6 +35,16 @@ def mode_icon(reply, action):
     """The last windows-mode-icon entry of reply[action] ("addButton"/"changeButton")."""
     buttons = [b for b in reply.get(action, []) if b["id"] == "windows-mode-icon"]
     return buttons[-1] if buttons else None
+
+
+def shown_mode_icon(reply):
+    """What the mode icon shows after the C++ side applied reply: Client::updateLanguageButtons
+    adds the buttons first, then applies every changeButton entry in order."""
+    shown = dict(mode_icon(reply, "addButton") or {})
+    for button in reply.get("changeButton", []):
+        if button["id"] == "windows-mode-icon":
+            shown.update(button)
+    return shown
 
 
 @h.requires_tables
@@ -44,7 +56,7 @@ class ModeIconTooltipTests(unittest.TestCase):
         for ime in IMES:
             with self.subTest(ime=ime):
                 service, reply = activate(ime)
-                self.assertEqual(mode_icon(reply, "addButton")["tooltip"],
+                self.assertEqual(shown_mode_icon(reply)["tooltip"],
                                  NAMES[ime] + "：中文、半形（按一下切換中英文）")
 
                 reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
@@ -63,20 +75,31 @@ class ModeIconTooltipTests(unittest.TestCase):
         self.assertEqual(mode_icon(up, "changeButton")["tooltip"], "大易：英文、半形（按一下切換中英文）")
 
     def test_settings_applied_before_activation_do_not_override_the_icon(self):
-        # 建立時（initCinBaseContext、applyConfig）就送的 changeButton 會跟著
-        # onActivate 的回覆送出，C++ 端套用在 addButton 之後。那時 keyboardOpen 還是
-        # TextService 預設的 False，不能因此把圖示蓋成停用
-        service = h.make_service("chedayi")
-        h.cinbase.CinBase.applyConfig(service)
-        reply = h.request(service, "onActivate", isKeyboardOpen=True)
-        added = mode_icon(reply, "addButton")
-        changed = mode_icon(reply, "changeButton")
-        if changed is not None:
-            self.assertEqual((changed["icon"], changed["tooltip"]), (added["icon"], added["tooltip"]))
+        # 建立時（initCinBaseContext、applyConfig）就排進去的 changeButton 會跟著
+        # onActivate 的回覆送出，C++ 端套用在 addButton 之後，不能蓋掉 onActivate 的狀態
+        for config in ({}, {"disableOnStartup": True}, {"imeDisplayName": "易"},
+                       {"defaultEnglish": True, "defaultFullSpace": True}):
+            with self.subTest(config=config):
+                service = h.make_service("chedayi", user_config=config or None, keep_reply=True)
+                h.cinbase.CinBase.applyConfig(service)
+                reply = h.request(service, "onActivate", isKeyboardOpen=True)
+                added = mode_icon(reply, "addButton")
+                shown = shown_mode_icon(reply)
+                self.assertEqual((shown["icon"], shown["tooltip"]), (added["icon"], added["tooltip"]))
 
     def test_display_name_setting_is_used(self):
+        # 以前 addButton 寫「易：」，跟著送出的建立時 changeButton 又蓋回「大易：」
         service, reply = activate(imeDisplayName="易")
-        self.assertEqual(mode_icon(reply, "addButton")["tooltip"], "易：中文、半形（按一下切換中英文）")
+        self.assertEqual(shown_mode_icon(reply)["tooltip"], "易：中文、半形（按一下切換中英文）")
+
+    def test_display_name_change_while_active(self):
+        # 啟用中在設定頁改了顯示名稱（checkConfigChange → applyConfig）：以前 applyConfig
+        # 先更新圖示才讀新名稱，提示要等到下次切換中英、全半形才換
+        service, _ = activate()
+        service.cfg.imeDisplayName = "易"
+        h.cinbase.CinBase.applyConfig(service)
+        self.assertEqual(mode_icon(service.currentReply, "changeButton")["tooltip"],
+                         "易：中文、半形（按一下切換中英文）")
 
 
 @h.requires_tables
@@ -147,12 +170,18 @@ class ClosedKeyboardTests(unittest.TestCase):
         self.assertNotEqual(service.langMode, CHINESE_MODE)
 
     def test_disabled_at_startup(self):
-        service, reply = activate(disableOnStartup=True)
-        self.assertIs(reply.get("openKeyboard"), False)
-        self.assertOffIcon(mode_icon(reply, "addButton"))
-        reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
-        self.assertIs(reply.get("openKeyboard"), True)
-        self.assertEqual(service.langMode, CHINESE_MODE)
+        # 以前 addButton 是停用圖示，跟著送出的建立時 changeButton 又蓋回「中」：要等
+        # C++ 端真的關掉鍵盤、送來 onKeyboardStatusChanged(False) 才變回停用。鍵盤原本
+        # 就關著（例如在新酷音按過 Ctrl+空白鍵後切到大易）時 setKeyboardOpen(false)
+        # 什麼都不做，不會有這個通知，系統匣就一直顯示「中」，打的卻是英文
+        for keyboard_open in (True, False):
+            with self.subTest(keyboard_open=keyboard_open):
+                service, reply = activate(keyboard_open=keyboard_open, disableOnStartup=True)
+                self.assertIs(reply.get("openKeyboard"), False)
+                self.assertOffIcon(shown_mode_icon(reply))
+                reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
+                self.assertIs(reply.get("openKeyboard"), True)
+                self.assertEqual(service.langMode, CHINESE_MODE)
 
     def test_shape_toggle_while_closed_keeps_the_off_icon(self):
         service, _ = activate()
