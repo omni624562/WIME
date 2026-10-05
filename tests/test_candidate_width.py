@@ -34,6 +34,19 @@ SAMPLE_CANDIDATES = "你七鹿擬虍乙"   # CJK ideographs all have the same ad
 FONT_FACE = "Microsoft JhengHei"    # candFontName sent by cinbase and chewing_ime
 DEFAULT_GUI_FONT = 17
 
+_appdata = None
+
+
+def setUpModule():
+    # importing chewing_config creates its shared config object, which loads (and
+    # may write) %APPDATA%\PIME\chewing; ChewingConfig(load=False) alone does not
+    global _appdata
+    _appdata = h.IsolatedAppData()
+
+
+def tearDownModule():
+    _appdata.close()
+
 
 class LOGFONTW(ctypes.Structure):
     _fields_ = [("lfHeight", wintypes.LONG), ("lfWidth", wintypes.LONG),
@@ -154,7 +167,7 @@ def page_columns(font_size, per_row, keys, candidates, key_style, dpi, max_width
 def shipped_defaults():
     """{ime: (default settings, selection keys shown with the candidates)}"""
     chewing_config = importlib.import_module("input_methods.chewing.chewing_config")
-    chewing = chewing_config.ChewingConfig(load=False)   # does not touch APPDATA
+    chewing = chewing_config.ChewingConfig(load=False)   # the shipped defaults, not the file's
     defaults = {"chewing": (chewing.toJson(), chewing.getSelKeys())}
     for ime, keys in (("chedayi", selkeys.DAYI_CAND_SELKEYS), ("checj", selkeys.DEFAULT_SELKEYS)):
         path = os.path.join(h.PYTHON_DIR, "input_methods", ime, "config", "config.json")
