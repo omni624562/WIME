@@ -2906,7 +2906,7 @@ class CinBase:
             # 鍵盤關閉時打的是英文：顯示英文半形圖示（eng.ico 是白字透明底，淺色工作列
             # 上看不見）。關閉期間按鍵不會送到後端，CapsLock 變了也無從更新，不分大小寫
             return (os.path.join(self.icondir, "eng_half_capsoff.ico"),
-                    prefix + "已停用（按一下或 Ctrl+空白鍵開啟）")
+                    prefix + "已關閉（按一下或按 Ctrl+空白鍵開啟）")
         chinese = cbTS.langMode == CHINESE_MODE
         full = cbTS.shapeMode == FULLSHAPE_MODE
         icon_name = "%s_%s_%s.ico" % ("chi" if chinese else "eng", "full" if full else "half",

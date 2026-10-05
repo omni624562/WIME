@@ -1124,8 +1124,8 @@ class ChewingTextService(TextService):
             # Shift+空白鍵切回來。勾選表示目前的狀態；鍵盤關閉時 (沒有 libchewing
             # context) 不能切換
             canSwitch = self.chewingContext is not None
-            langText = "中文模式 (Shift)" if cfg.switchLangWithShift else "中文模式"
-            shapeText = "全形 (Shift+空白鍵)" if cfg.enableShiftSpace else "全形"
+            langText = "中文模式（Shift）" if cfg.switchLangWithShift else "中文模式"
+            shapeText = "全形（Shift+空白鍵）" if cfg.enableShiftSpace else "全形"
             # 用 json 語法表示選單結構
             return [
                 {"text": langText, "id": ID_SWITCH_LANG,

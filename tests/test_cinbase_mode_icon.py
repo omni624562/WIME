@@ -130,7 +130,7 @@ class ClosedKeyboardTests(unittest.TestCase):
     def assertOffIcon(self, icon, ime="chedayi"):
         self.assertIsNotNone(icon)
         self.assertTrue(icon["icon"].endswith("eng_half_capsoff.ico"), icon["icon"])
-        self.assertEqual(icon["tooltip"], NAMES[ime] + "：已停用（按一下或 Ctrl+空白鍵開啟）")
+        self.assertEqual(icon["tooltip"], NAMES[ime] + "：已關閉（按一下或按 Ctrl+空白鍵開啟）")
         self.assertNotEqual(icon.get("enable"), False)
 
     def test_closing_shows_the_off_state(self):

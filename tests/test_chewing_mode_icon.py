@@ -185,7 +185,7 @@ class ModeMenuTests(ChewingTestCase):
         for button in ("windows-mode-icon", "settings"):  # the language bar's 設定 button has the same menu
             menu = self.menu(s, button)
             self.assertEqual([self.item(menu, command)["text"] for command in (module.ID_SWITCH_LANG, module.ID_SWITCH_SHAPE)],
-                             ["中文模式 (Shift)", "全形 (Shift+空白鍵)"])
+                             ["中文模式（Shift）", "全形（Shift+空白鍵）"])
             self.assertEqual(self.modes(menu), (True, False))
         reply = self.click(s, MENU, module.ID_SWITCH_SHAPE)
         self.assertEqual(s.chewingContext.get_ShapeMode(), 1)
