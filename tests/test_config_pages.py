@@ -26,7 +26,8 @@ it is the page size, which the backend caps at the number of selection keys
 of the theme card instead of where the window does.
 
 大易/酷倉 使用說明 (help.htm): 大易 does not pick with the digits; the help now
-shows 大易's selection keys on its page and the digits on the others.
+shows 大易's selection keys on its page and the digits on the others. The text
+tabs say their 設定檔 is 以下 (below), and 新酷音's 關於 has no Google+ or Flash links.
 
 大易/酷倉 text data (js/data_format.js, run in node when it is installed): the
 page refused data the backend reads fine. A blank line (a trailing newline), a
@@ -268,6 +269,33 @@ class ConfigPageTests(unittest.TestCase):
                    for parent, dependents in bindings for field in re.findall(r'field: "(\w+)"', dependents)}
         self.assertEqual(parents["intelligentSelectContext"], ["intelligentSelect"])
         self.assertEqual(parents["intelligentSelectRecent"], ["intelligentSelect", "intelligentSelectContext"])
+
+    def test_cinbase_text_tabs_point_down_at_their_box(self):
+        # the 設定檔 text sits above its textarea, but three tabs said 以上; two of
+        # them closed a <p> they never opened
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            page = f.read()
+        pages = re.findall(r'<div id="(\w+_page)">(.*?)\n        </div>\n', page, re.S)
+        checked = []
+        for name, body in pages:
+            with self.subTest(page=name):
+                self.assertEqual(len(re.findall(r"<p\b", body)), len(re.findall(r"</p>", body)))
+                for match in re.finditer(r"(以.)是[^。<]*設定", body):
+                    self.assertEqual(match.group(1), "以下", match.group(0))
+                    self.assertLess(match.start(), body.index("<textarea"))
+                    checked.append(name)
+        self.assertEqual(sorted(set(checked)), ["extendtable_page", "ez_symbols_page", "flangs_page",
+                                                "fs_symbols_page", "phrase_page", "symbols_page"])
+
+    def test_chewing_about_has_no_dead_links(self):
+        # Google+ closed in 2019; the ICOS 2004 talk was a Flash presentation
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        about = page[page.index('id="about_modal"'):]
+        self.assertNotIn("plus.google.com", about)
+        self.assertNotIn("Flash", about)
+        self.assertNotIn("chewing-intro.html", about)
+        self.assertIn("陳康本", about)
 
     def test_pages_mark_the_max_width_as_migrated_on_save(self):
         # The backend replaces a stored candidateMaxWidth of 300 (the old default)
