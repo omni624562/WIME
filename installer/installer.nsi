@@ -424,9 +424,13 @@ Function .onInit
 			Abort
 	${EndIf}
 
-	; Currently, we're not able to support Windows xp since it has an incomplete TSF.
-	${IfNot} ${AtLeastWinVista}
-		MessageBox MB_ICONSTOP|MB_OK $(AtLeastWinVista_MESSAGE)
+	; The embedded Python 3.12 supports Windows 8.1 and later, and both it and the launcher
+	; import Windows 8 APIs (PathCchCombineEx; ProcessPrng, WaitOnAddress,
+	; GetSystemTimePreciseAsFileTime). Letting Vista/7 through only gave an install
+	; that looked fine while the launcher failed to load at every logon. (The version
+	; is reported correctly because NSIS manifests the installer for Windows 8.1/10.)
+	${IfNot} ${AtLeastWin8.1}
+		MessageBox MB_ICONSTOP|MB_OK $(AtLeastWin81_MESSAGE) /SD IDOK
 		Quit
 	${EndIf}
 
@@ -488,8 +492,9 @@ Function ensureUCRT
 	; python3\ carries its own vcruntime140.dll, so no VC++ redistributable is needed
 	; (the old check downloaded one, and on 64-bit Windows only the x64 package, which
 	; did not help the 32-bit launcher). The embedded Python still needs the Universal
-	; C Runtime: built into Windows 10 and later, an update (KB2999226) on Windows 8.1.
-	; $SYSDIR is SysWOW64 for this 32-bit installer, i.e. the 32-bit UCRT Python uses.
+	; C Runtime: built into Windows 10 and later, an update (KB2999226) on Windows 8.1,
+	; the oldest version .onInit lets through. $SYSDIR is SysWOW64 for this 32-bit
+	; installer, i.e. the 32-bit UCRT Python uses.
 	${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
 		MessageBox MB_ICONSTOP|MB_OK $(UCRT_MISSING_MESSAGE)
 		ExecShell "open" "https://support.microsoft.com/kb/2999226"

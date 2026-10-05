@@ -11,7 +11,7 @@
 !insertmacro LANG_STRING PRODUCT_PAGE "WIME 專案網頁"
 !insertmacro LANG_STRING PRODUCT_PUBLISHER "WIME 開發團隊"
 
-!insertmacro LANG_STRING AtLeastWinVista_MESSAGE "抱歉，本程式目前只能支援 Windows Vista 以上版本"
+!insertmacro LANG_STRING AtLeastWin81_MESSAGE "抱歉，本程式需要 Windows 8.1 以上版本"
 !insertmacro LANG_STRING REBOOT_QUESTION "安裝發生錯誤，無法完成。$\r$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。$\r$\n你要立即重新開機嗎？ (若你想要在稍後才重新開機請選擇「否」)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "安裝發生錯誤，無法完成。$\n$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。"
 !insertmacro LANG_STRING PENDING_DELETE_MESSAGE "先前的解除安裝或升級已排定在下次開機時刪除 WIME 的檔案。若現在安裝，新裝的檔案會在下次開機時被刪掉。$\r$\n請先重新開機，再執行安裝程式。"
