@@ -15,6 +15,7 @@
   the migration used to run on every load, so 300 could never be chosen.
 - candPerRow has done nothing since the classic candidate window was removed; it
   is dropped from old config files.
+- The blank lines the settings page left in symbols.dat are removed.
 """
 
 import importlib
@@ -209,6 +210,50 @@ class ValueNormalizationTests(ConfigFileTestCase):
     def test_new_config_file_has_no_retired_settings(self):
         cc.ChewingConfig()
         self.assertNotIn("candPerRow", json.loads(self.read().decode("utf-8")))
+
+
+class BlankSymbolLineTests(ConfigFileTestCase):
+    """symbols.dat: libchewing reads each blank line as an empty ` menu item, and
+    the settings page used to add one each time the 特殊符號 were edited."""
+
+    def setUp(self):
+        super().setUp()
+        self.symbols = os.path.join(self.dir, "symbols.dat")
+        self.addCleanup(lambda: os.path.exists(self.symbols) and os.remove(self.symbols))
+
+    def write_symbols(self, data):
+        with open(self.symbols, "wb") as f:
+            f.write(data)
+        stamp = time.time() - 60
+        os.utime(self.symbols, (stamp, stamp))
+        return os.stat(self.symbols).st_mtime_ns
+
+    def read_symbols(self):
+        with open(self.symbols, "rb") as f:
+            return f.read()
+
+    def test_blank_lines_are_removed_when_the_settings_load(self):
+        # line endings, a line of spaces and a last line without a newline stay as they are
+        self.write_symbols("甲=１\r\n\r\n乙=２\n\n \r\n丙=３\r\n\r\n\r\n丁".encode("utf-8"))
+        cc.ChewingConfig()
+        self.assertEqual(self.read_symbols(), "甲=１\r\n乙=２\n \r\n丙=３\r\n丁".encode("utf-8"))
+        self.assertEqual([name for name in os.listdir(self.dir) if name.endswith(".tmp")], [])
+
+    def test_a_file_without_blank_lines_is_not_rewritten(self):
+        mtime = self.write_symbols("甲=１\r\n乙=２\r\n".encode("utf-8"))
+        cc.ChewingConfig()
+        self.assertEqual(os.stat(self.symbols).st_mtime_ns, mtime)
+
+    def test_a_changed_file_is_cleaned_before_the_reload(self):
+        cfg = cc.ChewingConfig()
+        version = cfg.getVersion()
+        self.write_symbols("甲=１\r\n\r\n".encode("utf-8"))
+        cfg._lastUpdateTime = None
+        cfg.update()
+        self.assertEqual(self.read_symbols(), "甲=１\r\n".encode("utf-8"))
+        # the version taken is the cleaned file's: it does not change again later
+        self.assertTrue(cfg.isFullReloadNeeded(version))
+        self.assertEqual(cfg.getVersion()[1], os.path.getmtime(self.symbols))
 
 
 class ReloadThrottleTests(ConfigFileTestCase):
