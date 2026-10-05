@@ -159,6 +159,23 @@ class ConfigPageTests(unittest.TestCase):
         # a disabled checkbox is still saved with its value
         self.assertNotRegex(function_body(script, "updateConfig"), r"disabled")
 
+    def test_chewing_page_offers_only_message_options_that_work(self):
+        # 提示強度行為 (candidateMessageBehavior) changed nothing in 新酷音: only 大易/酷倉
+        # show a message while typing, and 新酷音's messages (加入：…) all come after
+        # a confirmation, in the 提示訊息樣式 style. The preview showed 查無組字, a
+        # 大易/酷倉 message 新酷音 never shows.
+        names = {name for name, _ in page_ids(os.path.join(CHEWING_DIR, "config_tool.html"))}
+        self.assertEqual({name for name in names if "MessageBehavior" in name}, set())
+        script = os.path.join(CHEWING_DIR, "js", "config.js")
+        # dropped from an old config.json before saving, never set or shown
+        self.assertEqual([line for _, line in script_lines(script, r"MessageBehavior|behavior-")],
+                         ["delete chewingConfig.candidateMessageBehavior;"])
+        with open(os.path.join(CHEWING_DIR, "chewing_ime.py"), encoding="utf-8-sig") as f:
+            self.assertNotIn("candidateMessageBehavior", f.read())
+        preview = function_body(script, "createCandidateMessagePreview")
+        self.assertIn('.text("加入：你好")', preview)
+        self.assertNotIn('"查無組字"', preview)
+
     def test_cinbase_script_has_no_retired_fields(self):
         for ime in ("chedayi", "checj"):
             with self.subTest(ime=ime):

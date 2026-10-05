@@ -81,7 +81,10 @@ LEGACY_CANDIDATE_MAX_WIDTH = 300
 # 設定頁儲存時就不會再寫回去
 #   candPerRow: 舊版候選窗「每列顯示候選字個數」。舊版候選窗移除後沒有任何作用，
 #     每列幾個候選由 candidatePerRow（候選窗外觀的「每列候選字數」）決定
-_RETIRED_KEYS = ("candPerRow",)
+#   candidateMessageBehavior: 「提示強度行為」(打字中的提示低調、確認後才明顯)。只有
+#     大易/酷倉在打字中送出提示；新酷音的訊息 (加入：…、刪除「…」成功) 都在確認後
+#     出現，一律是「提示訊息樣式」選的樣子，輸入法從來沒讀過這個設定
+_RETIRED_KEYS = ("candPerRow", "candidateMessageBehavior")
 
 
 def _toInt(value):
@@ -222,7 +225,6 @@ class ChewingConfig:
         self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
         self.candidateKeyStyle = "word-first"  # 固定值，見 _FIXED_VALUES
         self.candidateMessageStyle = "badge"
-        self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True

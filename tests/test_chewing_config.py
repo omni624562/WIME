@@ -13,8 +13,9 @@
   and is migrated to the new default (340: 6 candidates at 16pt need 336px) on load,
   but only in files without candidateMaxWidthMigrated (the settings page writes it):
   the migration used to run on every load, so 300 could never be chosen.
-- candPerRow has done nothing since the classic candidate window was removed; it
-  is dropped from old config files.
+- candPerRow has done nothing since the classic candidate window was removed, and
+  candidateMessageBehavior (提示強度行為) never did anything in 新酷音; they are
+  dropped from old config files.
 - The blank lines the settings page left in symbols.dat are removed.
 """
 
@@ -195,21 +196,27 @@ class ValueNormalizationTests(ConfigFileTestCase):
         values = cc.normalizeValues({"candidateMinWidth": None, "test_input_text": None}, defaults)
         self.assertEqual(values, {"candidateMinWidth": 286, "test_input_text": None})
 
+    RETIRED = {
+        "candPerRow": 5,  # the classic window's per-row count; the count is candidatePerRow
+        "candidateMessageBehavior": "fixed",  # never read: 新酷音 shows no message while typing
+    }
+
     def test_retired_settings_are_dropped(self):
-        # candPerRow (the classic window's per-row count) does nothing since that window
-        # was removed; the per-row count is candidatePerRow
-        cfg = self.load({"candPerRow": 5, "candPerPage": 4})
-        self.assertFalse(hasattr(cfg, "candPerRow"))
-        self.assertNotIn("candPerRow", cfg.toJson())
+        cfg = self.load(dict(self.RETIRED, candPerPage=4))
+        for key in self.RETIRED:
+            self.assertFalse(hasattr(cfg, key), key)
+            self.assertNotIn(key, cfg.toJson())
         self.assertEqual(cfg.candPerPage, 4)
-        # the settings tool reads config.json itself: it must not get it back either,
-        # or saving the settings page writes it out again
-        values = cc.normalizeValues({"candPerRow": 5, "candPerPage": 4}, cc.defaultValues())
+        # the settings tool reads config.json itself: it must not get them back either,
+        # or saving the settings page writes them out again
+        values = cc.normalizeValues(dict(self.RETIRED, candPerPage=4), cc.defaultValues())
         self.assertEqual(values, {"candPerPage": 4})
 
     def test_new_config_file_has_no_retired_settings(self):
         cc.ChewingConfig()
-        self.assertNotIn("candPerRow", json.loads(self.read().decode("utf-8")))
+        saved = json.loads(self.read().decode("utf-8"))
+        for key in self.RETIRED:
+            self.assertNotIn(key, saved)
 
 
 class BlankSymbolLineTests(ConfigFileTestCase):

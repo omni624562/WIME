@@ -336,21 +336,6 @@ textarea {
     font-weight: 650;
 }
 
-.candidate-behavior-preview {
-    display: grid;
-    gap: 6px;
-}
-
-.candidate-behavior-preview .candidate-preview {
-    box-shadow: none;
-}
-
-.candidate-behavior-label {
-    color: #6b7483;
-    font-size: 11px;
-    font-weight: 700;
-}
-
 .candidate-preview-item {
     align-items: center;
     display: inline-flex;
@@ -744,8 +729,7 @@ textarea {
         color: #cfd6e2;
     }
 
-    .candidate-theme-current,
-    .candidate-behavior-label {
+    .candidate-theme-current {
         color: #8b95a7;
     }
 
