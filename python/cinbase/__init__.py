@@ -76,6 +76,12 @@ ID_LITTLEDICT = 11
 ID_PROVERBDICT = 12
 ID_OUTPUT_SIMP_CHINESE = 13
 
+# 系統匣模式圖示提示文字裡的輸入法名稱（與各 ime.json 的名稱相同，不含「輸入法 (WIME)」）
+IME_SHORT_NAMES = {
+    "chedayi": "大易", "checj": "酷倉", "chearray": "行列", "cheliu": "蝦米",
+    "cheez": "輕鬆", "chephonetic": "注音", "chepinyin": "拼音", "chesimplex": "速成",
+}
+
 # 鍵盤掃描碼（set 1）：左、右 Shift 的虛擬鍵都是 VK_SHIFT，只能靠掃描碼分辨
 LEFT_SHIFT_SCAN_CODE = 0x2A
 RIGHT_SHIFT_SCAN_CODE = 0x36
@@ -284,20 +290,10 @@ class CinBase:
 
         # Windows 8 以上已取消語言列功能，改用 systray IME mode icon
         if cbTS.client.isWindows8Above:
-            if cbTS.langMode == CHINESE_MODE:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "chi_full_capson.ico" if cbTS.capsStates else "chi_full_capsoff.ico"
-                else:
-                    icon_name = "chi_half_capson.ico" if cbTS.capsStates else "chi_half_capsoff.ico"
-            else:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "eng_full_capson.ico" if cbTS.capsStates else "eng_full_capsoff.ico"
-                else:
-                    icon_name = "eng_half_capson.ico" if cbTS.capsStates else "eng_half_capsoff.ico"
-
+            icon_path, tooltip = self.modeIconState(cbTS)
             cbTS.addButton("windows-mode-icon",
-                icon=os.path.join(self.icondir, icon_name),
-                tooltip="中英文切換",
+                icon=icon_path,
+                tooltip=tooltip,
                 commandId=ID_MODE_ICON
             )
 
@@ -2853,24 +2849,27 @@ class CinBase:
         cbTS.capsStates = True if self.getKeyState(VK_CAPITAL) else False
 
         if cbTS.client.isWindows8Above:  # windows 8 mode icon
-            if cbTS.langMode == CHINESE_MODE:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "chi_full_capson.ico" if cbTS.capsStates else "chi_full_capsoff.ico"
-                else:
-                    icon_name = "chi_half_capson.ico" if cbTS.capsStates else "chi_half_capsoff.ico"
-            else:
-                if cbTS.shapeMode == FULLSHAPE_MODE:
-                    icon_name = "eng_full_capson.ico" if cbTS.capsStates else "eng_full_capsoff.ico"
-                else:
-                    icon_name = "eng_half_capson.ico" if cbTS.capsStates else "eng_half_capsoff.ico"
-
-            icon_path = os.path.join(self.icondir, icon_name)
-            cbTS.changeButton("windows-mode-icon", icon=icon_path)
+            icon_path, tooltip = self.modeIconState(cbTS)
+            cbTS.changeButton("windows-mode-icon", icon=icon_path, tooltip=tooltip)
 
         # 如果全形半形模式改變
         icon_name = "full.ico" if cbTS.shapeMode == FULLSHAPE_MODE else "half.ico"
         icon_path = os.path.join(self.icondir, icon_name)
         cbTS.changeButton("switch-shape", icon=icon_path)
+
+
+    # 系統匣模式圖示的 (圖示路徑, 提示文字)。提示文字寫出輸入法名稱與目前狀態：
+    # 大易、酷倉共用同一組圖示，以前提示也一律是「中英文切換」，看不出是哪個輸入法、
+    # 現在是中文還是英文、全形還是半形（全形、半形只差在圖示右半邊是不是灰色）
+    def modeIconState(self, cbTS):
+        chinese = cbTS.langMode == CHINESE_MODE
+        full = cbTS.shapeMode == FULLSHAPE_MODE
+        icon_name = "%s_%s_%s.ico" % ("chi" if chinese else "eng", "full" if full else "half",
+                                       "capson" if cbTS.capsStates else "capsoff")
+        name = cbTS.imeDisplayName or IME_SHORT_NAMES.get(cbTS.imeDirName, "")
+        tooltip = "%s%s、%s（按一下切換中英文）" % (name + "：" if name else "",
+                                              "中文" if chinese else "英文", "全形" if full else "半形")
+        return os.path.join(self.icondir, icon_name), tooltip
 
 
     # 按下「`」鍵的選單命令
