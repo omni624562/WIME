@@ -871,7 +871,7 @@ class CinBase:
                 elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "toggles": # 切至功能開關頁面
                     cbTS.menucandidates = menu.withBack(cbTS.smenucandidates)
                     pagecandidates = pager.paginate(cbTS.menucandidates, cbTS.candPerPage)
-                    menu.pushPath(cbTS, "功能開關")
+                    menu.pushPath(cbTS, menu.TOGGLES_PAGE_TITLE)
                     cbTS.resetMenuCand = self.switchMenuType(cbTS, 1, ["0," + str(candCursor) + "," + str(currentCandPage)])
                 elif cbTS.menutype == 0 and menu.mainMenuId(itemName) == "symbols": # 切至特殊符號頁面
                     cbTS.menucandidates = menu.withBack(cbTS.symbols.getKeyNames())

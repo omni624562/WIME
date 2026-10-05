@@ -20,6 +20,10 @@ MAIN_MENU = [
 
 _MAIN_MENU_IDS = {label: itemId for itemId, label in MAIN_MENU}
 
+# 功能開關頁的麵包屑。開關只改目前這個程式的狀態、不會存檔，存任何設定後也會
+# 回到設定值（help.htm 有寫，頁面上以前沒有），標題要直接講清楚
+TOGGLES_PAGE_TITLE = "功能開關（暫時，只影響這個程式）"
+
 # 功能開關定義：屬性名 → 顯示文字
 TOGGLE_DEFS = [
     ("fullShapeSymbols", "Shift 輸入全形標點"),

@@ -194,6 +194,26 @@ class FunctionMenuTests(unittest.TestCase):
         h.press(service, service.selKeys[service.candidateList.index(item)])   # used to raise ValueError
         self.assertEqual(service.showPhrase, before)
 
+    def test_toggle_page_says_the_switches_are_temporary(self):
+        # 開關只改這個程式、不存檔，存任何設定後也會變回設定值；以前頁面上只寫
+        # 「選單 功能開關」，看起來像是改了設定卻「沒存到」
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service = h.make_service(ime)
+                for _ in range(3):
+                    h.press(service, "`")
+                    if "特殊符號" in (service.candidateList or []):
+                        break
+                toggles = next(item for item in service.candidateList if "功能開關" in item)
+                reply = h.press(service, service.selKeys[service.candidateList.index(toggles)])
+                header = "選單 功能開關（暫時，只影響這個程式）"
+                self.assertEqual(reply.get("candidateHeader"), header)
+                item = next(item for item in service.candidateList if "聯想字詞" in item)
+                reply = h.press(service, service.selKeys[service.candidateList.index(item)])
+                self.assertEqual(reply.get("candidateHeader"), header)
+                reply = h.press(service, "BACK")
+                self.assertEqual(reply.get("candidateHeader"), "選單 功能選單")
+
     def test_settings_item_is_not_started_by_tests(self):
         # 選單的「開啟設定視窗…」用 ShellExecuteW 執行 configtool.py，它會打開使用者的
         # 瀏覽器，而且頁面開著就不會結束。游標 fuzz 測試會按到這一項：以前每跑一次
