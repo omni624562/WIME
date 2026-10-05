@@ -79,6 +79,10 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_INSTFILES
 
 ; finish page
+; Nothing else tells a new user how to reach the keyboards or the settings tools. The
+; hint also covers PCs without the 中文 (台灣) language, where the keyboards (all
+; registered under zh-Hant-TW) do not show up at all.
+!define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
 !define MUI_FINISHPAGE_LINK_LOCATION "${HOMEPAGE_URL}"
 !define MUI_FINISHPAGE_LINK "$(PRODUCT_PAGE) ${MUI_FINISHPAGE_LINK_LOCATION}"
 !insertmacro MUI_PAGE_FINISH

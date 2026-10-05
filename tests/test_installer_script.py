@@ -13,6 +13,11 @@ in a folder named after the language picked in the installer. The uninstaller do
 not know that language and removed the other language's folder, an upgrade removed
 only the newly picked one, and nothing removed the folders from before the PIME ->
 WIME rename, so dead or duplicate 設定大易輸入法 / 解除安裝 PIME shortcuts stayed.
+
+Finish page: it only had the project link. Nothing told a new user to press
+Win+Space, how the keyboards are named, what to do when they do not show up (they are
+registered under zh-Hant-TW only, so without the 中文 (台灣) language they are not
+listed), or where the settings tools are.
 """
 
 import os
@@ -149,6 +154,26 @@ class WindowsVersionTests(unittest.TestCase):
         for locale in LOCALES:
             with self.subTest(locale=locale):
                 self.assertIn("Windows " + version, locale_strings(locale)[name])
+
+
+class FinishPageTests(unittest.TestCase):
+    def test_finish_page_says_how_to_reach_the_keyboards_and_settings(self):
+        lines = script_lines()
+        finish = lines.index("!insertmacro MUI_PAGE_FINISH")
+        texts = [re.fullmatch(r'!define\s+MUI_FINISHPAGE_TEXT\s+"\$\((\w+)\)"', line)
+                 for line in lines[:finish]]
+        texts = [match.group(1) for match in texts if match]
+        self.assertEqual(len(texts), 1, "MUI_FINISHPAGE_TEXT from a language string")
+        for locale in LOCALES:
+            with self.subTest(locale=locale):
+                text = locale_strings(locale)[texts[0]]
+                self.assertIn("Win+", text)  # the keyboard switcher
+                self.assertIn("(WIME)", text)  # how the keyboards are named in it
+                self.assertIn("Windows 11", text)  # where to add the missing language
+                self.assertIn("${START_MENU_FOLDER}", text)  # the settings tools
+                # a single & in a label underlines the next letter instead of showing
+                # (Settings > Time & language)
+                self.assertNotRegex(text, r"(?<!&)&(?!&)")
 
 
 class StartMenuTests(unittest.TestCase):
