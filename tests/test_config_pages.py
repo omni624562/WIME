@@ -293,9 +293,12 @@ class ConfigPageTests(unittest.TestCase):
         with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
             page = f.read()
         about = page[page.index('id="about_modal"'):]
+        # 只看使用者看得到的內容：註解裡記錄了為什麼拿掉這些連結
+        about = re.sub(r"<!--.*?-->", "", about, flags=re.S)
         self.assertNotIn("plus.google.com", about)
         self.assertNotIn("Flash", about)
         self.assertNotIn("chewing-intro.html", about)
+        self.assertNotIn("~b6506053", about)   # 龔律全的台大個人網頁 (403)
         self.assertIn("陳康本", about)
 
     def test_pages_mark_the_max_width_as_migrated_on_save(self):
