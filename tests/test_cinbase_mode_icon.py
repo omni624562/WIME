@@ -61,6 +61,18 @@ class ModeIconTooltipTests(unittest.TestCase):
         down, up = h.press_replies(service, "SHIFT")
         self.assertEqual(mode_icon(up, "changeButton")["tooltip"], "大易：英文、半形（按一下切換中英文）")
 
+    def test_settings_applied_before_activation_do_not_override_the_icon(self):
+        # 建立時（initCinBaseContext、applyConfig）就送的 changeButton 會跟著
+        # onActivate 的回覆送出，C++ 端套用在 addButton 之後。那時 keyboardOpen 還是
+        # TextService 預設的 False，不能因此把圖示蓋成停用
+        service = h.make_service("chedayi")
+        h.cinbase.CinBase.applyConfig(service)
+        reply = h.request(service, "onActivate", isKeyboardOpen=True)
+        added = mode_icon(reply, "addButton")
+        changed = mode_icon(reply, "changeButton")
+        if changed is not None:
+            self.assertEqual((changed["icon"], changed["tooltip"]), (added["icon"], added["tooltip"]))
+
     def test_display_name_setting_is_used(self):
         service, reply = activate(imeDisplayName="易")
         self.assertEqual(mode_icon(reply, "addButton")["tooltip"], "易：中文、半形（按一下切換中英文）")
@@ -84,6 +96,68 @@ class ModeIconClickTests(unittest.TestCase):
                 service, _ = activate(ime)
                 h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
                 self.assertNotEqual(service.langMode, CHINESE_MODE)
+
+
+@h.requires_tables
+class ClosedKeyboardTests(unittest.TestCase):
+    """鍵盤關閉（Ctrl+空白鍵、「預設以停用輸入法模式啟動」）時，以前只把圖示設成
+    disabled：照樣顯示「中」，點了也只是在中、英之間切換，鍵盤不會重新開啟。"""
+
+    def assertOffIcon(self, icon, ime="chedayi"):
+        self.assertIsNotNone(icon)
+        self.assertTrue(icon["icon"].endswith("eng_half_capsoff.ico"), icon["icon"])
+        self.assertEqual(icon["tooltip"], NAMES[ime] + "：已停用（按一下或 Ctrl+空白鍵開啟）")
+        self.assertNotEqual(icon.get("enable"), False)
+
+    def test_closing_shows_the_off_state(self):
+        for ime in IMES:
+            with self.subTest(ime=ime):
+                service, _ = activate(ime)
+                reply = h.request(service, "onKeyboardStatusChanged", opened=False)
+                self.assertOffIcon(mode_icon(reply, "changeButton"), ime)
+
+                reply = h.request(service, "onKeyboardStatusChanged", opened=True)
+                icon = mode_icon(reply, "changeButton")
+                self.assertTrue(icon["icon"].endswith("chi_half_capsoff.ico") or
+                                icon["icon"].endswith("chi_half_capson.ico"), icon["icon"])
+                self.assertEqual(icon["tooltip"], NAMES[ime] + "：中文、半形（按一下切換中英文）")
+
+    def test_click_reopens_the_keyboard(self):
+        for ime in IMES:
+            with self.subTest(ime=ime):
+                service, _ = activate(ime)
+                h.request(service, "onKeyboardStatusChanged", opened=False)
+                reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
+                self.assertIs(reply.get("openKeyboard"), True)
+                self.assertTrue(service.keyboardOpen)
+                self.assertEqual(service.langMode, CHINESE_MODE)
+                self.assertIn("中文", mode_icon(reply, "changeButton")["tooltip"])
+                # C++ 端套用 openKeyboard 後送來的通知不會再切換一次
+                h.request(service, "onKeyboardStatusChanged", opened=True)
+                self.assertEqual(service.langMode, CHINESE_MODE)
+
+    def test_click_reopens_in_english_with_default_english(self):
+        # 重新開啟和 Ctrl+空白鍵一樣回到中文（defaultEnglish 時留在英文）
+        service, _ = activate(defaultEnglish=True)
+        self.assertNotEqual(service.langMode, CHINESE_MODE)
+        h.request(service, "onKeyboardStatusChanged", opened=False)
+        reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
+        self.assertIs(reply.get("openKeyboard"), True)
+        self.assertNotEqual(service.langMode, CHINESE_MODE)
+
+    def test_disabled_at_startup(self):
+        service, reply = activate(disableOnStartup=True)
+        self.assertIs(reply.get("openKeyboard"), False)
+        self.assertOffIcon(mode_icon(reply, "addButton"))
+        reply = h.request(service, "onCommand", id=ID_MODE_ICON, type=COMMAND_LEFT_CLICK)
+        self.assertIs(reply.get("openKeyboard"), True)
+        self.assertEqual(service.langMode, CHINESE_MODE)
+
+    def test_shape_toggle_while_closed_keeps_the_off_icon(self):
+        service, _ = activate()
+        h.request(service, "onKeyboardStatusChanged", opened=False)
+        reply = h.request(service, "onCommand", id=h.cinbase.ID_SWITCH_SHAPE, type=COMMAND_LEFT_CLICK)
+        self.assertOffIcon(mode_icon(reply, "changeButton"))
 
 
 if __name__ == "__main__":

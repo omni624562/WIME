@@ -290,15 +290,15 @@ class CinBase:
 
         # Windows 8 以上已取消語言列功能，改用 systray IME mode icon
         if cbTS.client.isWindows8Above:
+            # 啟動時預設停用中文輸入（先設好，模式圖示一開始就顯示停用狀態）
+            cbTS.setKeyboardOpen(not cfg.disableOnStartup)
+
             icon_path, tooltip = self.modeIconState(cbTS)
             cbTS.addButton("windows-mode-icon",
                 icon=icon_path,
                 tooltip=tooltip,
                 commandId=ID_MODE_ICON
             )
-
-            # 啟動時預設停用中文輸入
-            cbTS.setKeyboardOpen(not cfg.disableOnStartup)
 
         # 切換全半形
         icon_name = "full.ico" if cbTS.shapeMode == FULLSHAPE_MODE else "half.ico"
@@ -2683,7 +2683,12 @@ class CinBase:
         # 管道剛斷）時 C++ 端改送 COMMAND_RIGHT_CLICK，以前也切換，右鍵一下就默默變英文
         elif commandId == ID_MODE_ICON and commandType == COMMAND_LEFT_CLICK:
             self.abandonComposition(cbTS)
-            self.toggleLanguageMode(cbTS)  # 切換中英文模式
+            if self.keyboardClosed(cbTS):
+                # 鍵盤關著（Ctrl+空白鍵、預設以停用輸入法模式啟動）時點圖示是要重新開啟：
+                # 以前照樣切換中英文，輸入仍是英文，圖示卻在中、英之間跳
+                self.reopenKeyboard(cbTS)
+            else:
+                self.toggleLanguageMode(cbTS)  # 切換中英文模式
         elif commandId == ID_WEBSITE: # visit chewing website
             os.startfile("https://github.com/omni624562/WIME")
         elif commandId == ID_BUGREPORT: # visit bug tracker page
@@ -2731,16 +2736,29 @@ class CinBase:
         if opened: # 鍵盤開啟
             self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
-            self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=True)
+            self.restoreChineseModeOnKeyboardOpen(cbTS, opened, updateButtons=False)
         else: # 鍵盤關閉，輸入法停用
             self.abandonComposition(cbTS)
             self.resetCompositionBuffer(cbTS)
 
-        # Windows 8 systray IME mode icon
-        if cbTS.client.isWindows8Above:
-            # 若鍵盤關閉，我們需要把 widnows 8 mode icon 設定為 disabled
-            cbTS.changeButton("windows-mode-icon", enable=opened)
-        # FIXME: 是否需要同時 disable 其他語言列按鈕？
+        # Windows 8 systray IME mode icon：關閉時改成英文圖示、提示「已停用」。
+        # 以前只把圖示設成 disabled，照樣顯示「中」，而且點了也不會重新開啟
+        self.updateLangButtons(cbTS)
+
+
+    def keyboardClosed(self, cbTS):
+        # keyboardOpen 只在啟用期間有意義：TextService 建立時是 False，onActivate 才帶入。
+        # 建立時（initCinBaseContext、applyConfig）的 changeButton 會留在 currentReply，
+        # 跟 onActivate 的 addButton 一起送出，C++ 端先 add 再 change，不能被蓋成停用
+        return cbTS.isActivated and not cbTS.keyboardOpen
+
+
+    # 從系統匣圖示或選單重新開啟鍵盤。C++ 端套用 openKeyboard 後會再送來
+    # onKeyboardStatusChanged(True)，這裡先切回中文、更新圖示，不必等它
+    def reopenKeyboard(self, cbTS):
+        cbTS.setKeyboardOpen(True)
+        self.restoreChineseModeOnKeyboardOpen(cbTS, True, updateButtons=False)
+        self.updateLangButtons(cbTS)
 
 
     # 當中文編輯結束時會被呼叫。若中文編輯不是正常結束，而是因為使用者
@@ -2862,13 +2880,19 @@ class CinBase:
     # 大易、酷倉共用同一組圖示，以前提示也一律是「中英文切換」，看不出是哪個輸入法、
     # 現在是中文還是英文、全形還是半形（全形、半形只差在圖示右半邊是不是灰色）
     def modeIconState(self, cbTS):
+        name = cbTS.imeDisplayName or IME_SHORT_NAMES.get(cbTS.imeDirName, "")
+        prefix = name + "：" if name else ""
+        if self.keyboardClosed(cbTS):
+            # 鍵盤關閉時打的是英文：顯示英文半形圖示（eng.ico 是白字透明底，淺色工作列
+            # 上看不見）。關閉期間按鍵不會送到後端，CapsLock 變了也無從更新，不分大小寫
+            return (os.path.join(self.icondir, "eng_half_capsoff.ico"),
+                    prefix + "已停用（按一下或 Ctrl+空白鍵開啟）")
         chinese = cbTS.langMode == CHINESE_MODE
         full = cbTS.shapeMode == FULLSHAPE_MODE
         icon_name = "%s_%s_%s.ico" % ("chi" if chinese else "eng", "full" if full else "half",
                                        "capson" if cbTS.capsStates else "capsoff")
-        name = cbTS.imeDisplayName or IME_SHORT_NAMES.get(cbTS.imeDirName, "")
-        tooltip = "%s%s、%s（按一下切換中英文）" % (name + "：" if name else "",
-                                              "中文" if chinese else "英文", "全形" if full else "半形")
+        tooltip = "%s%s、%s（按一下切換中英文）" % (prefix, "中文" if chinese else "英文",
+                                              "全形" if full else "半形")
         return os.path.join(self.icondir, icon_name), tooltip
 
 
