@@ -77,6 +77,10 @@ from candidate_theme import (
     resolveCandidateTheme,
     candidateColorsForTheme,
 )
+import candidate_layout
+
+# 候選窗的字型 (candFontName)；上下鍵依它量出一列的字數 (candidatesPerVisibleRow)
+CANDIDATE_FONT_NAME = candidate_layout.FONT_NAME
 
 
 def isBopomofoChar(ch):
@@ -235,7 +239,7 @@ class ChewingTextService(TextService):
         cfg = chewingConfig
         uiCandPerRow = self.candidatesPerUiRow()
         ui_args = {
-            "candFontName": 'Microsoft JhengHei',
+            "candFontName": CANDIDATE_FONT_NAME,
             "candFontSize": cfg.fontSize,
             "candPerRow": uiCandPerRow,
             "candUseCursor": not(cfg.leftRightAction and cfg.upDownAction),
@@ -585,11 +589,23 @@ class ChewingTextService(TextService):
             return True
         return bool(chewingConfig.easySymbolsWithCtrl) and self.langMode == CHINESE_MODE
 
-    # 目前的候選字視窗每一列顯示幾個候選字 (上下鍵移動游標的步幅)
+    # 候選字視窗每一列最多幾個候選字 (送給候選窗的 candPerRow)
     def candidatesPerUiRow(self):
         cfg = chewingConfig
         layout = getattr(cfg, 'candidateLayout', 'horizontal')
         return 1 if layout == 'vertical' else getattr(cfg, 'candidatePerRow', 6)
+
+    # 目前這一頁在畫面上一列有幾個候選字 (上下鍵移動游標的步幅)。超過最大寬度自動換行
+    # 時一列放不下 candidatePerRow 個：一頁兩三個字的詞，或每列字數設成 7～10 時。
+    # 以前上下鍵一律移 candidatePerRow 格，落到別欄或完全不動
+    def candidatesPerVisibleRow(self):
+        cfg = chewingConfig
+        style = getattr(cfg, 'candidateStyle', None) or {}
+        return candidate_layout.candidateColumns(
+            self.candidateList, cfg.getSelKeys(), self.candidatesPerUiRow(), cfg.fontSize,
+            getattr(cfg, 'candidateMaxWidth', 340), getattr(cfg, 'candidateWrapToMaxWidth', True),
+            style.get("contentMargin", 8), style.get("textMargin", 6),  # C++ 沒收到時的預設值
+            getattr(cfg, 'candidateKeyStyle', 'word-first'), CANDIDATE_FONT_NAME)
 
     # Ctrl + Del 刪除詞彙、Ctrl + PageUp 提昇 / Ctrl + PageDown 降低詞頻
     def maintainUserPhrase(self, keyCode, target_phrase):
@@ -786,17 +802,18 @@ class ChewingTextService(TextService):
                             candCursor = 0
 
                 # 使用上下鍵游標選字，因上下鍵需要作為組字模式切換，所以不設定循環
-                # 步幅是候選窗一列的字數 (橫排一列是 candidatePerRow 個)
-                if cfg.upDownAction == 0:
-                    perRow = self.candidatesPerUiRow()
+                # 步幅是畫面上一列的字數 (橫排最多 candidatePerRow 個，放不下時換行)
+                if cfg.upDownAction == 0 and keyCode in (VK_UP, VK_DOWN):
+                    perRow = self.candidatesPerVisibleRow()
                     if keyCode == VK_UP:
                         if candCursor >= perRow:
                             candCursor -= perRow
                             ignoreKey = keyHandled = True
-                    elif keyCode == VK_DOWN:
-                        if (candCursor + perRow) < candCount:
-                            candCursor += perRow
-                            ignoreKey = keyHandled = True
+                    elif candCursor // perRow < (candCount - 1) // perRow:
+                        # 下一列比較短、正下方沒有字時，移到那一列的最後一個
+                        # (以前游標不動，按鍵交給 libchewing)；在最後一列才交給 libchewing
+                        candCursor = min(candCursor + perRow, candCount - 1)
+                        ignoreKey = keyHandled = True
 
                 # 使用上下鍵翻頁，左右鍵新酷音預設為翻頁動作
                 if cfg.upDownAction == 1:

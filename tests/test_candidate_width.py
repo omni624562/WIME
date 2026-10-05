@@ -134,6 +134,23 @@ def row_layout(cfg, keys, key_style, dpi, max_width):
     return columns, needed
 
 
+def page_columns(font_size, per_row, keys, candidates, key_style, dpi, max_width,
+                 content_margin=6, text_margin=4):
+    """Columns recalculateSize() gives a page of any candidates: the stride is the
+    widest candidate and the widest selection key of the page."""
+    keys = keys[:len(candidates)]
+    widths = measure(font_size, dpi, list(keys) + list(candidates))
+    if widths is None:
+        raise unittest.SkipTest("%s is not installed" % FONT_FACE)
+    margin = mul_div(content_margin, dpi, 96)
+    text_margin = mul_div(text_margin, dpi, 96)
+    col_spacing = max(6, text_margin + 2)
+    key_width = max(max(widths[key] for key in keys), key_min_width(key_style, text_margin))
+    stride = key_width + max(widths[text] for text in candidates) + extra_item_width(key_style, text_margin)
+    content_limit = max(1, mul_div(max_width, dpi, 96) - margin * 2)
+    return max(1, min(per_row, (content_limit + col_spacing) // (stride + col_spacing)))
+
+
 def shipped_defaults():
     """{ime: (default settings, selection keys shown with the candidates)}"""
     chewing_config = importlib.import_module("input_methods.chewing.chewing_config")
@@ -172,6 +189,53 @@ class CandidateMaxWidthTests(unittest.TestCase):
         cfg, keys = defaults["chewing"]
         columns, needed = row_layout(cfg, keys, "keycap", 96, 320)
         self.assertEqual((columns, needed), (5, 336))
+
+
+class BackendColumnTests(unittest.TestCase):
+    """python/candidate_layout.py, which 新酷音's ↑/↓ step by, computes the same
+    columns as this model. A page of phrases is wider: at the default 16pt and
+    340px, two-character phrases show 4 to a row and three-character ones 3."""
+
+    PAGES = (list(SAMPLE_CANDIDATES), ["意義", "異議", "熠熠", "奕奕", "意譯", "異義", "易易", "悒悒", "義役"],
+             ["新酷音", "心酷音", "新苦音", "欣酷音"], ["你", "妳", "中華民國"])
+
+    def test_columns_match_the_model(self):
+        import candidate_layout
+        keys = "1234567890"
+        checked = 0
+        for dpi in DPIS:
+            for font_size in (12, 16, 20):
+                for per_row in (1, 6, 9):
+                    for max_width in (220, 340, 500):
+                        for key_style in ("word-first", "keycap"):
+                            for page in self.PAGES:
+                                expected = page_columns(font_size, per_row, keys, page, key_style, dpi, max_width)
+                                got = candidate_layout.candidateColumns(
+                                    page, keys, per_row, font_size, max_width, True, 6, 4, key_style, dpi=dpi)
+                                if got != expected:
+                                    self.fail("%r at %dpt, %d per row, %dpx, %s, %d dpi: %d, not %d" % (
+                                        page, font_size, per_row, max_width, key_style, dpi, got, expected))
+                                checked += 1
+        self.assertGreater(checked, 0)
+
+    def test_phrases_at_the_chewing_defaults(self):
+        import candidate_layout
+        cfg, keys = shipped_defaults()["chewing"]
+        style = cfg["candidateStyle"]
+        for dpi in DPIS:
+            with self.subTest(dpi=dpi):
+                columns = [candidate_layout.candidateColumns(
+                    page, keys, cfg["candidatePerRow"], cfg["fontSize"], cfg["candidateMaxWidth"],
+                    cfg["candidateWrapToMaxWidth"], style["contentMargin"], style["textMargin"],
+                    cfg["candidateKeyStyle"], dpi=dpi) for page in self.PAGES[:3]]
+                self.assertEqual(columns, [6, 4, 3])
+
+    def test_no_wrapping(self):
+        import candidate_layout
+        for args in ((True, 0), (False, 340)):
+            self.assertEqual(candidate_layout.candidateColumns(
+                self.PAGES[1], "1234567890", 6, 16, args[1], args[0], dpi=96), 6)
+        self.assertEqual(candidate_layout.candidateColumns([], "1234567890", 6, 16, 340, dpi=96), 6)
 
 
 if __name__ == "__main__":

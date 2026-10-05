@@ -131,6 +131,49 @@ class CandidateCursorTests(ChewingTestCase):
         self.type(s, ["UP"])
         self.assertEqual(s.candidateCursor, 0)
 
+    def columns_shown(self, s):
+        """Columns the candidate window gives this page (test_candidate_width's model of
+        CandidateWindow::recalculateSize(), at the DPI the backend assumes)."""
+        import candidate_layout
+        import test_candidate_width
+        cfg = ch.config()
+        return test_candidate_width.page_columns(
+            cfg.fontSize, cfg.candidatePerRow, cfg.getSelKeys(), s.candidateList, cfg.candidateKeyStyle,
+            candidate_layout.systemDpi(), cfg.candidateMaxWidth,
+            cfg.candidateStyle["contentMargin"], cfg.candidateStyle["textMargin"])
+
+    def test_up_down_follow_the_columns_shown(self):
+        # 9 to a row does not fit the default 最大寬度: the window shows 6 + 3
+        s = self.service(candidateLayout="horizontal", candidatePerRow=9, candPerPage=9)
+        self.type(s, list("su3") + ["DOWN"])
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 9)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)  # did not move before
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
+
+    def test_up_down_on_a_page_of_phrases(self):
+        # two-character phrases are wider: 4 to a row with the default settings
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, list("u4u4") + ["HOME", "DOWN"])
+        self.assertEqual({len(candidate) for candidate in s.candidateList}, {2})
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 6)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)  # 6 before: the next row, two columns right
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
+
+    def test_down_into_a_shorter_last_row(self):
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, list("su3") + ["DOWN"] + ["RIGHT"] * 4)
+        self.assertEqual((self.columns_shown(s), len(s.candidateList), s.candidateCursor), (6, 9, 4))
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, 8)  # nothing under column 5: the last one (stayed at 4 before)
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 2)
+
     def test_ctrl_del_with_the_list_open(self):
         s = self.service()
         self.type(s, list("su3") + ["DOWN", "END", ("DEL", "C")])
