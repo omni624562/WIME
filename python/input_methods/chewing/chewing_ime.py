@@ -1045,7 +1045,6 @@ class ChewingTextService(TextService):
     # 使用者按下語言列按鈕
     def onCommand(self, commandId, commandType):
         print("onCommand", commandId, commandType)
-        # FIXME: We should distinguish left and right click using commandType
         if commandId == ID_SWITCH_LANG and commandType == COMMAND_LEFT_CLICK:  # 切換中英文模式
             self.toggleLanguageMode()
         elif commandId == ID_SWITCH_SHAPE and commandType == COMMAND_LEFT_CLICK:  # 切換全形/半形
@@ -1063,7 +1062,9 @@ class ChewingTextService(TextService):
             # SW_HIDE = 0 (hide the window)
             r = windll.shell32.ShellExecuteW(
                 None, "open", python_exe, config_tool, self.curdir, 0)
-        elif commandId == ID_MODE_ICON:  # windows 8 mode icon
+        # windows 8 mode icon：只有左鍵切換中英文。右鍵是開選單，選單出不來時 (後端
+        # 忙碌或剛重新連線) C++ 端會改送右鍵的 onCommand，以前因此悄悄切成英文
+        elif commandId == ID_MODE_ICON and commandType == COMMAND_LEFT_CLICK:
             self.toggleLanguageMode()  # 切換中英文模式
         elif commandId == ID_WEBSITE:  # visit chewing website
             os.startfile("https://chewing.im/")
