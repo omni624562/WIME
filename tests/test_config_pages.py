@@ -23,7 +23,8 @@ only moves a character up after a previous character it followed before.
 it is the page size, which the backend caps at the number of selection keys
 (6 for 大易), and the candidate window wraps a page that is wider than
 候選窗最大寬度. The page let 大易 pick 7-10 and its preview wrapped at the width
-of the theme card instead of where the window does.
+of the theme card instead of where the window does. The preview draws at most
+48pt, but its columns and the hint follow the window's font size (up to 200pt).
 
 大易/酷倉 使用說明 (help.htm): 大易 does not pick with the digits; the help now
 shows 大易's selection keys on its page and the digits on the others. The text
@@ -826,9 +827,16 @@ const source = path => {
 const contexts = {};
 const context = ime => {
     if (contexts[ime]) return contexts[ime];
-    const $ = sel => { if (typeof sel !== "function") throw new Error("no page here: " + sel); };
+    // the page's fields are the run's: {selector: value of val() and prop()}
+    const $ = sel => {
+        if (typeof sel === "function") return;                  // $(ready): no page is built here
+        if (!(sel in sandbox.fields)) throw new Error("no page here: " + sel);
+        const value = sandbox.fields[sel];
+        return { val: () => value, prop: () => value };
+    };
     $.get = () => ({ fail() {} });                              // loadConfig() when the script loads
     const sandbox = {
+        fields: {},
         $, jQuery: $, imeFolderName: ime, includeScriptFile() {},
         navigator: { userAgent: "", appVersion: "" },
         document: { getElementsByTagName: () => [{ innerText: "" }] },
@@ -844,16 +852,18 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
     const sandbox = context(run.ime);
     sandbox.checjConfig = run.config || {};
     sandbox.args = run.args;
+    sandbox.fields = run.fields || {};
     return vm.runInContext(run.expression, sandbox);
 })));
 """
 
     def run_js(self, runs):
-        """[(ime, expression, args, checjConfig)] -> the value of each expression"""
+        """[(ime, expression, args, checjConfig[, page fields])] -> the value of each expression"""
         request = {
             "scripts": [os.path.join(CINBASE_CONFIG_DIR, "js", name) for name in self.SCRIPTS],
-            "runs": [{"ime": ime, "expression": expression, "args": args, "config": config}
-                     for ime, expression, args, config in runs],
+            "runs": [{"ime": run[0], "expression": run[1], "args": run[2], "config": run[3],
+                      "fields": run[4] if len(run) > 4 else {}}
+                     for run in runs],
         }
         result = subprocess.run([NODE, "-e", self.RUNNER], input=json.dumps(request),
                                 capture_output=True, encoding="utf-8", timeout=60)
@@ -912,6 +922,49 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
                                    "要排成一列，請把最大寬度調到約 402 以上。")
         self.assertEqual(hints[2], "")   # does not wrap: one row however wide
         self.assertIn("最大寬度調到上限 720 也排不成一列", hints[3])
+
+    def page_layouts(self, ime, per_row, max_width, font_sizes, wrap=True):
+        """[columns, fullRowWidth, preview columns, preview stride, hint] for the page's fields"""
+        expression = ("(l => [l.columns, l.fullRowWidth, (l.preview || {}).columns, (l.preview || {}).stride,"
+                      " candidatePerRowHintText(l)])(currentCandidateWindowLayout(getCandidatePreviewSample()))")
+        style = {"contentMargin": 6, "textMargin": 4}
+        return self.run_js([(ime, expression, None, {"candidateStyle": style},
+                             {"#fontSize": str(font_size), "#candidatePerRow": str(per_row),
+                              "#candidateMaxWidth": str(max_width), "#candidateWrapToMaxWidth": wrap})
+                            for font_size in font_sizes])
+
+    def test_a_font_above_the_preview_s_48pt_wraps_where_the_window_does(self):
+        # the preview draws at most 48pt, a bigger font does not fit its card, but the
+        # window uses the font size as it is (6-200, cinbase/config.py): the columns
+        # and the hint are the window's, only the preview's characters are smaller
+        layouts = self.page_layouts("checj", 9, 720, (48, 60, 100, 200, 300))
+        self.assertEqual([l[0] for l in layouts], [5, 4, 3, 1, 1])
+        self.assertEqual([l[2] for l in layouts], [5, 4, 3, 1, 1])
+        self.assertEqual({l[3] for l in layouts}, {114})       # the stride at 48pt
+        self.assertEqual(layouts[1][4], "候選窗最大寬度 720 一列只放得下 4 個候選字，其餘會換到下一列；"
+                                        "這個字體大小下，最大寬度調到上限 720 也排不成一列。")
+        self.assertEqual(layouts[3], layouts[4])               # 300 is 200, as in the backend
+        # without wrapping a page is one row at any size
+        self.assertEqual([[l[0], l[2], l[4]] for l in self.page_layouts("chedayi", 6, 320, (60, 200), wrap=False)],
+                         [[6, 6, ""], [6, 6, ""]])
+
+        # against test_candidate_width's model with the real GDI glyph widths. At
+        # 200pt GDI draws 大易's ␣ a pixel wider than its em: the width of a full
+        # row may be a pixel per candidate off, the columns may not
+        import test_candidate_width as width
+        from cinbase import selkeys
+        style = {"contentMargin": 6, "textMargin": 4}
+        font_sizes = (48, 60, 72, 100, 150, 200)
+        for ime, keys, per_row in (("chedayi", selkeys.DAYI_CAND_SELKEYS, 6), ("checj", selkeys.DEFAULT_SELKEYS, 9)):
+            for max_width in (220, 320, 720):
+                layouts = self.page_layouts(ime, per_row, max_width, font_sizes)
+                for font_size, layout in zip(font_sizes, layouts):
+                    with self.subTest(ime=ime, max_width=max_width, font_size=font_size):
+                        cfg = {"candidatePerRow": per_row, "fontSize": font_size, "candidateStyle": style}
+                        columns, needed = width.row_layout(cfg, keys, "word-first", 96, max_width)
+                        # CandidateWindow::recalculateSize() shows at least one column
+                        self.assertEqual([layout[0], layout[2]], [max(1, columns)] * 2)
+                        self.assertLessEqual(abs(layout[1] - needed), per_row)
 
 
 if __name__ == "__main__":

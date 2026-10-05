@@ -345,21 +345,28 @@ function candidateWindowLayout(layout) {
     };
 }
 
-// 依頁面目前的欄位算出候選窗的排版
+// 依頁面目前的欄位算出候選窗的排版。preview 是預覽卡片要畫的排版：預覽的字最大
+// 48pt（candidatePreviewFontSize()），字體設得更大時畫 48pt 的字與欄寬，欄數與換行
+// 的位置仍是實際候選窗的
 function currentCandidateWindowLayout(sample) {
     var perRow = parseInt($("#candidatePerRow").val(), 10) || 4;
     perRow = Math.max(1, Math.min(perRow, 10));
     var maxWidth = parseInt($("#candidateMaxWidth").val(), 10) || checjConfig.candidateMaxWidth || 320;
-    return candidateWindowLayout({
-        fontSize: candidatePreviewFontSize(),
-        selKeys: sample.selKeys || "1234567890",
-        // 橫排時每列的字數就是每頁候選數，超過選字鍵數的部分後端不會顯示
-        items: Math.min(perRow, candidatePageSizeLimit()),
-        perRow: perRow,
-        style: checjConfig.candidateStyle,
-        wrap: $("#candidateWrapToMaxWidth").prop("checked"),
-        maxWidth: maxWidth
-    });
+    function layoutAt(fontSize, columns, wrap) {
+        return candidateWindowLayout({
+            fontSize: fontSize,
+            selKeys: sample.selKeys || "1234567890",
+            // 橫排時每列的字數就是每頁候選數，超過選字鍵數的部分後端不會顯示
+            items: Math.min(perRow, candidatePageSizeLimit()),
+            perRow: columns,
+            style: checjConfig.candidateStyle,
+            wrap: wrap,
+            maxWidth: maxWidth
+        });
+    }
+    var layout = layoutAt(candidateFontSize(), perRow, $("#candidateWrapToMaxWidth").prop("checked"));
+    layout.preview = layoutAt(candidatePreviewFontSize(), layout.columns, false);
+    return layout;
 }
 
 // 一頁排不成一列時的說明：候選窗會換行，以及要排成一列約需的最大寬度
@@ -441,7 +448,7 @@ function applyCandidatePreviewKeyStyle(preview, keyStyle) {
 }
 
 function fillCandidatePreviewItems(preview, sample) {
-    var layout = currentCandidateWindowLayout(sample);
+    var layout = currentCandidateWindowLayout(sample).preview;
     var selKeys = sample.selKeys || "1234567890";
     var body = preview.find(".candidate-preview-body");
     body.empty();
@@ -463,9 +470,15 @@ function fillCandidatePreviewItems(preview, sample) {
     }
 }
 
-function candidatePreviewFontSize() {
+// 候選窗的字體大小，範圍與 cinbase/config.py 的 _INT_RANGES 相同
+function candidateFontSize() {
     var fontSize = parseInt($("#fontSize").val(), 10) || 12;
-    return Math.max(6, Math.min(fontSize, 48));
+    return Math.max(6, Math.min(fontSize, 200));
+}
+
+// 預覽的字最大 48pt，再大預覽卡片放不下
+function candidatePreviewFontSize() {
+    return Math.min(candidateFontSize(), 48);
 }
 
 function createCandidatePreview(sample, keyStyle, headerStyle) {
@@ -644,9 +657,9 @@ function updateCandidateThemeGallery() {
     $("#candidateThemeCurrent").text(selectedTheme);
     var hint = candidatePerRowHintText(layout);
     $("#candidatePerRowHint").text(hint).toggle(hint !== "");
-    // 預覽的候選字與實際候選窗同寬（100% 縮放），卡片至少要放得下一列：
-    // 卡片的內距與邊框 22px，加上預覽的邊框 2px
-    grid.css("--candidate-preview-card-min", (layout.width + 24) + "px");
+    // 預覽的候選字與實際候選窗同寬（100% 縮放，48pt 以上畫成 48pt），卡片至少要
+    // 放得下一列：卡片的內距與邊框 22px，加上預覽的邊框 2px
+    grid.css("--candidate-preview-card-min", (layout.preview.width + 24) + "px");
 
     grid.find(".candidate-theme-card").each(function() {
         var card = $(this);
