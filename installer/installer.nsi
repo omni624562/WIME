@@ -109,6 +109,9 @@ var UPDATEX86DLL
 var UPDATEX64DLL
 var UPDATEARM64DLL
 
+; "True" once the user agreed to replace the installed version (see askRemoveOldVersion)
+var REMOVE_OLD_VERSION
+
 var INST_PYTHON
 var INST_CINBASE
 
@@ -195,8 +198,32 @@ Function checkPendingDeletesInInstDir
 	Pop $0
 FunctionEnd
 
-; Uninstall old versions
-Function uninstallOldVersion
+; Ask whether to replace the installed version. Called from .onInit, which runs before
+; the license and components pages, so this must not change anything: removing the old
+; version here (as this used to) left the PC with no WIME at all - TSF DLLs unregistered,
+; no Apps & features entry, no autostart, no python tree - when the user then clicked
+; Cancel on one of those pages. The answer is kept for removeOldVersion, which the
+; Prepare section runs once the user has clicked Install.
+Function askRemoveOldVersion
+	StrCpy $REMOVE_OLD_VERSION "False"
+	ClearErrors
+	ReadRegStr $R0 HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
+	${If} $R0 != ""
+		ClearErrors
+		${If} ${FileExists} "$INSTDIR\Uninstall.exe"
+			MessageBox MB_OKCANCEL|MB_ICONQUESTION $(UNINSTALL_OLD) /SD IDOK IDOK +2
+			Abort ; this is skipped if the user select OK
+			StrCpy $REMOVE_OLD_VERSION "True"
+		${EndIf}
+	${EndIf}
+	ClearErrors
+FunctionEnd
+
+; Remove the old version (if the user agreed in askRemoveOldVersion) and get every file
+; that is about to be replaced out of the way. Called from the Prepare section, before
+; any section writes files. Failures Abort the install: NSIS then calls .onInstFailed
+; itself, so calling it here as well would show its message twice.
+Function removeOldVersion
 	; Remove leftovers renamed aside by a previous upgrade (see moveAsideIfLocked);
 	; ones still mapped by running apps just stay until the next install.
 	Delete "$INSTDIR\x86\PIMETextService.dll.old*"
@@ -204,106 +231,93 @@ Function uninstallOldVersion
 	Delete "$INSTDIR\arm64\PIMETextService.dll.old*"
 	Delete "$INSTDIR\PIMELauncher.exe.old*"
 	ClearErrors
-	;  run uninstaller
-	ReadRegStr $R0 HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
-	${If} $R0 != ""
-		ClearErrors
-		${If} ${FileExists} "$INSTDIR\Uninstall.exe"
-			MessageBox MB_OKCANCEL|MB_ICONQUESTION $(UNINSTALL_OLD) /SD IDOK IDOK +2
-			Abort ; this is skipped if the user select OK
+	${If} $REMOVE_OLD_VERSION == "True"
+		DetailPrint "$(REMOVING_OLD_VERSION)"
 
-			; Remove the launcher from auto-start
-			DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
-			DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher"
-			DeleteRegKey HKLM "Software\PIME"
+		; Remove the launcher from auto-start
+		DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
+		DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher"
+		DeleteRegKey HKLM "Software\PIME"
 
-			; Unregister COM objects (NSIS UnRegDLL command is broken and cannot be used)
-			ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x86\PIMETextService.dll"'
-			; Verify the MD5/SHA1 checksum of 32-bit PIMETextService.dll
-			StrCpy $0 "$INSTDIR\x86\PIMETextService.dll"
+		; Unregister COM objects (NSIS UnRegDLL command is broken and cannot be used)
+		ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x86\PIMETextService.dll"'
+		; Verify the MD5/SHA1 checksum of 32-bit PIMETextService.dll
+		StrCpy $0 "$INSTDIR\x86\PIMETextService.dll"
+		md5dll::GetMD5File "$0"
+		Pop $1
+		StrCpy $2 "$PLUGINSDIR\PIMETextService_x86.dll"
+		md5dll::GetMD5File "$2"
+		Pop $3
+		${If} $1 == $3
+			StrCpy $UPDATEX86DLL "False"
+		${Else}
+			Push "$INSTDIR\x86\PIMETextService.dll"
+			Call moveAsideIfLocked
+		${EndIf}
+
+		${If} ${RunningX64}
+			SetRegView 64 ; disable registry redirection and use 64 bit Windows registry directly
+			ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x64\PIMETextService.dll"'
+			; Verify the MD5/SHA1 checksum of 64-bit PIMETextService.dll
+			StrCpy $0 "$INSTDIR\x64\PIMETextService.dll"
 			md5dll::GetMD5File "$0"
 			Pop $1
-			StrCpy $2 "$PLUGINSDIR\PIMETextService_x86.dll"
+			StrCpy $2 "$PLUGINSDIR\PIMETextService_x64.dll"
 			md5dll::GetMD5File "$2"
 			Pop $3
 			${If} $1 == $3
-				StrCpy $UPDATEX86DLL "False"
+				StrCpy $UPDATEX64DLL "False"
 			${Else}
-				Push "$INSTDIR\x86\PIMETextService.dll"
+				Push "$INSTDIR\x64\PIMETextService.dll"
 				Call moveAsideIfLocked
 			${EndIf}
+		${EndIf}
 
-			${If} ${RunningX64}
-				SetRegView 64 ; disable registry redirection and use 64 bit Windows registry directly
-				ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\x64\PIMETextService.dll"'
-				; Verify the MD5/SHA1 checksum of 64-bit PIMETextService.dll
-				StrCpy $0 "$INSTDIR\x64\PIMETextService.dll"
-				md5dll::GetMD5File "$0"
-				Pop $1
-				StrCpy $2 "$PLUGINSDIR\PIMETextService_x64.dll"
-				md5dll::GetMD5File "$2"
-				Pop $3
-				${If} $1 == $3
-					StrCpy $UPDATEX64DLL "False"
-				${Else}
-					Push "$INSTDIR\x64\PIMETextService.dll"
-					Call moveAsideIfLocked
-				${EndIf}
-			${EndIf}
-
-			; Handle ARM64 version of PIMETextService.dll
-			${If} ${IsNativeARM64}
-				SetRegView 64 ; For ARM64, use native 64-bit registry view
-				ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\arm64\PIMETextService.dll"'
-				; Verify MD5 checksum to determine if update is needed
-				StrCpy $0 "$INSTDIR\arm64\PIMETextService.dll"
-				md5dll::GetMD5File "$0"
-				Pop $1
-				StrCpy $2 "$PLUGINSDIR\PIMETextService_arm64.dll"
-				md5dll::GetMD5File "$2"
-				Pop $3
-				${If} $1 == $3
-					StrCpy $UPDATEARM64DLL "False"
-				${Else}
-					Push "$INSTDIR\arm64\PIMETextService.dll"
-					Call moveAsideIfLocked
-				${EndIf}
-			${EndIf}
-
-			; Try to terminate running PIMELauncher and the server process
-			; Otherwise we cannot replace it.
-			ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
-			Sleep 1000
-			; /quit does not reach the python backends (or leftover settings-tool
-			; servers); kill whatever still runs from the install dir so the old
-			; files below can really be deleted instead of scheduled for reboot.
-			Call killProcessesInInstDir
-			Push "$INSTDIR\PIMELauncher.exe"
-			Call moveAsideIfLocked
-
-            Delete "$INSTDIR\backends.json"
-			; No /REBOOTOK on anything we are about to reinstall: a boot-time delete
-			; would wipe the new files, and the reboot flag aborts the upgrade.
-			RMDir /r "$INSTDIR\python"
-			RMDir /r "$INSTDIR\node" ; node backend is no longer shipped; clean up old installs
-
-			; Only exist in earlier versions, but need to delete it.
-			RMDir /r "$INSTDIR\server"
-
-			; Delete shortcuts in Start Menu
-			RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
-
-			Delete "$INSTDIR\version.txt"
-			Delete "$INSTDIR\Uninstall.exe"
-			RMDir "$INSTDIR" ; only removed if empty; we reinstall into it anyway
-
-			${If} ${RebootFlag}
-				MessageBox MB_YESNO "$(MB_REBOOT_REQUIRED)" /SD IDNO IDNO +3
-				Reboot
-				Quit
-				Abort
+		; Handle ARM64 version of PIMETextService.dll
+		${If} ${IsNativeARM64}
+			SetRegView 64 ; For ARM64, use native 64-bit registry view
+			ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\arm64\PIMETextService.dll"'
+			; Verify MD5 checksum to determine if update is needed
+			StrCpy $0 "$INSTDIR\arm64\PIMETextService.dll"
+			md5dll::GetMD5File "$0"
+			Pop $1
+			StrCpy $2 "$PLUGINSDIR\PIMETextService_arm64.dll"
+			md5dll::GetMD5File "$2"
+			Pop $3
+			${If} $1 == $3
+				StrCpy $UPDATEARM64DLL "False"
+			${Else}
+				Push "$INSTDIR\arm64\PIMETextService.dll"
+				Call moveAsideIfLocked
 			${EndIf}
 		${EndIf}
+
+		; Try to terminate running PIMELauncher and the server process
+		; Otherwise we cannot replace it.
+		ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
+		Sleep 1000
+		; /quit does not reach the python backends (or leftover settings-tool
+		; servers); kill whatever still runs from the install dir so the old
+		; files below can really be deleted instead of scheduled for reboot.
+		Call killProcessesInInstDir
+		Push "$INSTDIR\PIMELauncher.exe"
+		Call moveAsideIfLocked
+
+		Delete "$INSTDIR\backends.json"
+		; No /REBOOTOK on anything we are about to reinstall: a boot-time delete
+		; would wipe the new files, and the reboot flag aborts the upgrade.
+		RMDir /r "$INSTDIR\python"
+		RMDir /r "$INSTDIR\node" ; node backend is no longer shipped; clean up old installs
+
+		; Only exist in earlier versions, but need to delete it.
+		RMDir /r "$INSTDIR\server"
+
+		; Delete shortcuts in Start Menu
+		RMDir /r "$SMPROGRAMS\$(PRODUCT_NAME)"
+
+		Delete "$INSTDIR\version.txt"
+		Delete "$INSTDIR\Uninstall.exe"
+		RMDir "$INSTDIR" ; only removed if empty; we reinstall into it anyway
 	${EndIf}
 
 	ClearErrors
@@ -331,7 +345,7 @@ Function uninstallOldVersion
 				Push "$INSTDIR\x64\PIMETextService.dll"
 				Call moveAsideIfLocked
 				${If} ${FileExists} "$INSTDIR\x64\PIMETextService.dll"
-					Call .onInstFailed
+					Abort
 				${EndIf}
 			${EndIf}
 		${EndIf}
@@ -352,7 +366,7 @@ Function uninstallOldVersion
 				Push "$INSTDIR\arm64\PIMETextService.dll"
 				Call moveAsideIfLocked
 				${If} ${FileExists} "$INSTDIR\arm64\PIMETextService.dll"
-					Call .onInstFailed
+					Abort
 				${EndIf}
 			${EndIf}
 		${EndIf}
@@ -372,13 +386,16 @@ Function uninstallOldVersion
 			Push "$INSTDIR\x86\PIMETextService.dll"
 			Call moveAsideIfLocked
 			${If} ${FileExists} "$INSTDIR\x86\PIMETextService.dll"
-				Call .onInstFailed
+				Abort
 			${EndIf}
 		${EndIf}
 	${EndIf}
 
+	; Nothing above uses /REBOOTOK, so this is only a safety net. .onInstFailed offers
+	; the reboot; the removal block no longer asks as well, which in a section would
+	; mean two reboot questions in a row.
 	${If} ${RebootFlag}
-		Call .onInstFailed
+		Abort
 	${EndIf}
 FunctionEnd
 
@@ -448,8 +465,8 @@ Function .onInit
 	; must run before anything is removed or installed
 	Call checkPendingDeletesInInstDir
 
-	; check if old version is installed and uninstall it first
-	Call uninstallOldVersion
+	; check if old version is installed; it is removed later, by the Prepare section
+	Call askRemoveOldVersion
 	Call hideSection
 FunctionEnd
 
@@ -485,10 +502,18 @@ InstType "$(INST_TYPE_STD)"
 InstType "$(INST_TYPE_FULL)"
 
 ;Installer Sections
+; Hidden and declared first, so it runs before any section writes files and only once
+; the user has clicked Install (right away in silent installs).
+Section "-Prepare"
+	SectionIn 1 2 RO
+	; Ensure that the Universal C Runtime the embedded python needs is present,
+	; before anything of the old version is removed
+	Call ensureUCRT
+	Call removeOldVersion
+SectionEnd
+
 Section $(SECTION_MAIN) SecMain
 	SectionIn 1 2 RO
-	; Ensure that the Universal C Runtime the embedded python needs is present
-	Call ensureUCRT
 
 	; TODO: may be we can automatically rebuild the dlls here.
 	; http://stackoverflow.com/questions/24580/how-do-you-automate-a-visual-studio-build

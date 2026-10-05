@@ -148,7 +148,10 @@ static int candidateKeyStyleValue(const std::string& style) {
 		return Ime::CandidateWindow::KeyStyleMicroTab;
 	if (name == "wordanchor" || name == "underline" || name == "rule" || name == "rulekey")
 		return Ime::CandidateWindow::KeyStyleWordAnchor;
-	return Ime::CandidateWindow::KeyStyleKeycap;
+	if (name == "keycap")
+		return Ime::CandidateWindow::KeyStyleKeycap;
+	// unknown names get word-first, the only style the settings pages offer
+	return Ime::CandidateWindow::KeyStyleWordFirst;
 }
 
 static int candidateMessageStyleValue(const std::string& style) {
@@ -294,10 +297,15 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 		textService_->setCandidateTheme(panelBg, panelBorder, textPrimary, textSecondary, highlightBg, highlightBorder, highlightText);
 		textService_->setCandidateSpacing(6, 4, 6);
 		textService_->setCandidateStableWidth(true, 286);
-		// six keycap candidates at 100% need 306 px (6 x 44 + 5 x 6 + 2 x 6);
-		// 300 wrapped the sixth one onto a row of its own
+		// six word-first candidates at 100% need 312 px with 大易's wide select
+		// key (306 px with keycap keys: 6 x 44 + 5 x 6 + 2 x 6); 300 wrapped the
+		// sixth one onto a row of its own
 		textService_->setCandidateMaxWidth(true, 320);
-		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelBadge);
+		// the styles the settings pages preview and save (選字符 word-first,
+		// 名稱標籤 accent), so the window matches them before the backend's
+		// customizeUI arrives and keeps them for a style it leaves out
+		textService_->setCandidateKeyStyle(Ime::CandidateWindow::KeyStyleWordFirst);
+		textService_->setCandidateHeaderStyle(Ime::CandidateWindow::HeaderLabelAccent);
 	}
 }
 
@@ -1510,13 +1518,13 @@ void Client::resetTextServiceState() {
 void Client::discardOrphanedUi() {
 	connectionLost_ = false;
 	if (textService_->isComposing()) {
-		if (auto context = textService_->currentContext()) {
-			// requests its own synchronous edit session; whatever preedit text is
-			// in the document stays there as typed
-			discardingOrphanedUi_ = true;
-			textService_->endComposition(context);
-			discardingOrphanedUi_ = false;
-		}
+		// requests its own synchronous edit sessions; whatever preedit text is
+		// in the document stays there as typed, but not 新酷音's U+200B
+		// placeholder for a lone bopomofo: the old backend client's next reply
+		// would have replaced it, the new client's never does
+		discardingOrphanedUi_ = true;
+		textService_->endCompositionDroppingPlaceholder();
+		discardingOrphanedUi_ = false;
 	}
 	textService_->hideCandidates();
 	textService_->candidates_.clear();

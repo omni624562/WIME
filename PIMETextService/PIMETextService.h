@@ -40,6 +40,10 @@ public:
 	virtual void onActivate();
 	virtual void onDeactivate();
 
+	// ITfTextInputProcessor: switching to another keyboard deactivates the text
+	// service, and libIME2's Deactivate() ends an open composition as is
+	STDMETHODIMP Deactivate() override;
+
 	virtual void onFocus();
 	virtual void onSetFocus();
 	virtual void onKillFocus();
@@ -77,6 +81,19 @@ public:
 	virtual void onLangProfileDeactivated(REFIID lang);
 
 	// methods called by PIME::Client
+
+	// Hides Ime::TextService::startComposition() to remember the context the
+	// composition was started in (libIME2 keeps its ITfComposition private), so
+	// endCompositionDroppingPlaceholder() can end it in its own document.
+	void startComposition(ITfContext* context);
+
+	// Ends the composition when no backend reply will replace its text (a lost
+	// backend client, the keyboard closed, the text service deactivated). The
+	// text stays in the document as typed, except 新酷音's U+200B placeholder,
+	// which is cleared first. Not covered: libIME2's OnEndEdit() ending it when
+	// the selection leaves it, and the app terminating it.
+	void endCompositionDroppingPlaceholder();
+
 	int candPerRow() const {
 		return candPerRow_;
 	}
@@ -302,6 +319,8 @@ private:
 
 	std::unique_ptr<Client> client_; // connection client
 	GUID currentLangProfile_;
+	// the document the open composition lives in; null when not composing
+	Ime::ComPtr<ITfContext> compositionContext_;
 };
 
 }

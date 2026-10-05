@@ -577,6 +577,10 @@ $(function () {
             }
         }
 
+        // 候選窗最大寬度 300 是舊的預設值，後端只把沒有這個標記的設定檔裡的 300 換成
+        // 新預設值。從設定頁存過的寬度都是使用者看過的值，之後刻意選的 300 要保留
+        chewingConfig.candidateMaxWidthMigrated = true;
+
         var data = {
             config: chewingConfig
         };

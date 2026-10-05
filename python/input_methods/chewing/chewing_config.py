@@ -62,13 +62,19 @@ _INT_RANGES = {
 }
 _C_INT_RANGE = (-2 ** 31, 2 ** 31 - 1)
 
+# 設定頁只提供這個候選窗外觀（選字符 Word First），載入（含設定工具讀檔）時一律換成它。
+# 以前後端預設 keycap，第一次載入就寫進 config.json：候選窗和設定頁的預覽不一樣，
+# 在設定頁改別的設定儲存時，選字鍵才從字前面的鍵帽跳到字後面
+_FIXED_VALUES = {"candidateKeyStyle": "word-first"}
+
 # 以前出貨的候選窗最大寬度，太窄：新酷音預設 16pt，100% 縮放時一列 6 個單字候選要
-# 336px（keycap 選字鍵，後端預設：6×49 + 5×6 + 2×6）或 318px（word-first，設定頁
-# 儲存時寫入的），300 讓一頁 9 個排成 5＋4。預設改成 340，keycap 在 125%、150% 也
-# 放得下（大易/酷倉是 12pt，用 320 就夠；tests/test_candidate_width.py 依
-# CandidateWindow 的算法與實際字寬檢查）。使用者的 config.json 都留著舊預設 300
-# （第一次載入與設定頁儲存時整份寫出），載入時剛好是 300 就換成新預設。設定工具
-# 顯示的值也經過 normalizeValues，兩邊一致
+# 318px（word-first 選字鍵；以前後端預設的 keycap 要 336px：6×49 + 5×6 + 2×6），300
+# 讓一頁 9 個排成 5＋4。預設改成 340，125%、150% 也放得下（大易/酷倉是 12pt，用 320
+# 就夠；tests/test_candidate_width.py 依 CandidateWindow 的算法與實際字寬檢查）。
+# 使用者的 config.json 都留著舊預設 300（第一次載入與設定頁儲存時整份寫出），載入時
+# 剛好是 300 就換成新預設。設定工具顯示的值也經過 normalizeValues，兩邊一致。
+# 只換一次：設定頁每次儲存都寫入 candidateMaxWidthMigrated，有這個標記的檔案裡的
+# 300 是使用者自己選的 (以前每次載入都換掉，300 永遠選不到)
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 已移除的設定。舊的 config.json 還帶著它們，載入（含設定工具讀檔）時丟掉，
@@ -109,7 +115,8 @@ def _toBool(value):
 def normalizeValues(values, defaults):
     """回傳 values 的副本：已知設定的值轉成程式預期的型別與範圍，無效的值改用
     defaults 裡的預設值，舊的出貨預設值（LEGACY_CANDIDATE_MAX_WIDTH）換成新的，
-    已移除的設定（_RETIRED_KEYS）丟掉；其他不認得的鍵原樣保留。"""
+    設定頁沒得選的設定換成唯一的值（_FIXED_VALUES），已移除的設定（_RETIRED_KEYS）
+    丟掉；其他不認得的鍵原樣保留。"""
     result = {key: value for key, value in values.items() if key not in _RETIRED_KEYS}
     for key, default in defaults.items():
         if key not in result:
@@ -135,7 +142,12 @@ def normalizeValues(values, defaults):
         if value is None:
             value = copy.deepcopy(default)
         result[key] = value
-    if result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults:
+    for key, value in _FIXED_VALUES.items():
+        if key in result:
+            result[key] = value
+    # 標記只看 values (使用者的檔案)：後端的設定物件裡可能是上一次載入留下的值
+    if (result.get("candidateMaxWidth") == LEGACY_CANDIDATE_MAX_WIDTH and "candidateMaxWidth" in defaults
+            and not result.get("candidateMaxWidthMigrated")):
         result["candidateMaxWidth"] = defaults["candidateMaxWidth"]
     return result
 
@@ -208,13 +220,15 @@ class ChewingConfig:
         self.candidatePositionMode = 0 # 0 = 跟隨游標，1 = 螢幕下緣置中
         self.candidateOpacity = 100 # 候選窗不透明度 30~100（百分比）
         self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
-        self.candidateKeyStyle = "keycap"
+        self.candidateKeyStyle = "word-first"  # 固定值，見 _FIXED_VALUES
         self.candidateMessageStyle = "badge"
         self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = True
         self.candidateMinWidth = 286
         self.candidateWrapToMaxWidth = True
         self.candidateMaxWidth = 340  # 16pt 一列 6 個單字要 336px（見 LEGACY_CANDIDATE_MAX_WIDTH）
+        # 見 LEGACY_CANDIDATE_MAX_WIDTH。_applyValues 只接受預設值裡有的設定，標記也要列在這裡
+        self.candidateMaxWidthMigrated = False
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,

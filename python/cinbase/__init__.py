@@ -67,7 +67,7 @@ ID_SETTINGS = 3
 ID_MODE_ICON = 4
 ID_WEBSITE = 5
 ID_BUGREPORT = 6
-ID_FORUM = 7
+# 7 是已移除的「WIME 討論區」：和錯誤回報開同一頁（專案沒有 GitHub Discussions）
 ID_MOEDICT = 8
 ID_DICT = 9
 ID_SIMPDICT = 10
@@ -208,6 +208,7 @@ class CinBase:
         cbTS.isWildcardChardefs = False
         cbTS.isLangModeChanged = False
         cbTS.isShapeModeChanged = False
+        cbTS.shiftSpaceKeyAdded = False
         cbTS.isShowCandidates = False
         cbTS.isShowPhraseCandidates = False
         cbTS.isShowMessage = False
@@ -270,8 +271,7 @@ class CinBase:
         self.restoreChineseModeOnKeyboardOpen(cbTS, keyboardWillOpen, updateButtons=False)
 
         # 向系統宣告 Shift + Space 這個組合為特殊用途 (全半形切換)
-        # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
-        cbTS.addPreservedKey(VK_SPACE, TF_MOD_SHIFT, SHIFT_SPACE_GUID); # shift + space
+        self.updateShiftSpaceKey(cbTS, activated=True)
 
         # 切換中英文
         icon_name = "chi.ico" if cbTS.langMode == CHINESE_MODE else "eng.ico"
@@ -387,7 +387,7 @@ class CinBase:
     def onDeactivate(self, cbTS):
         cbTS.lastKeyDownCode = 0
         # 向系統宣告移除 Shift + Space 這個組合鍵用途 (全半形切換)
-        cbTS.removePreservedKey(SHIFT_SPACE_GUID); # shift + space
+        self.updateShiftSpaceKey(cbTS, activated=False)
 
         cbTS.removeButton("switch-lang")
         cbTS.removeButton("switch-shape")
@@ -2640,10 +2640,30 @@ class CinBase:
         cbTS.lastKeyDownCode = 0;
         # some preserved keys registered are pressed
         if guid == SHIFT_SPACE_GUID: # 使用者按下 shift + space
+            # 鍵盤關閉（Ctrl+Space、預設停用輸入法）時系統照樣送來這個鍵：以前也切換，
+            # 吃掉英文裡的空白，重新開啟後才發現變成全形。停用這個快速鍵時也不處理
+            # （設定剛關掉、宣告還沒取消的那一下）。兩種情況都交給應用程式
+            if not getattr(cbTS, "keyboardOpen", True) or not cbTS.cfg.enableShiftSpace:
+                return False
             cbTS.isShapeModeChanged = True
             self.toggleShapeMode(cbTS)  # 切換全半形
             return True
         return False
+
+
+    # 「Shift + 空白鍵切換全形/半形」（enableShiftSpace）開著才向系統宣告這個組合鍵；
+    # 關掉時取消宣告，Shift + 空白照常交給應用程式（例如 Excel 的選取整列）。
+    # 啟用、停用輸入法與套用設定時呼叫，記住宣告了沒有，同一個 GUID 不重複宣告
+    def updateShiftSpaceKey(self, cbTS, activated=None):
+        if activated is None:
+            activated = cbTS.isActivated
+        wanted = bool(activated and cbTS.cfg.enableShiftSpace)
+        if wanted and not cbTS.shiftSpaceKeyAdded:
+            # 當 Shift + Space 被按下的時候，onPreservedKey() 會被呼叫
+            cbTS.addPreservedKey(VK_SPACE, TF_MOD_SHIFT, SHIFT_SPACE_GUID)
+        elif not wanted and cbTS.shiftSpaceKeyAdded:
+            cbTS.removePreservedKey(SHIFT_SPACE_GUID)
+        cbTS.shiftSpaceKeyAdded = wanted
 
 
     def onCommand(self, cbTS, commandId, commandType):
@@ -2669,18 +2689,18 @@ class CinBase:
             os.startfile("https://github.com/omni624562/WIME")
         elif commandId == ID_BUGREPORT: # visit bug tracker page
             os.startfile("https://github.com/omni624562/WIME/issues")
-        elif commandId == ID_FORUM:
-            os.startfile("https://github.com/omni624562/WIME/issues")
         elif commandId == ID_MOEDICT: # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
+        # 教育部辭典 2021 年改版後的網址。舊的 http 路徑：成語典 /cydic/ 是 404，
+        # 其他幾個要先經過明碼 http 轉址
         elif commandId == ID_DICT: # online Chinese dictonary
-            os.startfile("http://dict.revised.moe.edu.tw/cbdic/")
+            os.startfile("https://dict.revised.moe.edu.tw/")
         elif commandId == ID_SIMPDICT: # a simplified version of the online dictonary
-            os.startfile("http://dict.concised.moe.edu.tw/jbdic/")
+            os.startfile("https://dict.concised.moe.edu.tw/")
         elif commandId == ID_LITTLEDICT: # a simplified dictionary for little children
-            os.startfile("http://dict.mini.moe.edu.tw/cgi-bin/gdic/gsweb.cgi?o=ddictionary")
-        elif commandId == ID_PROVERBDICT: # a dictionary for proverbs (seems to be broken at the moment?)
-            os.startfile("http://dict.idioms.moe.edu.tw/cydic/")
+            os.startfile("https://dict.mini.moe.edu.tw/")
+        elif commandId == ID_PROVERBDICT: # a dictionary for proverbs
+            os.startfile("https://dict.idioms.moe.edu.tw/")
 
     # 開啟語言列按鈕選單
     def onMenu(self, cbTS, buttonId):
@@ -2691,7 +2711,6 @@ class CinBase:
                 {"text": "參觀 WIME 官方網站(&W)", "id": ID_WEBSITE},
                 {},
                 {"text": "WIME 錯誤回報(&B)", "id": ID_BUGREPORT},
-                {"text": "WIME 討論區 (&F)", "id": ID_FORUM},
                 {},
                 {"text": "設定輸入法模組(&C)", "id": ID_SETTINGS},
                 {},
@@ -3616,8 +3635,8 @@ class CinBase:
             "candidatePositionMode": getattr(cfg, 'candidatePositionMode', 0),
             "candidateOpacity": getattr(cfg, 'candidateOpacity', 100),
             "candidateTheme": resolveCandidateTheme(cfg),
-            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
-            "candidateHeaderStyle": getattr(cfg, 'candidateHeaderStyle', 'badge'),
+            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'word-first'),
+            "candidateHeaderStyle": getattr(cfg, 'candidateHeaderStyle', 'accent'),
             "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),
@@ -3669,6 +3688,9 @@ class CinBase:
 
         # 使用空白鍵作為候選清單換頁鍵?
         cbTS.switchPageWithSpace = cfg.switchPageWithSpace
+
+        # Shift + 空白鍵切換全形/半形?（建立時還沒啟用，不會宣告）
+        self.updateShiftSpaceKey(cbTS)
 
         self.updateLangButtons(cbTS)
 

@@ -11,7 +11,9 @@
 - A missing or corrupt table showed "loading, please wait" forever instead of
   saying the load failed.
 - The old default candidateMaxWidth (300) is too narrow for 6 candidates; users
-  who saved their settings have it stored, so it is migrated on load.
+  who saved their settings have it stored, so it is migrated on load - only in
+  files without candidateMaxWidthMigrated, which the settings page writes: the
+  migration used to run on every load, so 300 could never be chosen.
 - Missing reverse-lookup / homophone tables started a thread on every request.
 """
 
@@ -91,6 +93,30 @@ class ConfigLoadingTests(unittest.TestCase):
             with self.subTest(stored=stored):
                 h.write_user_config("chedayi", {"candidateMaxWidth": stored})
                 self.assertEqual(fresh_config("chedayi").candidateMaxWidth, expected)
+
+    def test_chosen_300_is_kept_after_the_migration(self):
+        # 設定頁每次儲存都寫入 candidateMaxWidthMigrated；有標記的檔案裡的 300 是使用者
+        # 選的，以前每次載入都被換成 320，300 永遠選不到
+        for ime in ("chedayi", "checj"):
+            for marker in (True, "true"):
+                with self.subTest(ime=ime, marker=marker):
+                    h.write_user_config(ime, {"candidateMaxWidth": 300, "candidateMaxWidthMigrated": marker})
+                    self.assertEqual(fresh_config(ime).candidateMaxWidth, 300)
+            with self.subTest(ime=ime, marker=False):
+                h.write_user_config(ime, {"candidateMaxWidth": 300, "candidateMaxWidthMigrated": False})
+                self.assertEqual(fresh_config(ime).candidateMaxWidth, 320)
+            h.remove_user_config(ime)
+        self.assertIs(type(CinBaseConfig)().candidateMaxWidthMigrated, False)
+
+    def test_migration_marker_comes_from_the_user_file(self):
+        # 同一個設定物件重讀設定檔：上一份檔案的標記還留在物件裡，不能讓沒有標記的舊檔
+        # 也保留 300
+        h.write_user_config("chedayi", {"candidateMaxWidth": 300, "candidateMaxWidthMigrated": True})
+        cfg = fresh_config("chedayi")
+        self.assertEqual(cfg.candidateMaxWidth, 300)
+        h.write_user_config("chedayi", {"candidateMaxWidth": 300})
+        cfg.load()
+        self.assertEqual(cfg.candidateMaxWidth, 320)
 
     def test_user_config_with_bom_is_loaded(self):
         path = os.path.join(_appdata.ime_dir("chedayi"), "config.json")

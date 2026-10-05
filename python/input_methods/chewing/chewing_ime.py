@@ -235,7 +235,10 @@ class ChewingTextService(TextService):
             "candidatePositionMode": getattr(cfg, 'candidatePositionMode', 0),
             "candidateOpacity": getattr(cfg, 'candidateOpacity', 100),
             "candidateTheme": resolveCandidateTheme(cfg),
-            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'keycap'),
+            "candidateKeyStyle": getattr(cfg, 'candidateKeyStyle', 'word-first'),
+            # 設定頁沒有這個選項；以前沒送，C++ 端用預設的 badge，和大易/酷倉固定的
+            # accent 不一樣
+            "candidateHeaderStyle": "accent",
             "candidateMessageStyle": getattr(cfg, 'candidateMessageStyle', 'badge'),
             "candidateColors": candidateColorsForTheme(cfg),
             "candidateStyle": getattr(cfg, 'candidateStyle', {}),
@@ -1047,11 +1050,11 @@ class ChewingTextService(TextService):
             os.startfile("https://github.com/chewing/libchewing/issues")
         elif commandId == ID_MOEDICT:  # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
+        # 教育部辭典 2021 年改版後的網址 (舊的 http 路徑要先經過明碼 http 轉址)
         elif commandId == ID_SIMPDICT:  # a simplified version of the online dictonary
-            os.startfile("http://dict.concised.moe.edu.tw/jbdic/")
+            os.startfile("https://dict.concised.moe.edu.tw/")
         elif commandId == ID_LITTLEDICT:  # a simplified dictionary for little children
-            os.startfile(
-                "http://dict.mini.moe.edu.tw/cgi-bin/gdic/gsweb.cgi?o=ddictionary")
+            os.startfile("https://dict.mini.moe.edu.tw/")
         elif commandId == ID_PROVERBDICT:  # a dictionary for proverbs
             os.startfile(
                 "https://dict.idioms.moe.edu.tw/")

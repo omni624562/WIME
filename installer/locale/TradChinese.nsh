@@ -15,7 +15,8 @@
 !insertmacro LANG_STRING REBOOT_QUESTION "安裝發生錯誤，無法完成。$\r$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。$\r$\n你要立即重新開機嗎？ (若你想要在稍後才重新開機請選擇「否」)"
 !insertmacro LANG_STRING INST_FAILED_MESSAGE "安裝發生錯誤，無法完成。$\n$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。"
 !insertmacro LANG_STRING PENDING_DELETE_MESSAGE "先前的解除安裝或升級已排定在下次開機時刪除 WIME 的檔案。若現在安裝，新裝的檔案會在下次開機時被刪掉。$\r$\n請先重新開機，再執行安裝程式。"
-!insertmacro LANG_STRING UNINSTALL_OLD "偵測到已安裝舊版，是否要移除舊版後繼續安裝新版？"
+!insertmacro LANG_STRING UNINSTALL_OLD "偵測到已安裝舊版，是否要移除舊版後繼續安裝新版？$\r$\n$\r$\n舊版會在按下「安裝」開始安裝時才移除；在那之前取消，舊版仍會保留。"
+!insertmacro LANG_STRING REMOVING_OLD_VERSION "正在移除舊版…"
 !insertmacro LANG_STRING UCRT_MISSING_MESSAGE "這個程式需要 Windows 的通用 C 執行階段更新 (KB2999226)。請透過 Windows Update 安裝後，再執行安裝程式。"
 
 !insertmacro LANG_STRING SECTION_MAIN "WIME 輸入法平台"

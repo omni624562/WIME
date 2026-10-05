@@ -58,11 +58,20 @@ _INT_RANGES = (
 #     the next key (no timer), and the mode-switch prompts are never shown
 _RETIRED_KEYS = ("candidateModernStyle", "messageDurationTime", "hidePromptMessages")
 
-# 以前出貨的候選窗最大寬度。100% 縮放時一列 6 個候選（12pt 每個 44px，加間距與邊界）
-# 要 306px（大易的 ␣ 選字鍵配設定頁存的 word-first 要 312px），300 讓第 6 個候選被擠到
-# 第二列；預設已改成 320（tests/test_candidate_width.py 依 CandidateWindow 的算法檢查）。
+# 設定頁只提供這些候選窗外觀（選字符 Word First、名稱標籤 Accent），載入時一律換成它們。
+# 以前後端預設 keycap／badge：新安裝的候選窗和設定頁的預覽不一樣，第一次在設定頁改別的
+# 設定（例如主題）儲存時，選字鍵從字前面的鍵帽跳到字後面、名稱標籤也跟著變
+_FIXED_VALUES = {
+    "candidateKeyStyle": "word-first",
+    "candidateHeaderStyle": "accent",
+}
+
+# 以前出貨的候選窗最大寬度。100% 縮放時一列 6 個候選（12pt 每個 44px，加選字鍵、間距與
+# 邊界）大易的 ␣ 選字鍵要 312px，300 讓第 6 個候選被擠到第二列；預設已改成 320
+# （tests/test_candidate_width.py 依 CandidateWindow 的算法檢查）。
 # 存過設定的使用者 config.json 都留著舊預設 300（設定頁儲存時整份寫出），載入時剛好是
-# 300 就換成新預設
+# 300 就換成新預設——只換一次：設定頁每次儲存都寫入 candidateMaxWidthMigrated，有這個
+# 標記的檔案裡的 300 是使用者自己選的（以前每次載入都換掉，300 永遠選不到）
 LEGACY_CANDIDATE_MAX_WIDTH = 300
 
 # 反查字根可選的碼表（設定頁 selRCins 的順序）
@@ -109,6 +118,7 @@ class CinBaseConfig:
         self.candPerRow = 3
         self.defaultEnglish = False
         self.defaultFullSpace = False
+        self.enableShiftSpace = True  # Shift + 空白鍵切換全形/半形（和新酷音同名）
         self.disableOnStartup = False
         self.switchLangWithShift = True
         self.switchLangWithWhichShift = SWITCH_LANG_WITH_BOTH_SHIFT
@@ -156,14 +166,15 @@ class CinBaseConfig:
         self.candidatePositionMode = 0 # 0 = 跟隨游標，1 = 螢幕下緣置中
         self.candidateOpacity = 100 # 候選窗不透明度 30~100（百分比）
         self.candidateTheme = "System"  # 跟隨 Windows 深淺色，backend 送出前解析成實際主題
-        self.candidateKeyStyle = "keycap"
-        self.candidateHeaderStyle = "badge"
+        self.candidateKeyStyle = "word-first"  # 固定值，見 _FIXED_VALUES
+        self.candidateHeaderStyle = "accent"
         self.candidateMessageStyle = "badge"
         self.candidateMessageBehavior = "progressive"
         self.candidateStableWidth = False
         self.candidateMinWidth = 0
         self.candidateWrapToMaxWidth = True
         self.candidateMaxWidth = 320
+        self.candidateMaxWidthMigrated = False  # 見 LEGACY_CANDIDATE_MAX_WIDTH
         self.candidateColors = {}
         self.candidateStyle = {
             "contentMargin": 6,
@@ -215,6 +226,7 @@ class CinBaseConfig:
 
         # Layer 2: overlay with the user's personal config (APPDATA or legacy home-dir path).
         filename = self.getConfigFile()
+        userValues = {}
         try:
             if not os.path.exists(filename) or os.stat(filename).st_size == 0:
                 filename = os.path.join(os.path.expanduser("~"), "PIME", self.imeDirName, "config.json")
@@ -228,7 +240,8 @@ class CinBaseConfig:
                     filename = self.getConfigFile()
 
             if filename:
-                self.__dict__.update(self._readUserConfig(filename))
+                userValues = self._readUserConfig(filename)
+                self.__dict__.update(userValues)
         except Exception:
             # Keep the user's file: it used to be overwritten with defaults here, so a
             # typo (or the encoding bug above) silently wiped all of their settings.
@@ -237,7 +250,9 @@ class CinBaseConfig:
         for key in _RETIRED_KEYS:
             self.__dict__.pop(key, None)
         self.normalize(shipped)
-        if self.candidateMaxWidth == LEGACY_CANDIDATE_MAX_WIDTH:
+        # 標記只看使用者的檔案：self 裡的值可能是預設值，或上一次載入（重讀前的檔案）留下的
+        if (self.candidateMaxWidth == LEGACY_CANDIDATE_MAX_WIDTH
+                and not _toBool(userValues.get("candidateMaxWidthMigrated"), False)):
             self.candidateMaxWidth = shipped["candidateMaxWidth"]
         self.update()
 
@@ -273,7 +288,8 @@ class CinBaseConfig:
         on activation or on every keystroke (e.g. candidatePerRow "" -> TypeError in
         the pager, selWildcardType 2 -> selWildcardChar never set).
         Invalid values are replaced from fallback (the shipped per-IME defaults when
-        normalizing the user's layer), else from the class defaults."""
+        normalizing the user's layer), else from the class defaults. Settings the
+        page no longer offers a choice for get their only value (_FIXED_VALUES)."""
         defaults = type(self)().__dict__
         if fallback is None:
             fallback = defaults
@@ -299,6 +315,7 @@ class CinBaseConfig:
             if not low <= self.__dict__[key] <= high:
                 good = fallback.get(key, defaults[key])
                 self.__dict__[key] = good if low <= good <= high else defaults[key]
+        self.__dict__.update(_FIXED_VALUES)
 
     def toJson(self):
         return {key: value for key, value in self.__dict__.items() if not key.startswith("_") and not key in self.ignoreSaveList}
