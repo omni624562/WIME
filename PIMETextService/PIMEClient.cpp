@@ -1114,8 +1114,31 @@ static HMENU menuFromJson(json& menuInfo) {
 // called when a language bar button needs a menu
 // virtual
 HMENU Client::onMenu(LangBarButton* btn) {
+	// a failed request below can release btn along with the other buttons
+	const std::string buttonId = btn->id();
+	const bool hadConnectedPipe = pipe_ != INVALID_HANDLE_VALUE;
 	json result;
-	if (sendOnMenu(btn->id(), result)) {
+	bool success = sendOnMenu(buttonId, result);
+	if (hadConnectedPipe) {
+		if (pipe_ != INVALID_HANDLE_VALUE && isRecoverableBackendStateFailure(result)) {
+			// a restarted backend that no longer knows this client (see callKeyRpcMethod())
+			closeRpcConnection();
+			resetTextServiceState();
+		}
+		if (pipe_ == INVALID_HANDLE_VALUE) {
+			// The backend client is gone (e.g. a pipe left broken by a launcher
+			// restart while the app kept focus) and every language bar button was
+			// removed, the 中/英 icon just right-clicked included. Nothing else
+			// reconnects before the next key or focus ping, so ask once more, after
+			// dropping the old client's UI as callKeyRpcMethod() does: the
+			// reconnect's init() and onActivate() put the buttons back, and the menu
+			// still opens on this click.
+			discardOrphanedUi();
+			result = json();
+			success = sendOnMenu(buttonId, result);
+		}
+	}
+	if (success) {
 		// See the ITfMenu overload above: menuFromJson() can throw on a malformed
 		// backend reply, and this is also a raw COM entry point.
 		try {
