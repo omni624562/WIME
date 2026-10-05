@@ -10,6 +10,9 @@
 !insertmacro LANG_STRING MB_REBOOT_REQUIRED "安裝程式需要重新開機來完成解除安裝。$\r$\n你要立即重新開機嗎？ (若你想要在稍後才重新開機請選擇「否」)"
 !insertmacro LANG_STRING PRODUCT_PAGE "WIME 專案網頁"
 !insertmacro LANG_STRING PRODUCT_PUBLISHER "WIME 開發團隊"
+!insertmacro LANG_VERSION_KEY ProductName "WIME 輸入法"
+!insertmacro LANG_VERSION_KEY CompanyName "WIME 開發團隊"
+!insertmacro LANG_VERSION_KEY FileDescription "WIME 輸入法安裝程式"
 !insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME)已安裝完成。$\r$\n$\r$\n按 Win+空白鍵，切換到名稱有「(WIME)」的輸入法，例如「大易輸入法 (WIME)」。$\r$\n$\r$\n清單裡沒有的話，到 Windows「設定 > 時間與語言 > 語言」（Windows 11 是「語言與地區」）新增「中文 (台灣)」語言，或在它的語言選項裡新增鍵盤。$\r$\n$\r$\n設定工具在開始功能表的「${START_MENU_FOLDER}」資料夾裡。"
 
 !insertmacro LANG_STRING AtLeastWin81_MESSAGE "抱歉，本程式需要 Windows 8.1 以上版本"

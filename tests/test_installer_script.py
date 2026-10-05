@@ -1,5 +1,6 @@
 """Static checks on installer/installer.nsi and its strings in installer/locale/*.nsh
-(the installer itself is never run).
+(the installer itself is never run; only installer/version.nsh goes through
+makensis /PPO, and only when NSIS is installed).
 
 Windows version: the gate in .onInit only turned away Windows XP, but the embedded
 Python 3.12 supports Windows 8.1 and later, and python312.dll and PIMELauncher.exe
@@ -18,13 +19,26 @@ Finish page: it only had the project link. Nothing told a new user to press
 Win+Space, how the keyboards are named, what to do when they do not show up (they are
 registered under zh-Hant-TW only, so without the 中文 (台灣) language they are not
 listed), or where the settings tools are.
+
+Metadata: the setup program had no version resource (Properties > Details showed no
+name, description or version), and the Apps & features entry had no icon, no size,
+and offered Change next to Uninstall.
 """
 
 import os
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 from test_installer_order import ROOT, read_script, script_lines
+
+PROGRAM_FILES = (os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+                 os.environ.get("ProgramFiles", r"C:\Program Files"))
+MAKENSIS = next((path for path in [shutil.which("makensis")] + [
+    os.path.join(base, "NSIS", *sub, "makensis.exe")
+    for base in PROGRAM_FILES for sub in ((), ("Bin",))] if path and os.path.isfile(path)), None)
 
 LOCALE_DIR = os.path.join(ROOT, "installer", "locale")
 # every language installer.nsi loads with LANG_LOAD (SimpChinese only in full builds)
@@ -50,6 +64,28 @@ def locale_strings(locale):
                     value = value[1:-1]
                 strings[match.group(1)] = value
     return strings
+
+
+def locale_version_keys(locale):
+    """key -> value of the LANG_VERSION_KEY lines in installer/locale/<locale>.nsh."""
+    with open(os.path.join(LOCALE_DIR, locale + ".nsh"), encoding="utf-8-sig") as f:
+        return dict(re.findall(r'^!insertmacro\s+LANG_VERSION_KEY\s+(\w+)\s+"([^"]*)"',
+                               f.read(), re.MULTILINE))
+
+
+def vi_version(product_version):
+    """VI_VERSION as installer/version.nsh derives it from version.txt's text."""
+    with tempfile.TemporaryDirectory() as tmp:
+        script = os.path.join(tmp, "probe.nsi")
+        with open(script, "w", encoding="utf-8") as f:
+            f.write('!define PRODUCT_VERSION "%s"\n!include "%s"\n!echo "VI_VERSION=[${VI_VERSION}]"\n'
+                    % (product_version, os.path.join(ROOT, "installer", "version.nsh")))
+        result = subprocess.run([MAKENSIS, "/PPO", script], capture_output=True, text=True,
+                                errors="replace", timeout=60)
+    match = re.search(r"VI_VERSION=\[([^\]]*)\]", result.stdout)
+    if result.returncode != 0 or not match:
+        raise AssertionError("makensis failed:\n" + result.stdout + result.stderr)
+    return match.group(1)
 
 
 def defines():
@@ -231,6 +267,78 @@ class StartMenuTests(unittest.TestCase):
         self.assertTrue(uses)
         for context, command, folder in uses:
             self.assertIn(folder, OLD_START_MENU_FOLDERS | {"${START_MENU_FOLDER}"})
+
+
+class MetadataTests(unittest.TestCase):
+    # the keys Explorer shows; makensis warns about a language that lacks some of them
+    VERSION_KEYS = {"ProductName", "CompanyName", "FileDescription", "FileVersion",
+                    "ProductVersion", "LegalCopyright"}
+
+    def test_version_resource_uses_the_numeric_version(self):
+        lines = script_lines()
+        self.assertIn('!include "version.nsh"', [line.split(";")[0].strip() for line in lines])
+        self.assertIn('VIProductVersion "${VI_VERSION}"', lines)
+        self.assertIn('VIFileVersion "${VI_VERSION}"', lines)
+
+    def test_every_language_has_the_version_keys(self):
+        # FileVersion, ProductVersion and LegalCopyright are set once for every
+        # language in LANG_LOAD, the translated ones in each locale file
+        shared = set(re.findall(r'VIAddVersionKey\s+/LANG=\$\{LANG_\$\{LANG\}\}\s+"(\w+)"',
+                                "\n".join(script_lines())))
+        for locale in LOCALES:
+            with self.subTest(locale=locale):
+                keys = locale_version_keys(locale)
+                strings = locale_strings(locale)
+                self.assertEqual(shared | set(keys), self.VERSION_KEYS)
+                self.assertEqual(shared & set(keys), set())
+                # the same names the installer and Apps & features show
+                self.assertEqual(keys["ProductName"], strings["PRODUCT_NAME"])
+                self.assertEqual(keys["CompanyName"], strings["PRODUCT_PUBLISHER"])
+
+    @unittest.skipUnless(MAKENSIS, "NSIS is not installed")
+    def test_version_txt_maps_to_four_numbers(self):
+        for text, numeric in (("1.3.0-beta14", "1.3.0.14"), ("1.3.0", "1.3.0.0"),
+                              ("1.3.0-beta", "1.3.0.0"), ("1.3.0-alpha2", "1.3.0.2"),
+                              ("1.3.0-rc1", "1.3.0.1"), ("1.10.2-beta.3", "1.10.2.3")):
+            with self.subTest(version=text):
+                self.assertEqual(vi_version(text), numeric)
+        # stops the build instead of writing a version resource with a wrong version
+        with self.assertRaises(AssertionError):
+            vi_version("1.3")
+        # the real one: its numbers in order, like CMakeLists.txt reads them for the DLL
+        with open(os.path.join(ROOT, "version.txt"), encoding="utf-8") as f:
+            text = f.read().strip()
+        numbers = (re.findall(r"\d+", text) + ["0"])[:4]
+        self.assertEqual(vi_version(text), ".".join(numbers))
+
+    def test_apps_entry_has_icon_size_and_no_change_button(self):
+        functions, sections = read_script()
+        register = next(body for header, body in sections if re.match(r'Section\s+""\s+Register', header))
+        writes = {}
+        for index, line in enumerate(register):
+            match = re.match(r'(WriteReg\w+)\s+HKLM\s+"\$\{PRODUCT_UNINST_KEY\}"\s+"(\w+)"\s+(.*)$', line)
+            if match:
+                writes.setdefault(match.group(2), []).append((index, match.group(1), match.group(3)))
+        for name in ("NoModify", "NoRepair"):
+            self.assertEqual([(command, value) for index, command, value in writes.get(name, [])],
+                             [("WriteRegDWORD", "1")], name)
+        # the size counts the .pyc files compileall writes
+        [(size_at, command, value)] = writes.get("EstimatedSize", [(-1, None, None)])
+        self.assertEqual(command, "WriteRegDWORD")
+        compiled = max(i for i, line in enumerate(register) if "compileall" in line)
+        self.assertGreater(size_at, compiled)
+        # every icon is a file the installer puts there
+        uninstaller = next(line.split('"')[1] for line in register
+                           if line.startswith("WriteUninstaller"))
+        icons = [value.strip('"') for index, command, value in writes["DisplayIcon"]]
+        self.assertTrue(icons)
+        for icon in icons:
+            with self.subTest(icon=icon):
+                if icon.startswith("$INSTDIR\\python\\"):
+                    source = os.path.join(ROOT, *icon.split("\\")[1:])
+                    self.assertTrue(os.path.isfile(source), source)
+                else:
+                    self.assertEqual(icon, uninstaller)
 
 
 if __name__ == "__main__":

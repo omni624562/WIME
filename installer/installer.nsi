@@ -22,6 +22,7 @@
 !include "Winver.nsh" ; Windows version detection
 !include "LogicLib.nsh" ; for ${If}, ${Switch} commands
 !include "Sections.nsh" ; for selecting sections in silent installs
+!include "FileFunc.nsh" ; for ${GetSize}
 
 ; We need the StdUtils plugin
 !addincludedir "StdUtils.2015-11-16\Include"
@@ -41,6 +42,12 @@ AllowSkipFiles off ; cannot skip a file
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\orange-uninstall.ico"
 
 !define /file PRODUCT_VERSION "..\version.txt"
+!include "version.nsh" ; VI_VERSION, e.g. 1.3.0.14 for 1.3.0-beta14
+
+; Version resource of the setup program (Properties > Details; without it the file
+; showed no name, description or version). The per-language keys are set by LANG_LOAD.
+VIProductVersion "${VI_VERSION}"
+VIFileVersion "${VI_VERSION}"
 
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\PIME"
 !define HOMEPAGE_URL "https://github.com/omni624562/WIME"
@@ -95,11 +102,20 @@ RequestExecutionLevel admin
 !macro LANG_LOAD LANGLOAD
   !insertmacro MUI_LANGUAGE "${LANGLOAD}"
   !include "locale\${LANGLOAD}.nsh"
+  ; the version keys that need no translation (the locale file sets ProductName,
+  ; CompanyName and FileDescription)
+  VIAddVersionKey /LANG=${LANG_${LANG}} "FileVersion" "${VI_VERSION}"
+  VIAddVersionKey /LANG=${LANG_${LANG}} "ProductVersion" "${PRODUCT_VERSION}"
+  VIAddVersionKey /LANG=${LANG_${LANG}} "LegalCopyright" "Copyright (C) 2013-2016 PIME developers, WIME development team"
   !undef LANG
 !macroend
 
 !macro LANG_STRING NAME VALUE
   LangString "${NAME}" "${LANG_${LANG}}" "${VALUE}"
+!macroend
+
+!macro LANG_VERSION_KEY NAME VALUE
+  VIAddVersionKey /LANG=${LANG_${LANG}} "${NAME}" "${VALUE}"
 !macroend
 
 !macro LANG_UNSTRING NAME VALUE
@@ -856,9 +872,19 @@ Section "" Register
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" $(PRODUCT_NAME)
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "Publisher" $(PRODUCT_PUBLISHER)
-	; WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\x86\PIMETextService.dll"
+	; The icon Settings > Apps shows. PIMETextService.dll has no icon resource, so use
+	; the 大易 one when 大易 is installed, else the uninstaller's.
+	${If} ${SectionIsSelected} ${chedayi}
+		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\python\input_methods\chedayi\icon.ico"
+	${Else}
+		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Uninstall.exe"
+	${EndIf}
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
 	WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${HOMEPAGE_URL}"
+	; Uninstall is the only action there is: without NoModify, Programs and Features
+	; labels the button Uninstall/Change, and either way it runs the uninstaller
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoModify" 1
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoRepair" 1
 	WriteUninstaller "$INSTDIR\Uninstall.exe" ;Create uninstaller
 
 	; Compile all installed python modules to *.pyc files
@@ -867,6 +893,11 @@ Section "" Register
 		; 以前只產生前者，一般使用者又無權寫入 Program Files，後端每次啟動都重新編譯全部程式碼
 		nsExec::ExecToLog  '"$INSTDIR\python\python3\python.exe" -m compileall -o 0 -o 1 "$INSTDIR\python"'
 	${EndIf}
+
+	; The size Settings > Apps shows (in KB), measured once everything, the .pyc files
+	; above included, is in place
+	${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "EstimatedSize" $0
 
 	; Launch the python server as current user (non-elevated process)
 	${StdUtils.ExecShellAsUser} $0 "$INSTDIR\PIMELauncher.exe" "open" ""
