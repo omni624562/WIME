@@ -176,6 +176,19 @@ class ConfigPageTests(unittest.TestCase):
         self.assertIn('.text("加入：你好")', preview)
         self.assertNotIn('"查無組字"', preview)
 
+    def test_chewing_about_dialog_links(self):
+        # the 龔律全 page answers 403, the 陳康本 Google+ profile redirects to a Google
+        # blog post, and the ICOS 2004 slides are a Flash file no browser plays
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        about = page[page.index('id="about_modal"'):page.index('<div class="tab-content">')]
+        links = re.findall(r'<a href="([^"]*)"', about)
+        self.assertIn("https://chewing.im/doc/chewing-report.pdf", links)
+        for url in links:
+            self.assertTrue(url.startswith("https://"), url)
+        for dead in ("~b6506053", "plus.google.com", "chewing-intro.html", "Flash）</a>"):
+            self.assertNotIn(dead, about)
+
     def test_cinbase_script_has_no_retired_fields(self):
         for ime in ("chedayi", "checj"):
             with self.subTest(ime=ime):

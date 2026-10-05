@@ -55,12 +55,10 @@ ID_SWITCH_LANG = 1
 ID_SWITCH_SHAPE = 2
 ID_SETTINGS = 3
 ID_MODE_ICON = 4
-ID_ABOUT = 5
 ID_WEBSITE = 6
 ID_GROUP = 7
 ID_BUGREPORT = 8
 ID_DICT_BUGREPORT = 9
-ID_CHEWING_HELP = 10
 ID_HASHED = 11
 ID_MOEDICT = 13
 ID_DICT = 14
@@ -1067,19 +1065,21 @@ class ChewingTextService(TextService):
                 None, "open", python_exe, config_tool, self.curdir, 0)
         elif commandId == ID_MODE_ICON:  # windows 8 mode icon
             self.toggleLanguageMode()  # 切換中英文模式
-        elif commandId == ID_ABOUT:  # 關於新酷音輸入法
-            pass
         elif commandId == ID_WEBSITE:  # visit chewing website
-            os.startfile("http://chewing.im/")
-        elif commandId == ID_GROUP:  # visit chewing google groups website
-            os.startfile("http://groups.google.com/group/chewing-devel")
+            os.startfile("https://chewing.im/")
+        # chewing.im 給使用者的討論群組 (以前開的 chewing-devel 是開發者的郵件論壇)
+        elif commandId == ID_GROUP:
+            os.startfile("https://groups.google.com/g/chewing")
         elif commandId == ID_BUGREPORT:  # visit bug tracker page
             os.startfile("https://github.com/omni624562/WIME/issues")
+        # libchewing 2026 年搬到 Codeberg，GitHub 上的新回報會被請到那邊重新提交
         elif commandId == ID_DICT_BUGREPORT:
-            os.startfile("https://github.com/chewing/libchewing/issues")
+            os.startfile("https://codeberg.org/chewing/libchewing/issues")
         elif commandId == ID_MOEDICT:  # a very awesome online Chinese dictionary
             os.startfile("https://www.moedict.tw/")
         # 教育部辭典 2021 年改版後的網址 (舊的 http 路徑要先經過明碼 http 轉址)
+        elif commandId == ID_DICT:  # online Chinese dictonary
+            os.startfile("https://dict.revised.moe.edu.tw/")
         elif commandId == ID_SIMPDICT:  # a simplified version of the online dictonary
             os.startfile("https://dict.concised.moe.edu.tw/")
         elif commandId == ID_LITTLEDICT:  # a simplified dictionary for little children
@@ -1087,28 +1087,26 @@ class ChewingTextService(TextService):
         elif commandId == ID_PROVERBDICT:  # a dictionary for proverbs
             os.startfile(
                 "https://dict.idioms.moe.edu.tw/")
-        elif commandId == ID_CHEWING_HELP:
-            pass
+
     # 開啟語言列按鈕選單
     def onMenu(self, buttonId):
         # 設定按鈕 (windows 8 mode icon 按鈕也使用同一個選單)
         if buttonId == "settings" or buttonId == "windows-mode-icon":
             # 用 json 語法表示選單結構
             return [
-                # {"text": "關於新酷音輸入法 (&A)", "id": ID_ABOUT},
                 {"text": "新酷音官方網站 (&W)", "id": ID_WEBSITE},
                 {"text": "新酷音線上討論區 (&G)", "id": ID_GROUP},
                 {},
                 {"text": "軟體本身的建議及錯誤回報 (&B)", "id": ID_BUGREPORT},
                 {"text": "注音及選字選詞錯誤回報 (&P)", "id": ID_DICT_BUGREPORT},
                 {},
-                # {"text": "新酷音使用說明 (&H)", "id": ID_CHEWING_HELP},
                 {"text": "編輯使用者詞庫 (&E)", "id": ID_USER_PHRASE_EDITOR},
                 {"text": "設定新酷音輸入法 (&C)", "id": ID_SETTINGS},
                 {},
                 {"text": "網路辭典 (&D)", "submenu": [
                     {"text": "萌典 (moedict)", "id": ID_MOEDICT},
                     {},
+                    {"text": "教育部國語辭典", "id": ID_DICT},
                     {"text": "教育部國語辭典簡編本", "id": ID_SIMPDICT},
                     {"text": "教育部國語小字典", "id": ID_LITTLEDICT},
                     {"text": "教育部成語典", "id": ID_PROVERBDICT},

@@ -6,6 +6,8 @@
   小字典 still went through plain-http redirects from the old paths.
 - 「WIME 討論區」 opened the same issues page as 「WIME 錯誤回報」 (the repository
   has no GitHub Discussions), so it was removed.
+- 新酷音's 線上討論區 and 注音及選字選詞錯誤回報 opened the developers' list and
+  the GitHub tracker libchewing moved away from, and its 網路辭典 lacked 國語辭典.
 
 The pages are recorded, not opened (IsolatedAppData replaces os.startfile).
 """
@@ -89,9 +91,19 @@ class ChewingMenuTests(MenuPageTestCase):
     def test_dictionary_pages(self):
         service = self.ch.make_service()
         pages = opened_pages(service, self.ch.request)
-        # 新酷音的辭典選單沒有國語辭典（完整版）
-        dictionaries = {text: url for text, url in MOE_DICTIONARIES.items() if text != "教育部國語辭典"}
-        self.assertWorkingPages(pages, dictionaries)
+        # 新酷音的辭典選單以前少了國語辭典（重編本），大易/酷倉都有
+        self.assertWorkingPages(pages, MOE_DICTIONARIES)
+
+    def test_project_pages(self):
+        # 線上討論區 opened chewing-devel (the developers' list; chewing.im points users
+        # to the users group), and libchewing moved its issues from GitHub to Codeberg
+        service = self.ch.make_service()
+        pages = opened_pages(service, self.ch.request)
+        self.assertEqual(pages["新酷音官方網站 (&W)"], "https://chewing.im/")
+        self.assertEqual(pages["新酷音線上討論區 (&G)"], "https://groups.google.com/g/chewing")
+        self.assertEqual(pages["注音及選字選詞錯誤回報 (&P)"], "https://codeberg.org/chewing/libchewing/issues")
+        for text, url in pages.items():
+            self.assertTrue(url.startswith("https://"), (text, url))
 
 
 if __name__ == "__main__":
