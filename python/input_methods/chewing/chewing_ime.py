@@ -117,6 +117,16 @@ MAX_CHI_SYMBOL_LEN = 39
 LEFT_SHIFT_SCAN_CODE = 0x2A
 RIGHT_SHIFT_SCAN_CODE = 0x36
 
+# KeyEvent.isSymbols() 的 = [ \ ] ' 是預設鍵盤配置的標點鍵，有些配置拿其中幾個鍵打注音
+# (keyboardLayout: 這幾個鍵)。關掉「非注音符號對應鍵輸出全形標點」時，以前連這些鍵也
+# 當成標點、送出半形符號：精業打不出ㄤㄥㄦ、倚天 41 鍵打不出ㄘㄦ、DVORAK 打不出ㄆㄦ。
+# 其他配置的這五個鍵都不是注音 (tests/test_chewing_keys.py 逐一問 libchewing 確認)
+LAYOUT_BOPOMOFO_SYMBOL_KEYS = {
+    3: "=['",  # 精業：ㄦ ㄤ ㄥ
+    4: "='",   # 倚天 41 鍵：ㄦ ㄘ
+    6: "['",   # DVORAK：ㄦ ㄆ
+}
+
 
 class ChewingTextService(TextService):
     def __init__(self, client):
@@ -663,7 +673,9 @@ class ChewingTextService(TextService):
                     invertCase = True  # 大寫字母轉成小寫
 
                 # 如果啟動半形符號模式，且輸入符號，則暫時切換為英文模式
-                if not cfg.fullShapeSymbols and keyEvent.isSymbols():
+                # (目前的鍵盤配置拿來打注音的鍵除外)
+                if not cfg.fullShapeSymbols and keyEvent.isSymbols() \
+                        and charStr not in LAYOUT_BOPOMOFO_SYMBOL_KEYS.get(cfg.keyboardLayout, ""):
                     temporaryEnglishMode = True
 
                 # 若按下 Shift 鍵
