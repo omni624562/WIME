@@ -8,7 +8,9 @@ next to 每列候選字數. Another change that removed candPerRow its own way e
 same lines, so merging the two conflicts there: keeping both sides of the HTML
 gives two #candPerPage inputs sharing one id (the form posts both values), and
 taking the other side of the JS brings back an updateSelExample() that nothing
-calls, aimed at the removed #selExample.
+calls, aimed at the removed #selExample. 按住 Shift：輸出英文大寫字母 did
+nothing while 按住 Shift 快速輸入符號 was on, which is the default; it is
+disabled then, with a hint.
 
 大易/酷倉 (cinbase/config: the IME's config/config.html shell + config.htm
 fragments + js/config.js): the page never had #candPerRow, #candPerPage,
@@ -138,6 +140,24 @@ class ConfigPageTests(unittest.TestCase):
     def test_chewing_script_has_no_retired_fields(self):
         ids = page_ids(os.path.join(CHEWING_DIR, "config_tool.html"))
         self.assert_no_script_for_missing_fields(os.path.join(CHEWING_DIR, "js", "config.js"), ids)
+
+    def test_chewing_upper_case_with_shift_follows_easy_symbols(self):
+        # While 中文模式下按住 Shift 快速輸入符號 is on, Shift+letter always types the
+        # 簡易符號 (chewing_ime.py reads upperCaseWithShift only when it is off), so the
+        # 輸出英文大寫字母 checkbox looked active and changed nothing
+        with open(os.path.join(CHEWING_DIR, "config_tool.html"), encoding="utf-8-sig") as f:
+            page = f.read()
+        self.assertRegex(page, r'for="upperCaseWithShift">[^<]*</label>\s*'
+                               r'<div class="setting-hint">[^<]*快速輸入符號[^<]*沒有作用')
+        script = os.path.join(CHEWING_DIR, "js", "config.js")
+        self.assertRegex(function_body(script, "updateUpperCaseWithShift"),
+                         r'\$\("#upperCaseWithShift"\)\.prop\("disabled", \$\("#easySymbolsWithShift"\)\.prop\("checked"\)\);')
+        init = function_body(script, "initializeUI")
+        # when the page loads, and whenever the other box is toggled
+        self.assertRegex(init, r"(?m)^\s*updateUpperCaseWithShift\(\);$")
+        self.assertRegex(init, r'\$\("#easySymbolsWithShift"\)\.on\("click", updateUpperCaseWithShift\);')
+        # a disabled checkbox is still saved with its value
+        self.assertNotRegex(function_body(script, "updateConfig"), r"disabled")
 
     def test_cinbase_script_has_no_retired_fields(self):
         for ime in ("chedayi", "checj"):

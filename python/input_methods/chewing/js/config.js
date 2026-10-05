@@ -756,6 +756,15 @@ $(function () {
             }
         });
 
+        // 「中文模式下按住 Shift 快速輸入符號」開著時 Shift＋字母一律輸出簡易符號，
+        // 「按住 Shift：輸出英文大寫字母」沒有作用（輸入法只在快速符號關著時看它），
+        // 以前勾不勾都一樣、也看不出原因。停用的核取方塊照樣存回原本的值
+        function updateUpperCaseWithShift() {
+            $("#upperCaseWithShift").prop("disabled", $("#easySymbolsWithShift").prop("checked"));
+        }
+        updateUpperCaseWithShift();
+        $("#easySymbolsWithShift").on("click", updateUpperCaseWithShift);
+
         renderCandidateThemeGallery();
         renderCandidateKeyStyleGallery();
         renderCandidateMessageStyleGallery();
