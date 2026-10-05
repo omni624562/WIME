@@ -402,33 +402,49 @@ class ChewingTextService(TextService):
 
         # Windows 8 以上已取消語言列功能，改用 systray IME mode icon
         if self.client.isWindows8Above:
-            # 切換中英文、簡繁體圖示
-            if self.langMode == CHINESE_MODE:
-                if self.getCapslockState() == True:
-                    icon_name = "capsEng.ico"
-                else:
-                    icon_name = "traC.ico"
-            else:
-                icon_name = "eng.ico"
+            icon, tooltip = self.modeIconInfo()
             self.addButton("windows-mode-icon",
-                           icon=os.path.join(self.icon_dir, icon_name),
-                           tooltip="中英文切換",
+                           icon=icon,
+                           tooltip=tooltip,
                            commandId=ID_MODE_ICON
                            )
+
+    # 中文模式下 CapsLock 開著時暫時輸入英文 (要開「使用 CapsLock 切換中英文模式」；
+    # 以前不看這個設定，關掉時打的是注音，圖示卻顯示英文)
+    def capsLockTypesEnglish(self):
+        return bool(chewingConfig.enableCapsLock) and self.getCapslockState()
+
+    # 中/英圖示 (語言列的 switch-lang 與系統匣的輸入模式圖示共用)
+    def langIconPath(self):
+        if self.langMode == CHINESE_MODE:
+            icon_name = "capsEng.ico" if self.capsLockTypesEnglish() else "traC.ico"
+        else:
+            icon_name = "eng.ico"
+        return os.path.join(self.icon_dir, icon_name)
+
+    # 系統匣輸入模式圖示 (windows-mode-icon) 的 (圖示, 提示文字)。提示以前固定是
+    # 「中英文切換」，看不出目前的狀態；這個圖示也沒有全形/半形的樣子，在 Windows 10/11
+    # (預設不顯示語言列) 只有這裡看得出現在是全形
+    def modeIconInfo(self):
+        if self.langMode == CHINESE_MODE:
+            lang = "英文（CapsLock）" if self.capsLockTypesEnglish() else "中文"
+        else:
+            lang = "英文"
+        shape = "全形" if self.shapeMode == FULLSHAPE_MODE else "半形"
+        return self.langIconPath(), "新酷音：%s、%s（按一下切換中英文）" % (lang, shape)
+
+    def updateModeIcon(self):
+        # FIXME: we need a better set of icons to meet the
+        #        WIndows 8 IME guideline and UX guidelines.
+        icon, tooltip = self.modeIconInfo()
+        self.changeButton("windows-mode-icon", icon=icon, tooltip=tooltip)
 
     def addLangButtons(self):
         if self.hasLangButtons:
             return
         # 切換中英文、簡繁體
-        if self.langMode == CHINESE_MODE:
-            if self.getCapslockState() == True:
-                icon_name = "capsEng.ico"
-            else:
-                icon_name = "traC.ico"
-        else:
-            icon_name = "eng.ico"
         self.addButton("switch-lang",
-                       icon=os.path.join(self.icon_dir, icon_name),
+                       icon=self.langIconPath(),
                        tooltip="中英文切換",
                        commandId=ID_SWITCH_LANG
                        )
@@ -1121,34 +1137,23 @@ class ChewingTextService(TextService):
         if not chewingContext:
             return
         langMode = chewingContext.get_ChiEngMode()
-
-        # 如果中英文模式、簡繁模式發生改變
-        if langMode != self.langMode or self.updateSwitchLangIcon:
-            self.updateSwitchLangIcon = False
-            self.langMode = langMode
-            if langMode == CHINESE_MODE:
-                if self.getCapslockState() == True:
-                   icon_name = "capsEng.ico"
-                else:
-                    icon_name = "traC.ico"
-            else:
-                icon_name = "eng.ico"
-            icon_path = os.path.join(self.icon_dir, icon_name)
-            if self.hasLangButtons:
-                self.changeButton("switch-lang", icon=icon_path)
-
-            if self.client.isWindows8Above:  # windows 8 mode icon
-                # FIXME: we need a better set of icons to meet the
-                #        WIndows 8 IME guideline and UX guidelines.
-                self.changeButton("windows-mode-icon", icon=icon_path)
-
         shapeMode = chewingContext.get_ShapeMode()
-        if shapeMode != self.shapeMode:  # 如果全形半形模式改變
-            self.shapeMode = shapeMode
-            if self.hasLangButtons:
-                icon_name = "full.ico" if shapeMode == FULLSHAPE_MODE else "half.ico"
-                icon_path = os.path.join(self.icon_dir, icon_name)
-                self.changeButton("switch-shape", icon=icon_path)
+        # 中英文模式 (或 CapsLock) 改變
+        langChanged = langMode != self.langMode or self.updateSwitchLangIcon
+        shapeChanged = shapeMode != self.shapeMode  # 全形半形模式改變
+        self.updateSwitchLangIcon = False
+        self.langMode = langMode
+        self.shapeMode = shapeMode
+
+        if langChanged and self.hasLangButtons:
+            self.changeButton("switch-lang", icon=self.langIconPath())
+        if shapeChanged and self.hasLangButtons:
+            icon_name = "full.ico" if shapeMode == FULLSHAPE_MODE else "half.ico"
+            self.changeButton("switch-shape", icon=os.path.join(self.icon_dir, icon_name))
+        # windows 8 mode icon：提示文字寫著中英文與全半形，兩種改變都要更新 (以前
+        # Shift+空白鍵只更新 Windows 10/11 預設看不到的語言列全/半形按鈕)
+        if (langChanged or shapeChanged) and self.client.isWindows8Above:
+            self.updateModeIcon()
 
     # 切換中英文模式
     def toggleLanguageMode(self):

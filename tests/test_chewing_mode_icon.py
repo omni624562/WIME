@@ -3,6 +3,8 @@ the real libchewing (see chewing_harness).
 
 - A right click toggled 中/英 when the menu could not be shown: the C++ side
   then sends the click as onCommand(ID_MODE_ICON, COMMAND_RIGHT_CLICK).
+- The tooltip was always 「中英文切換」, and nothing on the taskbar showed 全形:
+  it now names the IME and the state, and follows Shift+Space.
 """
 
 import unittest
@@ -42,6 +44,70 @@ class ChewingTestCase(unittest.TestCase):
     def click(self, s, command_type=LEFT_CLICK, command=None):
         return ch.request(s, "onCommand", id=module.ID_MODE_ICON if command is None else command,
                           type=command_type)
+
+
+def mode_icon(reply, action="changeButton"):
+    """the last windows-mode-icon entry of reply[action], or None"""
+    entries = [entry for entry in reply.get(action, []) if entry.get("id") == "windows-mode-icon"]
+    return entries[-1] if entries else None
+
+
+def icon_name(entry):
+    return entry["icon"].rsplit("\\", 1)[-1]
+
+
+class ModeIconTooltipTests(ChewingTestCase):
+    """The tooltip was always 「中英文切換」: it said what a click does, not the state,
+    and Shift+Space only changed the language bar's 全/半形 button, which Windows
+    10/11 do not show - the mode icon has no full-width look of its own."""
+
+    def activate(self, **overrides):
+        override = ch.ConfigOverride(**overrides)
+        self.addCleanup(override.restore)
+        s = module.ChewingTextService(ch.DummyClient())
+        ch._services.append(s)  # deactivated in tearDown
+        return s, ch.request(s, "onActivate", isKeyboardOpen=True)
+
+    def test_tooltip_on_activation(self):
+        s, reply = self.activate()
+        icon = mode_icon(reply, "addButton")
+        self.assertEqual(icon["tooltip"], "新酷音：中文、半形（按一下切換中英文）")
+        self.assertEqual(icon_name(icon), "traC.ico")
+        s, reply = self.activate(defaultEnglish=True, defaultFullSpace=True)
+        icon = mode_icon(reply, "addButton")
+        self.assertEqual(icon["tooltip"], "新酷音：英文、全形（按一下切換中英文）")
+        self.assertEqual(icon_name(icon), "eng.ico")
+
+    def test_shift_space_updates_the_mode_icon(self):
+        s = self.service(enableShiftSpace=True)
+        reply = ch.request(s, "onPreservedKey", guid=module.SHIFT_SPACE_GUID)
+        self.assertEqual(mode_icon(reply)["tooltip"], "新酷音：中文、全形（按一下切換中英文）")  # no change before
+        reply = ch.request(s, "onPreservedKey", guid=module.SHIFT_SPACE_GUID)
+        self.assertEqual(mode_icon(reply)["tooltip"], "新酷音：中文、半形（按一下切換中英文）")
+
+    def test_language_changes_update_the_tooltip(self):
+        s = self.service()
+        reply = self.click(s)
+        self.assertEqual(mode_icon(reply)["tooltip"], "新酷音：英文、半形（按一下切換中英文）")
+        self.assertEqual(icon_name(mode_icon(reply)), "eng.ico")
+        ch.request(s, "filterKeyDown", **ch.key_event("SHIFT"))  # a Shift tap: back to Chinese
+        reply = ch.request(s, "filterKeyUp", **ch.key_event("SHIFT", down=False))
+        self.assertEqual(s.chewingContext.get_ChiEngMode(), CHINESE)
+        self.assertEqual(mode_icon(reply)["tooltip"], "新酷音：中文、半形（按一下切換中英文）")
+
+    def test_caps_lock(self):
+        for enabled, icon, tooltip in ((True, "capsEng.ico", "新酷音：英文（CapsLock）、半形（按一下切換中英文）"),
+                                       (False, "traC.ico", "新酷音：中文、半形（按一下切換中英文）")):
+            with self.subTest(enableCapsLock=enabled):
+                s = self.service(enableCapsLock=enabled)
+                s.getCapslockState = lambda: True
+                s.updateSwitchLangIcon = True  # what releasing CapsLock does (filterKeyUp)
+                s.updateLangButtons()
+                entry = mode_icon(s.currentReply)
+                s.currentReply = {}
+                # without 使用 CapsLock 切換中英文模式, CapsLock does not switch to English:
+                # the icon used to show it anyway
+                self.assertEqual((icon_name(entry), entry["tooltip"]), (icon, tooltip))
 
 
 class ModeIconClickTests(ChewingTestCase):
