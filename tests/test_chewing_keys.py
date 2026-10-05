@@ -14,6 +14,8 @@ Covers the audit findings in the keystroke path:
 """
 
 import contextlib
+import os
+import time
 import unittest
 
 import cinbase_harness
@@ -173,6 +175,30 @@ class CandidateCursorTests(ChewingTestCase):
         self.assertEqual(s.candidateCursor, 8)  # nothing under column 5: the last one (stayed at 4 before)
         self.type(s, ["UP"])
         self.assertEqual(s.candidateCursor, 2)
+
+    def write_user_symbols(self, text):
+        path = os.path.join(ch.config().getConfigDir(), "symbols.dat")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        self.addCleanup(os.remove, path)
+        stamp = time.time() + 10
+        os.utime(path, (stamp, stamp))  # newer than the version the shared config holds
+
+    def test_up_down_on_a_page_of_emoji(self):
+        # emoji in the 特殊符號 are outside the BMP, two UTF-16 units each: the backend
+        # measured only the first surrogate (half the width) and counted 6 to a row,
+        # but the window shows 5, so ↓ landed one column right of the candidate below
+        emoji = [chr(0x1F600 + i) for i in range(9)]
+        self.write_user_symbols("表情=%s\n" % "".join(emoji))
+        s = self.service(candidateLayout="horizontal", candidatePerRow=6, candPerPage=9)
+        self.type(s, ["`", "1"])  # the only category
+        self.assertEqual(s.candidateList, emoji)
+        columns = self.columns_shown(s)
+        self.assertLess(columns, 6)
+        self.type(s, ["DOWN"])
+        self.assertEqual(s.candidateCursor, columns)
+        self.type(s, ["UP"])
+        self.assertEqual(s.candidateCursor, 0)
 
     def test_ctrl_del_with_the_list_open(self):
         s = self.service()

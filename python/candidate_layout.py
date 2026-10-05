@@ -75,6 +75,14 @@ def systemDpi():
     return dpi or 96
 
 
+def utf16Length(text):
+    """text 的 UTF-16 長度。GetTextExtentPoint32W 的字數是 UTF-16 單位，C++ 傳的是
+    wstring::length()；len() 算的是字元數，BMP 以外的字 (詞庫裡的 CJK 擴充 B 區字、
+    特殊符號裡的表情符號) 只量到前半個代理字元，寬度少一半，算出的欄數比畫面多。
+    surrogatepass：單獨的代理字元 ctypes 也照樣傳一個單位"""
+    return len(text.encode("utf-16-le", "surrogatepass")) // 2
+
+
 def measureTexts(fontName, fontSize, dpi, texts):
     """{文字: 寬度 (px)}，字型照 PIMETextService 建立；失敗時傳回 None"""
     lf = _LOGFONTW()
@@ -96,7 +104,7 @@ def measureTexts(fontName, fontSize, dpi, texts):
         size = wintypes.SIZE()
         for text in texts:
             if text not in widths:
-                if not _gdi32.GetTextExtentPoint32W(dc, text, len(text), ctypes.byref(size)):
+                if not _gdi32.GetTextExtentPoint32W(dc, text, utf16Length(text), ctypes.byref(size)):
                     return None
                 widths[text] = size.cx
         return widths

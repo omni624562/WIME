@@ -99,8 +99,12 @@ def _measure(face_name, font_size, dpi, texts):
         _gdi32.GetTextFaceW(dc, len(face), face)
         widths = {}
         for text in texts:
+            # the length in UTF-16 units, like C++ passes wstring::length(): len()
+            # counts a character outside the BMP (CJK Ext-B, emoji) once, and GDI
+            # then measures only its first surrogate
+            buffer = ctypes.create_unicode_buffer(text)
             size = wintypes.SIZE()
-            _gdi32.GetTextExtentPoint32W(dc, text, len(text), ctypes.byref(size))
+            _gdi32.GetTextExtentPoint32W(dc, buffer, len(buffer) - 1, ctypes.byref(size))
             widths[text] = size.cx
         return face.value, widths
     finally:
@@ -207,10 +211,16 @@ class CandidateMaxWidthTests(unittest.TestCase):
 class BackendColumnTests(unittest.TestCase):
     """python/candidate_layout.py, which 新酷音's ↑/↓ step by, computes the same
     columns as this model. A page of phrases is wider: at the default 16pt and
-    340px, two-character phrases show 4 to a row and three-character ones 3."""
+    340px, two-character phrases show 4 to a row and three-character ones 3.
+    Characters outside the BMP are two UTF-16 units: the libchewing dictionary
+    has CJK Ext-B characters, and 特殊符號 can hold emoji. The backend measured
+    only their first surrogate (half the width) and counted too many columns."""
 
     PAGES = (list(SAMPLE_CANDIDATES), ["意義", "異議", "熠熠", "奕奕", "意譯", "異義", "易易", "悒悒", "義役"],
-             ["新酷音", "心酷音", "新苦音", "欣酷音"], ["你", "妳", "中華民國"])
+             ["新酷音", "心酷音", "新苦音", "欣酷音"], ["你", "妳", "中華民國"],
+             [chr(0x1F600 + i) for i in range(9)],                  # emoji
+             [chr(0x1F600) * 2, chr(0x1F601) * 2, chr(0x1F602)],
+             list("你妳擬鹿七乙虍") + [chr(0x2010C), "倪"])         # one Ext-B character
 
     def test_columns_match_the_model(self):
         import candidate_layout
