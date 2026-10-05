@@ -1065,9 +1065,10 @@ class ChewingTextService(TextService):
     # 使用者按下語言列按鈕
     def onCommand(self, commandId, commandType):
         print("onCommand", commandId, commandType)
-        if commandId == ID_SWITCH_LANG and commandType == COMMAND_LEFT_CLICK:  # 切換中英文模式
+        # 語言列按鈕 (左鍵) 與輸入模式圖示的選單 (見 onMenu) 都用這兩個 ID
+        if commandId == ID_SWITCH_LANG and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換中英文模式
             self.toggleLanguageMode()
-        elif commandId == ID_SWITCH_SHAPE and commandType == COMMAND_LEFT_CLICK:  # 切換全形/半形
+        elif commandId == ID_SWITCH_SHAPE and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換全形/半形
             self.toggleShapeMode()
         elif commandId == ID_SETTINGS or commandId == ID_USER_PHRASE_EDITOR:  # 開啟設定工具 or 編輯辭庫
             if commandId == ID_USER_PHRASE_EDITOR:  # 編輯使用者辭庫
@@ -1118,8 +1119,20 @@ class ChewingTextService(TextService):
     def onMenu(self, buttonId):
         # 設定按鈕 (windows 8 mode icon 按鈕也使用同一個選單)
         if buttonId == "settings" or buttonId == "windows-mode-icon":
+            cfg = chewingConfig
+            # Windows 10/11 預設不顯示語言列的中英、全半形按鈕，以前全形只能再按一次
+            # Shift+空白鍵切回來。勾選表示目前的狀態；鍵盤關閉時 (沒有 libchewing
+            # context) 不能切換
+            canSwitch = self.chewingContext is not None
+            langText = "中文模式 (Shift)" if cfg.switchLangWithShift else "中文模式"
+            shapeText = "全形 (Shift+空白鍵)" if cfg.enableShiftSpace else "全形"
             # 用 json 語法表示選單結構
             return [
+                {"text": langText, "id": ID_SWITCH_LANG,
+                 "checked": self.langMode == CHINESE_MODE, "enabled": canSwitch},
+                {"text": shapeText, "id": ID_SWITCH_SHAPE,
+                 "checked": self.shapeMode == FULLSHAPE_MODE, "enabled": canSwitch},
+                {},
                 {"text": "新酷音官方網站 (&W)", "id": ID_WEBSITE},
                 {"text": "新酷音線上討論區 (&G)", "id": ID_GROUP},
                 {},

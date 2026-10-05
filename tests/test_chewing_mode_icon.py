@@ -6,6 +6,7 @@ the real libchewing (see chewing_harness).
 - The tooltip was always 「中英文切換」, and nothing on the taskbar showed 全形:
   it now names the IME and the state, and follows Shift+Space.
 - A closed keyboard only disabled the icon, which kept showing 中.
+- The right-click menu could not show or switch 中/英 and 全/半形.
 """
 
 import os
@@ -160,6 +161,61 @@ class KeyboardClosedTests(ChewingTestCase):
             page = f.read()
         self.assertRegex(page, r'for="disableOnStartup">[^<]*</label>\s*<div class="setting-hint">[^<]*'
                                r'<kbd>Ctrl</kbd>\+<kbd>空白鍵</kbd>[^<]*輸入法圖示')
+
+
+class ModeMenuTests(ChewingTestCase):
+    """Windows 10/11 hide the language bar's 中/英 and 全/半形 buttons, and the
+    right-click menu had neither: after an accidental Shift+Space, only another
+    Shift+Space went back to half width."""
+
+    def menu(self, s, button="windows-mode-icon"):
+        return ch.request(s, "onMenu", id=button)["return"]
+
+    def item(self, menu, command):
+        items = [item for item in menu if item.get("id") == command]
+        self.assertEqual(len(items), 1, command)
+        return items[0]
+
+    def modes(self, menu):
+        lang, shape = self.item(menu, module.ID_SWITCH_LANG), self.item(menu, module.ID_SWITCH_SHAPE)
+        return lang["checked"], shape["checked"]
+
+    def test_menu_shows_and_switches_the_modes(self):
+        s = self.service(switchLangWithShift=True, enableShiftSpace=True)
+        for button in ("windows-mode-icon", "settings"):  # the language bar's 設定 button has the same menu
+            menu = self.menu(s, button)
+            self.assertEqual([self.item(menu, command)["text"] for command in (module.ID_SWITCH_LANG, module.ID_SWITCH_SHAPE)],
+                             ["中文模式 (Shift)", "全形 (Shift+空白鍵)"])
+            self.assertEqual(self.modes(menu), (True, False))
+        reply = self.click(s, MENU, module.ID_SWITCH_SHAPE)
+        self.assertEqual(s.chewingContext.get_ShapeMode(), 1)
+        self.assertEqual(mode_icon(reply)["tooltip"], "新酷音：中文、全形（按一下切換中英文）")
+        self.assertEqual(self.modes(self.menu(s)), (True, True))
+        reply = self.click(s, MENU, module.ID_SWITCH_LANG)
+        self.assertEqual(s.chewingContext.get_ChiEngMode(), ENGLISH)
+        self.assertEqual(self.modes(self.menu(s)), (False, True))
+        self.click(s, MENU, module.ID_SWITCH_SHAPE)
+        self.click(s, MENU, module.ID_SWITCH_LANG)
+        self.assertEqual(self.modes(self.menu(s)), (True, False))
+        # a right click on the language bar's own buttons still does nothing
+        self.click(s, RIGHT_CLICK, module.ID_SWITCH_LANG)
+        self.click(s, RIGHT_CLICK, module.ID_SWITCH_SHAPE)
+        self.assertEqual(self.modes(self.menu(s)), (True, False))
+
+    def test_shortcuts_are_named_only_when_they_are_on(self):
+        s = self.service(switchLangWithShift=False, enableShiftSpace=False)
+        menu = self.menu(s)
+        self.assertEqual([self.item(menu, command)["text"] for command in (module.ID_SWITCH_LANG, module.ID_SWITCH_SHAPE)],
+                         ["中文模式", "全形"])
+
+    def test_greyed_out_while_the_keyboard_is_closed(self):
+        s = self.service()
+        self.assertTrue(self.item(self.menu(s), module.ID_SWITCH_LANG)["enabled"])
+        ch.request(s, "onKeyboardStatusChanged", opened=False)
+        menu = self.menu(s)
+        for command in (module.ID_SWITCH_LANG, module.ID_SWITCH_SHAPE):
+            self.assertIs(self.item(menu, command)["enabled"], False)
+        self.assertEqual(self.modes(menu), (True, False))  # the modes it reopens with
 
 
 class ModeIconClickTests(ChewingTestCase):
