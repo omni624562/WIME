@@ -40,6 +40,7 @@ TextService::TextService(ImeModule* module):
 	candidateListElementId_(0),
 	candidateWindow_(nullptr),
 	showingCandidates_(false),
+	candidateCursor_(0),
 	updateFont_(false),
 	candPerRow_(10),
 	selKeys_(L"1234567890"),
@@ -132,6 +133,8 @@ void TextService::onSetFocus() {
 void TextService::onKillFocus() {
 	if (client_)
 		client_->onKillFocus();
+	// the backends drop their cursor on focus loss too (textService.py onKillFocus)
+	candidateCursor_ = 0;
 	// also when only the window exists: it is topmost and must not stay behind
 	// over other apps even if showingCandidates_ somehow missed it
 	if (showingCandidates() || candidateWindow_)
@@ -368,6 +371,10 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 	for (size_t i = 0; i < shownCandidates; ++i) {
 		candidateWindow_->add(candidates_[i], selKeys_[i]);
 	}
+	// clear() put the highlight back on the first item. A list laid out again
+	// (re-shown after the app ended the composition, or redrawn without the
+	// message) keeps the item the backend's Enter would pick.
+	candidateWindow_->setCurrentSel(candidateCursor_);
 	candidateWindow_->recalculateSize();
 	candidateWindow_->refresh();
 
