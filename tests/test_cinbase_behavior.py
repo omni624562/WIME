@@ -334,6 +334,32 @@ class SingleSymbolMenuItemTests(unittest.TestCase):
 
 
 @h.requires_tables
+class MenuLabelTests(unittest.TestCase):
+    def test_symbol_category_names(self):
+        # 「Unicode」看不出是什麼（內容是 ♨☀♠♥♪☺ 等雜項符號）
+        service = h.make_service("chedayi")
+        open_function_menu(service)
+        pick(service, "特殊符號")
+        self.assertIn("其他符號", service.menucandidates)      # every page, not only the first
+        self.assertNotIn("Unicode", service.menucandidates)
+
+    def test_emoji_category_names(self):
+        # 錯字「易經八掛」；「表情符號」同時是主選單項目、表情符號頁的第一類，
+        # 又是「其它符號」底下 ☹☺☻ 的名稱
+        service = h.make_service("chedayi")
+        open_function_menu(service)
+        pick(service, "表情符號")
+        pick(service, "其它符號")
+        names = service.menucandidates
+        self.assertIn("易經八卦", names)
+        self.assertNotIn("易經八掛", names)
+        self.assertNotIn("表情符號", names)
+        emoji = h.cinbase.CinBase.emoji
+        self.assertEqual(emoji.getCharDef("miscellaneous", "臉孔"), ["☹", "☺", "☻"])
+        self.assertEqual(emoji.getCharDef("miscellaneous", "易經八卦")[0], "☰")
+
+
+@h.requires_tables
 class SelKeysSwitchTests(unittest.TestCase):
     """大易在每個新 client 的第一個鍵、進出 ` 功能選單時會換選字鍵。以前那個鍵放開時
     重送候選清單：頁碼（1/2）被清成空字串；候選窗沒在顯示時，重送的清單沒有

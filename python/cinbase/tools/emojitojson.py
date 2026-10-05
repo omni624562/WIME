@@ -106,7 +106,7 @@ class emoji():
                     self.emoticons["gesture"] = [chr(i)]
 
         self.miscellaneous = {} # 其它符號
-        self.miscellaneous_keynames = (["天氣與占星", "其它符號", "棋牌與博弈", "指向符號", "警告標誌", "醫療符號", "宗教與政治", "易經八掛", "表情符號",
+        self.miscellaneous_keynames = (["天氣與占星", "其它符號", "棋牌與博弈", "指向符號", "警告標誌", "醫療符號", "宗教與政治", "易經八卦", "臉孔",
                                         "星座符號", "音樂符號", "十字架", "資源回收筒", "地圖指標", "性別符號", "圈號與星號", "系譜符號", "體育運動", "交通標誌"])
 
         for i in range(0x2600, 0x2700): # 其它符號 (Miscellaneous Symbols)
@@ -148,12 +148,12 @@ class emoji():
                     self.miscellaneous["religiousandpolitical"].append(chr(i))
                 except KeyError:
                     self.miscellaneous["religiousandpolitical"] = [chr(i)]
-            elif i in range(0x2630, 0x2638) or i in range(0x268A, 0x2690): # 易經八掛
+            elif i in range(0x2630, 0x2638) or i in range(0x268A, 0x2690): # 易經八卦
                 try:
                     self.miscellaneous["yijingtrigram"].append(chr(i))
                 except KeyError:
                     self.miscellaneous["yijingtrigram"] = [chr(i)]
-            elif i in range(0x2639, 0x263C): # 表情符號
+            elif i in range(0x2639, 0x263C): # 臉孔
                 try:
                     self.miscellaneous["emoticons"].append(chr(i))
                 except KeyError:
