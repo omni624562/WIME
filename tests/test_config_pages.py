@@ -16,6 +16,9 @@ disabled then, with a hint.
 fragments + js/config.js): the page never had #candPerRow, #candPerPage,
 #candMaxItems or #selExample, but config.js still set them up.
 
+大易/酷倉 智慧選字: the hints described frequency and recency ranking, but it
+only moves a character up after a previous character it followed before.
+
 大易/酷倉 text data (js/data_format.js, run in node when it is installed): the
 page refused data the backend reads fine. A blank line (a trailing newline), a
 UTF-8 BOM or an empty 簡易符號 box in any text tab blocked 套用設定 for every
@@ -219,6 +222,43 @@ class ConfigPageTests(unittest.TestCase):
                           r'checjConfig\.enableShiftSpace = true;\s*\}', defaults)
         self.assertIsNotNone(match)
         self.assertLess(match.start(), defaults.index("if (!modernDefaultIme)"))
+
+    def test_cinbase_smart_select_hints_describe_context_prediction(self):
+        # 智慧選字 ranks only by the previous character (cin.py sortByCount(),
+        # tests/test_smartselect_spec.py); the hints described frequency and recency
+        # ranking, which it never does. 近期選字優先 only orders the characters a
+        # previous character already picked, so it is off whenever 前一字上下文 is.
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            page = f.read()
+        hints = dict((name, (label, hint)) for name, label, hint in re.findall(
+            r'<label for="(\w+)">([^<]*)</label>\s*<div class="setting-hint">([^<]*)</div>', page))
+
+        label, hint = hints["intelligentSelect"]
+        self.assertEqual(label, "智慧選字")
+        self.assertIn("在同一個前一字之後選過的字", hint)
+        self.assertIn("沒有前一字的紀錄時不改變順序", hint)
+        label, hint = hints["intelligentSelectContext"]
+        self.assertEqual(label, "前一字上下文")  # the ` menu's 「智慧選字：前一字上下文」
+        self.assertIn("關閉時智慧選字不改變候選順序", hint)
+        self.assertIn("仍會記錄選字", hint)      # addIntelligentSelectCount() checks intelligentSelect only
+        label, hint = hints["intelligentSelectRecent"]
+        self.assertEqual(label, "近期選字優先")
+        self.assertIn("同一個前一字之後選過好幾個字時", hint)
+        self.assertIn("需開啟「前一字上下文」", hint)
+        # sortByPhrase() moves what follows the previous character in the phrase table
+        self.assertIn("能和前一個字組成聯想字詞的字", hints["sortByPhrase"][1])
+        smart = "".join(label + hint for name, (label, hint) in hints.items() if name.startswith("intelligentSelect"))
+        for old in ("常用字排到", "使用習慣", "最近選過的字會優先出現", "加權"):
+            self.assertNotIn(old, smart)
+        self.assertLess(page.index('id="intelligentSelectContext_item"'), page.index('id="intelligentSelectRecent_item"'))
+
+        script = os.path.join(CINBASE_CONFIG_DIR, "js", "config.js")
+        bindings = re.findall(r'bindDependentEnable\(([^,\[]+|\[[^\]]*\]), \[\s*(.*?)\s*\]\);',
+                              function_body(script, "pageReady"), re.S)
+        parents = {field: re.findall(r'"(\w+)"', parent)
+                   for parent, dependents in bindings for field in re.findall(r'field: "(\w+)"', dependents)}
+        self.assertEqual(parents["intelligentSelectContext"], ["intelligentSelect"])
+        self.assertEqual(parents["intelligentSelectRecent"], ["intelligentSelect", "intelligentSelectContext"])
 
     def test_pages_mark_the_max_width_as_migrated_on_save(self):
         # The backend replaces a stored candidateMaxWidth of 300 (the old default)

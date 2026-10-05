@@ -103,22 +103,22 @@
 
                             <input type="checkbox" id="sortByPhrase" name="sortByPhrase" />
                             <label for="sortByPhrase">優先以聯想字詞排序候選清單</label>
-                            <div class="setting-hint">把聯想詞庫中較常用的字詞排到候選清單前面。</div>
+                            <div class="setting-hint">能和前一個字組成聯想字詞的字排到候選清單前面，例如打完「歌」之後，「曲」會排在第一個。</div>
 
                             <input type="checkbox" id="intelligentSelect" name="intelligentSelect" />
                             <label for="intelligentSelect">智慧選字</label>
-                            <div class="setting-hint">依你的使用習慣,自動把常用字排到候選清單前面。</div>
+                            <div class="setting-hint">在同一個前一字之後選過的字，下次會排到前面；沒有前一字的紀錄時不改變順序，不會因為某個字常用就提前。</div>
+
+                            <div class="setting-subitem" id="intelligentSelectContext_item">
+                                <input type="checkbox" id="intelligentSelectContext" name="intelligentSelectContext" />
+                                <label for="intelligentSelectContext">前一字上下文</label>
+                                <div class="setting-hint">智慧選字靠前一個字決定要提前哪個字；關閉時智慧選字不改變候選順序，但仍會記錄選字，重新開啟後沿用。</div>
+                            </div>
 
                             <div class="setting-subitem" id="intelligentSelectRecent_item">
                                 <input type="checkbox" id="intelligentSelectRecent" name="intelligentSelectRecent" />
                                 <label for="intelligentSelectRecent">近期選字優先</label>
-                                <div class="setting-hint">最近選過的字會優先出現在候選清單。</div>
-                            </div>
-
-                            <div class="setting-subitem" id="intelligentSelectContext_item">
-                                <input type="checkbox" id="intelligentSelectContext" name="intelligentSelectContext" />
-                                <label for="intelligentSelectContext">前一字上下文加權</label>
-                                <div class="setting-hint">參考前一個字,推測這次較合適的字。</div>
+                                <div class="setting-hint">同一個前一字之後選過好幾個字時，最近選過的較優先；需開啟「前一字上下文」。</div>
                             </div>
                         </div>
                     </div>

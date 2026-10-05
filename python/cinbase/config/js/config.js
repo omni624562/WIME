@@ -1271,14 +1271,15 @@ function pageReady() {
         $("#switchLangWithWhichShift").prop("disabled", !this.checked);
     });
 
-    // Phase 0: 父項關閉時，自動停用（並變灰）相依的子選項與下拉
-    function bindDependentEnable(parentId, dependents) {
-        var $parent = $("#" + parentId);
-        if (!$parent.length) {
+    // Phase 0: 父項關閉時，自動停用（並變灰）相依的子選項與下拉。
+    // parentIds 可以是一個 id 或 id 陣列；有多個父項時要全部開啟，子選項才可用
+    function bindDependentEnable(parentIds, dependents) {
+        var $parents = $($.map([].concat(parentIds), function(id) { return "#" + id; }).join(", "));
+        if (!$parents.length) {
             return;
         }
         function apply() {
-            var on = $parent.prop("checked");
+            var on = $parents.filter(":checked").length == $parents.length;
             dependents.forEach(function(dep) {
                 $("#" + dep.field).prop("disabled", !on);
                 if (dep.item) {
@@ -1287,14 +1288,18 @@ function pageReady() {
             });
         }
         apply();
-        $parent.on("click", apply);
+        $parents.on("click", apply);
     }
 
     // selWildcardType / selRCinType / selHCinType 的停用狀態由 disableControlItem()
     // 同時考量「碼表相容性」與「對應功能核取是否開啟」；見該函式末端的相依連動。
     bindDependentEnable("intelligentSelect", [
-        { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" },
         { field: "intelligentSelectContext", item: "intelligentSelectContext_item" }
+    ]);
+    // 近期選字優先只在「前一字上下文」選出的字之間排先後（cin.py sortByCount()），
+    // 關掉上下文時它沒有任何作用
+    bindDependentEnable(["intelligentSelect", "intelligentSelectContext"], [
+        { field: "intelligentSelectRecent", item: "intelligentSelectRecent_item" }
     ]);
 
     // Phase 0: 未儲存變更提示。configReady 在初始化完成後才設為 true，
