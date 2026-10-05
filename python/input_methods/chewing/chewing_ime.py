@@ -426,6 +426,10 @@ class ChewingTextService(TextService):
     # 「中英文切換」，看不出目前的狀態；這個圖示也沒有全形/半形的樣子，在 Windows 10/11
     # (預設不顯示語言列) 只有這裡看得出現在是全形
     def modeIconInfo(self):
+        if not self.keyboardOpen:
+            # 鍵盤關閉 (Ctrl+空白鍵、預設以停用輸入法模式啟動)：輸入的是英數，用英數的
+            # 圖示 (不另外畫圖示)。以前只把圖示設成 disabled，還是顯示「中」，按了也打不開
+            return os.path.join(self.icon_dir, "eng.ico"), "新酷音：已關閉（按一下或按 Ctrl+空白鍵開啟）"
         if self.langMode == CHINESE_MODE:
             lang = "英文（CapsLock）" if self.capsLockTypesEnglish() else "中文"
         else:
@@ -433,11 +437,11 @@ class ChewingTextService(TextService):
         shape = "全形" if self.shapeMode == FULLSHAPE_MODE else "半形"
         return self.langIconPath(), "新酷音：%s、%s（按一下切換中英文）" % (lang, shape)
 
-    def updateModeIcon(self):
+    def updateModeIcon(self, **kwargs):
         # FIXME: we need a better set of icons to meet the
         #        WIndows 8 IME guideline and UX guidelines.
         icon, tooltip = self.modeIconInfo()
-        self.changeButton("windows-mode-icon", icon=icon, tooltip=tooltip)
+        self.changeButton("windows-mode-icon", icon=icon, tooltip=tooltip, **kwargs)
 
     def addLangButtons(self):
         if self.hasLangButtons:
@@ -1081,7 +1085,12 @@ class ChewingTextService(TextService):
         # windows 8 mode icon：只有左鍵切換中英文。右鍵是開選單，選單出不來時 (後端
         # 忙碌或剛重新連線) C++ 端會改送右鍵的 onCommand，以前因此悄悄切成英文
         elif commandId == ID_MODE_ICON and commandType == COMMAND_LEFT_CLICK:
-            self.toggleLanguageMode()  # 切換中英文模式
+            if not self.keyboardOpen:
+                # 鍵盤關閉時按一下重新開啟 (C++ 端照回覆開啟鍵盤，接著送來
+                # onKeyboardStatusChanged)；以前什麼都不做，只能按 Ctrl+空白鍵
+                self.setKeyboardOpen(True)
+            else:
+                self.toggleLanguageMode()  # 切換中英文模式
         elif commandId == ID_WEBSITE:  # visit chewing website
             os.startfile("https://chewing.im/")
         # chewing.im 給使用者的討論群組 (以前開的 chewing-devel 是開發者的郵件論壇)
@@ -1220,10 +1229,11 @@ class ChewingTextService(TextService):
             # disable 其他語言列按鈕
             self.removeLangButtons()
 
-        # Windows 8 systray IME mode icon
+        # Windows 8 systray IME mode icon：鍵盤關閉時顯示「已關閉」(見 modeIconInfo)，
+        # 不再設成 disabled，按一下才能重新開啟 (見 onCommand)；enable 讓以前設成
+        # disabled 的圖示恢復
         if self.client.isWindows8Above:
-            # 若鍵盤關閉，我們需要把 widnows 8 mode icon 設定為 disabled
-            self.changeButton("windows-mode-icon", enable=opened)
+            self.updateModeIcon(enable=True)
         self.updateLangButtons()
 
     # 當中文編輯結束時會被呼叫。若中文編輯不是正常結束，而是因為使用者

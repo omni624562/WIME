@@ -5,8 +5,10 @@ the real libchewing (see chewing_harness).
   then sends the click as onCommand(ID_MODE_ICON, COMMAND_RIGHT_CLICK).
 - The tooltip was always 「中英文切換」, and nothing on the taskbar showed 全形:
   it now names the IME and the state, and follows Shift+Space.
+- A closed keyboard only disabled the icon, which kept showing 中.
 """
 
+import os
 import unittest
 
 import cinbase_harness
@@ -108,6 +110,56 @@ class ModeIconTooltipTests(ChewingTestCase):
                 # without 使用 CapsLock 切換中英文模式, CapsLock does not switch to English:
                 # the icon used to show it anyway
                 self.assertEqual((icon_name(entry), entry["tooltip"]), (icon, tooltip))
+
+
+class KeyboardClosedTests(ChewingTestCase):
+    """With the keyboard closed (Ctrl+Space, 預設以停用輸入法模式啟動) the mode icon
+    was only disabled: it still showed 中, input was English, and a click could
+    not open the keyboard (Ctrl+Space was the only way, and nothing said so)."""
+
+    CLOSED = ("eng.ico", "新酷音：已關閉（按一下或按 Ctrl+空白鍵開啟）")
+
+    def state(self, entry):
+        return icon_name(entry), entry["tooltip"]
+
+    def test_closed_keyboard_shows_it_and_a_click_reopens(self):
+        s = self.service()
+        reply = ch.request(s, "onKeyboardStatusChanged", opened=False)
+        self.assertEqual(self.state(mode_icon(reply)), self.CLOSED)  # still traC.ico before
+        self.assertIs(mode_icon(reply)["enable"], True)  # False before
+        reply = self.click(s)
+        self.assertIs(reply.get("openKeyboard"), True)  # nothing before
+        # the C++ side opens the keyboard and reports it
+        reply = ch.request(s, "onKeyboardStatusChanged", opened=True)
+        self.assertEqual(self.state(mode_icon(reply)), ("traC.ico", "新酷音：中文、半形（按一下切換中英文）"))
+        self.assertEqual("".join(ch.type_keys(s, list("su3") + ["ENTER"])[0]), "你")  # still Chinese
+
+    def test_reopening_keeps_the_modes(self):
+        s = self.service(enableShiftSpace=True)
+        self.click(s)  # English
+        ch.request(s, "onPreservedKey", guid=module.SHIFT_SPACE_GUID)  # full width
+        ch.request(s, "onKeyboardStatusChanged", opened=False)
+        self.click(s)
+        reply = ch.request(s, "onKeyboardStatusChanged", opened=True)
+        self.assertEqual(self.state(mode_icon(reply)), ("eng.ico", "新酷音：英文、全形（按一下切換中英文）"))
+
+    def test_disabled_on_startup(self):
+        override = ch.ConfigOverride(disableOnStartup=True)
+        self.addCleanup(override.restore)
+        s = module.ChewingTextService(ch.DummyClient())
+        ch._services.append(s)
+        reply = ch.request(s, "onActivate", isKeyboardOpen=True)
+        self.assertIs(reply.get("openKeyboard"), False)
+        # when the keyboard was closed already, no onKeyboardStatusChanged follows
+        self.assertEqual(self.state(mode_icon(reply, "addButton")), self.CLOSED)
+        self.assertIs(self.click(s).get("openKeyboard"), True)
+
+    def test_settings_page_says_how_to_open_it(self):
+        with open(os.path.join(ch.PYTHON_DIR, "input_methods", "chewing", "config_tool.html"),
+                  encoding="utf-8-sig") as f:
+            page = f.read()
+        self.assertRegex(page, r'for="disableOnStartup">[^<]*</label>\s*<div class="setting-hint">[^<]*'
+                               r'<kbd>Ctrl</kbd>\+<kbd>空白鍵</kbd>[^<]*輸入法圖示')
 
 
 class ModeIconClickTests(ChewingTestCase):
