@@ -6,8 +6,9 @@ Driven through handleRequest with the real tables (cinbase_harness).
 import unittest
 
 import cinbase_harness as h
-from cinbase import ID_MODE_ICON, CHINESE_MODE, SHIFT_SPACE_GUID
-from textService import COMMAND_LEFT_CLICK, COMMAND_RIGHT_CLICK
+from cinbase import ID_MODE_ICON, ID_SWITCH_LANG, ID_SWITCH_SHAPE, SHIFT_SPACE_GUID
+from cinbase import CHINESE_MODE, ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE
+from textService import COMMAND_LEFT_CLICK, COMMAND_MENU, COMMAND_RIGHT_CLICK
 
 IMES = ("chedayi", "checj")
 NAMES = {"chedayi": "大易", "checj": "酷倉"}
@@ -156,8 +157,82 @@ class ClosedKeyboardTests(unittest.TestCase):
     def test_shape_toggle_while_closed_keeps_the_off_icon(self):
         service, _ = activate()
         h.request(service, "onKeyboardStatusChanged", opened=False)
-        reply = h.request(service, "onCommand", id=h.cinbase.ID_SWITCH_SHAPE, type=COMMAND_LEFT_CLICK)
+        reply = h.request(service, "onCommand", id=ID_SWITCH_SHAPE, type=COMMAND_LEFT_CLICK)
         self.assertOffIcon(mode_icon(reply, "changeButton"))
+
+
+@h.requires_tables
+class ModeMenuTests(unittest.TestCase):
+    """Win10/11 預設不顯示語言列，右鍵選單以前沒有中英、全半形的項目：
+    不小心按到 Shift+空白鍵變成全形後，只能再按一次快速鍵切回來。"""
+
+    def mode_items(self, service, button="windows-mode-icon"):
+        menu = h.request(service, "onMenu", id=button)["return"]
+        return {item["id"]: item for item in menu[:2]}, menu[2]
+
+    def test_items_show_the_current_state(self):
+        for ime in IMES:
+            with self.subTest(ime=ime):
+                service, _ = activate(ime)
+                for button in ("windows-mode-icon", "settings"):
+                    items, separator = self.mode_items(service, button)
+                    self.assertEqual(separator, {})
+                    self.assertEqual(items[ID_SWITCH_LANG]["text"], "中文模式（Shift）")
+                    self.assertIs(items[ID_SWITCH_LANG]["checked"], True)
+                    self.assertEqual(items[ID_SWITCH_SHAPE]["text"], "全形（Shift+空白鍵）")
+                    self.assertIs(items[ID_SWITCH_SHAPE]["checked"], False)
+
+    def test_selecting_the_items(self):
+        # 選單項目以 COMMAND_MENU 送來（以前只接受語言列按鈕的左鍵）
+        for ime in IMES:
+            with self.subTest(ime=ime):
+                service, _ = activate(ime)
+                reply = h.request(service, "onCommand", id=ID_SWITCH_SHAPE, type=COMMAND_MENU)
+                self.assertEqual(service.shapeMode, FULLSHAPE_MODE)
+                self.assertIn("全形", mode_icon(reply, "changeButton")["tooltip"])
+                self.assertIs(self.mode_items(service)[0][ID_SWITCH_SHAPE]["checked"], True)
+
+                h.request(service, "onCommand", id=ID_SWITCH_LANG, type=COMMAND_MENU)
+                self.assertEqual(service.langMode, ENGLISH_MODE)
+                self.assertIs(self.mode_items(service)[0][ID_SWITCH_LANG]["checked"], False)
+
+                h.request(service, "onCommand", id=ID_SWITCH_SHAPE, type=COMMAND_MENU)
+                h.request(service, "onCommand", id=ID_SWITCH_LANG, type=COMMAND_MENU)
+                self.assertEqual((service.langMode, service.shapeMode), (CHINESE_MODE, HALFSHAPE_MODE))
+
+    def test_right_click_on_the_language_bar_buttons_does_nothing(self):
+        service, _ = activate()
+        h.request(service, "onCommand", id=ID_SWITCH_LANG, type=COMMAND_RIGHT_CLICK)
+        h.request(service, "onCommand", id=ID_SWITCH_SHAPE, type=COMMAND_RIGHT_CLICK)
+        self.assertEqual((service.langMode, service.shapeMode), (CHINESE_MODE, HALFSHAPE_MODE))
+
+    def test_chinese_item_reopens_a_closed_keyboard(self):
+        service, _ = activate(defaultEnglish=True)
+        h.request(service, "onKeyboardStatusChanged", opened=False)
+        self.assertIs(self.mode_items(service)[0][ID_SWITCH_LANG]["checked"], False)
+        reply = h.request(service, "onCommand", id=ID_SWITCH_LANG, type=COMMAND_MENU)
+        self.assertIs(reply.get("openKeyboard"), True)
+        self.assertEqual(service.langMode, CHINESE_MODE)
+        self.assertIs(self.mode_items(service)[0][ID_SWITCH_LANG]["checked"], True)
+
+    def test_closed_keyboard_unchecks_chinese(self):
+        service, _ = activate()
+        h.request(service, "onKeyboardStatusChanged", opened=False)
+        self.assertIs(self.mode_items(service)[0][ID_SWITCH_LANG]["checked"], False)
+
+    def test_shortcut_hints_follow_the_settings(self):
+        cases = [
+            ({"switchLangWithShift": False}, "中文模式", "全形（Shift+空白鍵）"),
+            ({"switchLangWithWhichShift": 1}, "中文模式（左 Shift）", "全形（Shift+空白鍵）"),
+            ({"switchLangWithWhichShift": 2}, "中文模式（右 Shift）", "全形（Shift+空白鍵）"),
+            ({"enableShiftSpace": False}, "中文模式（Shift）", "全形"),
+        ]
+        for config, lang_text, shape_text in cases:
+            with self.subTest(config=config):
+                service, _ = activate(**config)
+                items, _ = self.mode_items(service)
+                self.assertEqual(items[ID_SWITCH_LANG]["text"], lang_text)
+                self.assertEqual(items[ID_SWITCH_SHAPE]["text"], shape_text)
 
 
 if __name__ == "__main__":

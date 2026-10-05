@@ -14,7 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from keycodes import *  # for VK_XXX constants
-from textService import COMMAND_LEFT_CLICK
+from textService import COMMAND_LEFT_CLICK, COMMAND_MENU
 import os.path
 import time
 
@@ -2666,10 +2666,16 @@ class CinBase:
     def onCommand(self, cbTS, commandId, commandType):
         # 用滑鼠或語言列切換中英文、全半形等不會送出按鍵，自動送字後要忽略的空白也一併取消
         cbTS.skipSpaceDeadline = 0.0
-        if commandId == ID_SWITCH_LANG and commandType == 0:  # 切換中英文模式
+        # 語言列按鈕的左鍵，或右鍵選單的「中文模式」「全形」（COMMAND_MENU）
+        if commandId == ID_SWITCH_LANG and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換中英文模式
             self.abandonComposition(cbTS)
-            self.toggleLanguageMode(cbTS)
-        elif commandId == ID_SWITCH_SHAPE and commandType == 0:  # 切換全形/半形
+            if commandType == COMMAND_MENU and self.keyboardClosed(cbTS):
+                # 鍵盤關著時「中文模式」沒打勾，選它就是要打中文：開啟輸入法並切到中文
+                cbTS.langMode = CHINESE_MODE
+                self.reopenKeyboard(cbTS)
+            else:
+                self.toggleLanguageMode(cbTS)
+        elif commandId == ID_SWITCH_SHAPE and commandType in (COMMAND_LEFT_CLICK, COMMAND_MENU):  # 切換全形/半形
             self.abandonComposition(cbTS)
             self.toggleShapeMode(cbTS)
         elif commandId == ID_SETTINGS:  # 開啟設定工具
@@ -2711,7 +2717,7 @@ class CinBase:
         # 設定按鈕 (windows 8 mode icon 按鈕也使用同一個選單)
         if buttonId == "settings" or buttonId == "windows-mode-icon":
             # 用 json 語法表示選單結構
-            return [
+            return self.modeMenuItems(cbTS) + [
                 {"text": "參觀 WIME 官方網站(&W)", "id": ID_WEBSITE},
                 {},
                 {"text": "WIME 錯誤回報(&B)", "id": ID_BUGREPORT},
@@ -2728,6 +2734,24 @@ class CinBase:
                 ]}
             ]
         return None
+
+
+    # 右鍵選單最上面的「中文模式」「全形」，打勾表示目前狀態。Win10/11 預設不顯示
+    # 語言列，「中英文切換」「全形/半形切換」兩個按鈕看不到：以前選單裡沒有這兩項，
+    # 不小心按到 Shift+空白鍵變成全形後，只能再按一次快速鍵切回來
+    def modeMenuItems(self, cbTS):
+        cfg = cbTS.cfg
+        langKey = ""
+        if cfg.switchLangWithShift:
+            langKey = {SWITCH_LANG_WITH_LEFT_SHIFT: "左 Shift",
+                       SWITCH_LANG_WITH_RIGHT_SHIFT: "右 Shift"}.get(cfg.switchLangWithWhichShift, "Shift")
+        return [
+            {"text": "中文模式" + ("（%s）" % langKey if langKey else ""), "id": ID_SWITCH_LANG,
+             "checked": cbTS.langMode == CHINESE_MODE and not self.keyboardClosed(cbTS)},
+            {"text": "全形" + ("（Shift+空白鍵）" if cfg.enableShiftSpace else ""), "id": ID_SWITCH_SHAPE,
+             "checked": cbTS.shapeMode == FULLSHAPE_MODE},
+            {},
+        ]
 
 
     # 鍵盤開啟/關閉時會被呼叫 (在 Windows 10 Ctrl+Space 時)
