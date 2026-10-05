@@ -248,8 +248,9 @@
                                     </div>
                                     <input type="hidden" id="candidateKeyStyle" name="candidateKeyStyle" data-value-type="string" />
                                     <div class="candidate-number-row">
+                                        <!-- 橫排時一頁的候選字排成一列（超過最大寬度才換行），candidatePerRow 就是每頁的候選數（大易最多 6 個） -->
                                         <div class="candidate-config-field">
-                                            <label for="candidatePerRow">每列候選字數</label>
+                                            <label for="candidatePerRow">每頁候選字數</label>
                                             <input type="text" id="candidatePerRow" name="candidatePerRow" />
                                         </div>
                                         <div class="candidate-config-field">
@@ -273,6 +274,7 @@
                                             <input type="text" id="candidateOpacity" name="candidateOpacity" />
                                         </div>
                                     </div>
+                                    <div id="candidatePerRowHint" class="setting-hint candidate-row-hint" style="display:none;"></div>
                                 </div>
                                 <div class="candidate-theme-heading">
                                     <span>候選窗配色</span>

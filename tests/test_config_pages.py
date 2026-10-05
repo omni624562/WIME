@@ -19,6 +19,12 @@ fragments + js/config.js): the page never had #candPerRow, #candPerPage,
 大易/酷倉 智慧選字: the hints described frequency and recency ranking, but it
 only moves a character up after a previous character it followed before.
 
+大易/酷倉 每頁候選字數 (#candidatePerRow, run in node): in the horizontal layout
+it is the page size, which the backend caps at the number of selection keys
+(6 for 大易), and the candidate window wraps a page that is wider than
+候選窗最大寬度. The page let 大易 pick 7-10 and its preview wrapped at the width
+of the theme card instead of where the window does.
+
 大易/酷倉 text data (js/data_format.js, run in node when it is installed): the
 page refused data the backend reads fine. A blank line (a trailing newline), a
 UTF-8 BOM or an empty 簡易符號 box in any text tab blocked 套用設定 for every
@@ -655,6 +661,119 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
         result, = self.save([({"extendtable": self.REFUSED["3"]}, ["extendtable"])])
         self.assertIn("「&lt;b&gt;測&lt;/b&gt; 試」", result["alerts"][0])
         self.assertNotIn("<b>", result["alerts"][0])
+
+
+def backend_max_cand_per_page():
+    """maxCandPerPage() of cinbase/pager.py, loaded by itself."""
+    spec = importlib.util.spec_from_file_location("_pager", os.path.join(PYTHON_DIR, "cinbase", "pager.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.maxCandPerPage
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class CandidatePageSizeTests(unittest.TestCase):
+    """每頁候選字數 on the 大易/酷倉 page: the page-size limit, and the candidate
+    window layout the preview draws (js/config.js, run in node)."""
+
+    SCRIPTS = ("candidate_appearance.js", "data_format.js", "config.js")
+
+    RUNNER = r"""
+const fs = require("fs"), vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const source = path => {
+    const text = fs.readFileSync(path, "utf8");
+    return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+};
+const contexts = {};
+const context = ime => {
+    if (contexts[ime]) return contexts[ime];
+    const $ = sel => { if (typeof sel !== "function") throw new Error("no page here: " + sel); };
+    $.get = () => ({ fail() {} });                              // loadConfig() when the script loads
+    const sandbox = {
+        $, jQuery: $, imeFolderName: ime, includeScriptFile() {},
+        navigator: { userAgent: "", appVersion: "" },
+        document: { getElementsByTagName: () => [{ innerText: "" }] },
+    };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    for (const script of input.scripts) {
+        vm.runInContext(source(script), sandbox, { filename: script });
+    }
+    return contexts[ime] = sandbox;
+};
+process.stdout.write(JSON.stringify(input.runs.map(run => {
+    const sandbox = context(run.ime);
+    sandbox.checjConfig = run.config || {};
+    sandbox.args = run.args;
+    return vm.runInContext(run.expression, sandbox);
+})));
+"""
+
+    def run_js(self, runs):
+        """[(ime, expression, args, checjConfig)] -> the value of each expression"""
+        request = {
+            "scripts": [os.path.join(CINBASE_CONFIG_DIR, "js", name) for name in self.SCRIPTS],
+            "runs": [{"ime": ime, "expression": expression, "args": args, "config": config}
+                     for ime, expression, args, config in runs],
+        }
+        result = subprocess.run([NODE, "-e", self.RUNNER], input=json.dumps(request),
+                                capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_page_size_limit_matches_the_backend(self):
+        # more than the selection keys never reach the window (pager.clampCandPerPage())
+        imes = ("chedayi", "checj", "cheliu")
+        limits = self.run_js([(ime, "candidatePageSizeLimit()", None, None) for ime in imes])
+        self.assertEqual(limits, [backend_max_cand_per_page()(ime) for ime in imes])
+        self.assertEqual(limits[0], 6)
+
+        script = os.path.join(CINBASE_CONFIG_DIR, "js", "config.js")
+        self.assertEqual([line for _, line in script_lines(script, r'"#candidatePerRow"\)\.TouchSpin')],
+                         ['$("#candidatePerRow").TouchSpin({min:1, max:candidatePageSizeLimit()});'])
+        with open(os.path.join(CINBASE_CONFIG_DIR, "config.htm"), encoding="utf-8-sig") as f:
+            # horizontal is the only layout the page offers: a row is a page
+            self.assertIn('<label for="candidatePerRow">每頁候選字數</label>', f.read())
+
+    def test_a_stored_page_size_above_the_limit_is_shown_as_the_limit(self):
+        expression = "applyCandidateDefaults(); checjConfig.candidatePerRow"
+        runs = [(ime, expression, None, {"candidatePerRow": value})
+                for ime in ("chedayi", "checj") for value in (1, 6, 7, 10)]
+        self.assertEqual(self.run_js(runs), [1, 6, 6, 6, 1, 6, 7, 10])
+
+    def test_the_layout_is_the_candidate_windows(self):
+        # the columns and the width of a full row, against test_candidate_width's
+        # model of CandidateWindow::recalculateSize() with the real GDI glyph widths.
+        # The page estimates the widths from the font size; below 12pt GDI draws
+        # 大易's ␣ a pixel or two wider than its em.
+        import test_candidate_width as width
+        from cinbase import selkeys
+        style = {"contentMargin": 6, "textMargin": 4}
+        cases, expected = [], []
+        for ime, keys in (("chedayi", selkeys.DAYI_CAND_SELKEYS), ("checj", selkeys.DEFAULT_SELKEYS)):
+            for font_size in (12, 14, 16, 20, 24):
+                for per_row in range(1, backend_max_cand_per_page()(ime) + 1):
+                    cfg = {"candidatePerRow": per_row, "fontSize": font_size, "candidateStyle": style}
+                    for max_width in (220, 260, 300, 320, 340, 400, 460, 520, 600, 720):
+                        expected.append(list(width.row_layout(cfg, keys, "word-first", 96, max_width)))
+                        cases.append((ime, "(l => [l.columns, l.fullRowWidth])(candidateWindowLayout(args))",
+                                      {"fontSize": font_size, "selKeys": keys, "items": per_row, "perRow": per_row,
+                                       "style": style, "wrap": True, "maxWidth": max_width}, None))
+        self.assertEqual(self.run_js(cases), expected)
+
+    def test_the_hint_says_where_the_window_wraps(self):
+        base = {"fontSize": 12, "selKeys": "1234567890", "style": {"contentMargin": 6, "textMargin": 4},
+                "wrap": True, "maxWidth": 320}
+        cases = [dict(base, items=6, perRow=6), dict(base, items=9, perRow=9),
+                 dict(base, items=9, perRow=9, wrap=False), dict(base, items=10, perRow=10, fontSize=30)]
+        hints = self.run_js([("checj", "candidatePerRowHintText(candidateWindowLayout(args))", args, None)
+                             for args in cases])
+        self.assertEqual(hints[0], "")
+        self.assertEqual(hints[1], "候選窗最大寬度 320 一列只放得下 7 個候選字，其餘會換到下一列；"
+                                   "要排成一列，請把最大寬度調到約 402 以上。")
+        self.assertEqual(hints[2], "")   # does not wrap: one row however wide
+        self.assertIn("最大寬度調到上限 720 也排不成一列", hints[3])
 
 
 if __name__ == "__main__":
