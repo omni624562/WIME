@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from keycodes import *  # for VK_XXX constants
+from textService import COMMAND_LEFT_CLICK
 import os.path
 import time
 
@@ -2682,7 +2683,9 @@ class CinBase:
             # 使用我們自帶的 python runtime exe 執行 config tool
             # 此處也可以用 subprocess，不過使用 windows API 比較方便
             r = windll.shell32.ShellExecuteW(None, "open", python_exe, config_tool, self.cinbasecurdir, 0)  # SW_HIDE = 0 (hide the window)
-        elif commandId == ID_MODE_ICON: # windows 8 mode icon
+        # windows 8 mode icon：只有左鍵切換。右鍵本來開選單，onMenu 失敗（後端卡住、
+        # 管道剛斷）時 C++ 端改送 COMMAND_RIGHT_CLICK，以前也切換，右鍵一下就默默變英文
+        elif commandId == ID_MODE_ICON and commandType == COMMAND_LEFT_CLICK:
             self.abandonComposition(cbTS)
             self.toggleLanguageMode(cbTS)  # 切換中英文模式
         elif commandId == ID_WEBSITE: # visit chewing website
