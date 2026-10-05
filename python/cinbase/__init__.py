@@ -3762,7 +3762,9 @@ class CinBase:
         # 優先以聯想字詞排序候選清單?
         cbTS.sortByPhrase = cfg.sortByPhrase
 
-        # 智慧選字 (依使用者選字頻率自動排序候選清單)?
+        # 智慧選字?（純上下文預測：在同一個前一字之後選過的字才排到前面，沒有前一字
+        # 紀錄時維持碼表順序，不依全域選字次數重排。近期選字優先只在這些字之間比先後；
+        # 關掉前一字上下文就不再重排，但仍會記錄選字。見 cin.sortByCount）
         cbTS.intelligentSelect = getattr(cfg, 'intelligentSelect', True)
         cbTS.intelligentSelectRecent = getattr(cfg, 'intelligentSelectRecent', True)
         cbTS.intelligentSelectContext = getattr(cfg, 'intelligentSelectContext', True)

@@ -31,9 +31,12 @@ TOGGLE_DEFS = [
     ("playSoundWhenNonCand", "拆錯字碼時發出警告嗶聲提示"),
     ("showPhrase", "輸出字串後顯示聯想字詞"),
     ("sortByPhrase", "優先以聯想字詞排序候選清單"),
-    ("intelligentSelect", "智慧選字"),
-    ("intelligentSelectRecent", "智慧選字：近期選字優先"),
-    ("intelligentSelectContext", "智慧選字：前一字上下文"),
+    # 智慧選字只看前一個字：在同一個前一字之後選過的字才會提前，沒有紀錄時維持
+    # 碼表順序；「近期」只在這些字之間比先後（cin.sortByCount）。以前寫成
+    # 「智慧選字」「近期選字優先」，像是常用、最近選的字都會往前排
+    ("intelligentSelect", "智慧選字（依前一字排序）"),
+    ("intelligentSelectRecent", "智慧選字：前一字相同時近期優先"),
+    ("intelligentSelectContext", "智慧選字：參考前一字"),
     ("supportWildcard", "萬用字元查詢"),
     ("imeReverseLookup", "反查輸入字根"),
     ("homophoneQuery", "同音字查詢"),
