@@ -165,8 +165,12 @@ STDMETHODIMP LangBarButton::OnClick(TfLBIClick click, POINT pt, const RECT* prcA
 			if (ret > 0)
 				service->onCommand(ret, TextService::COMMAND_MENU);
 			::DestroyMenu(popupMenu);
-			return S_OK;
 		}
+		// No menu means the onMenu RPC failed (e.g. a pipe left broken by a
+		// launcher restart). Falling through sent onCommand(COMMAND_RIGHT_CLICK),
+		// whose reconnect reached a fresh backend that switched 中/英 instead of
+		// showing anything. A right click on the mode icon only opens the menu.
+		return S_OK;
 	}
 	return Ime::LangBarButton::OnClick(click, pt, prcArea);
 }
