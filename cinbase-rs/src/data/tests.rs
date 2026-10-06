@@ -129,7 +129,7 @@ fn locate(base: &str) -> PathBuf {
 /// Files whose decoding depends on the ANSI code page (expected.json was
 /// made on a cp950 machine).
 fn acp_dependent(base: &str) -> bool {
-    base.starts_with("ansi_") || base.starts_with("bad_utf8")
+    base.starts_with("ansi_") || base.starts_with("bad_utf8") || base.contains("cp950")
 }
 
 #[cfg(windows)]

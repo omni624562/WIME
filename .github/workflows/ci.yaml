@@ -49,6 +49,7 @@ jobs:
         run: |
           cd cinbase-rs
           cargo test --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo build --release
 
       - name: Run Python backend tests
