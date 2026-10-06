@@ -9,9 +9,12 @@
 
 #![allow(dead_code)] // the port is filled in module by module
 
+mod candidate_theme;
+mod config;
 mod data;
 mod env;
 mod keycodes;
+mod pager;
 mod paths;
 mod textservice;
 
