@@ -68,6 +68,20 @@ pub fn py_in(a: &str, b: &str) -> bool {
     b.contains(a)
 }
 
+/// str.index(sub): code-point index of the first occurrence; ValueError
+/// when absent.
+pub fn py_str_index(hay: &str, needle: &str) -> Result<i64, String> {
+    match hay.find(needle) {
+        Some(b) => Ok(hay[..b].chars().count() as i64),
+        None => Err("ValueError: substring not found".into()),
+    }
+}
+
+/// str.upper()
+pub fn py_upper(s: &str) -> String {
+    s.to_uppercase()
+}
+
 /// int(text, 10): surrounding whitespace allowed, ValueError otherwise.
 pub fn py_int(text: &str) -> Result<i64, String> {
     let t = text.trim();

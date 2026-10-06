@@ -16,7 +16,7 @@
 //!   Python loads tables in background threads; here (as in the reference
 //!   backend of tests/diffharness) they load synchronously.
 //! - Files: `events.rs` (requests other than onKeyDown, CB:275-571 and
-//!   CB:2532-2918), `keydown.rs` (onKeyDown, part 2), `helpers.rs` (CB:2920-3609),
+//!   CB:2532-2918), `keydown.rs` / `keydown_core.rs` / `keydown_modes.rs` (onKeyDown), `helpers.rs` (CB:2920-3609),
 //!   `context.rs` (config / tables, CB:3615-4123), `selkeys.rs`, `menu.rs`,
 //!   `compositionbuffer.rs`, `pyutil.rs` (Python string semantics).
 //!
@@ -29,6 +29,8 @@ pub mod context;
 pub mod events;
 pub mod helpers;
 pub mod keydown;
+pub mod keydown_core;
+pub mod keydown_modes;
 pub mod menu;
 pub mod pyutil;
 pub mod selkeys;
