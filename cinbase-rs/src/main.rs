@@ -11,6 +11,7 @@
 
 mod candidate_theme;
 mod cin;
+mod cinbase;
 mod config;
 mod data;
 mod env;
@@ -28,8 +29,9 @@ use std::panic::{self, AssertUnwindSafe};
 use textservice::Service;
 
 /// Creates the text service for a language profile GUID (serviceManager.py).
-fn create_service(_guid: &str, _client: &ClientInfo) -> Option<Box<dyn Service>> {
-    None
+/// Err: the service's constructor raised (init answers success:false).
+fn create_service(guid: &str, client: &ClientInfo) -> Result<Option<Box<dyn Service>>, String> {
+    cinbase::create_service(guid, client)
 }
 
 /// What server.py's Client keeps from the init request.
@@ -66,7 +68,7 @@ impl Client {
             is_ui_less: flag(msg, "isUiLess")?,
             is_console: flag(msg, "isConsole")?,
         };
-        self.service = create_service(&info.guid.to_lowercase(), &info);
+        self.service = create_service(&info.guid.to_lowercase(), &info)?;
         Ok(self.service.is_some())
     }
 

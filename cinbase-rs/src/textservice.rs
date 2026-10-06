@@ -224,9 +224,9 @@ impl TextService {
 /// raised (the server then answers {"success": false}).
 pub trait Service {
     fn ts(&mut self) -> &mut TextService;
-    fn check_config_change(&mut self) {}
-    fn on_activate(&mut self) {}
-    fn on_deactivate(&mut self) {}
+    fn check_config_change(&mut self) -> Result<(), String> { Ok(()) }
+    fn on_activate(&mut self) -> Result<(), String> { Ok(()) }
+    fn on_deactivate(&mut self) -> Result<(), String> { Ok(()) }
     fn filter_key_down(&mut self, _ev: &KeyEvent) -> Result<Value, String> { Ok(json!(false)) }
     fn on_key_down(&mut self, _ev: &KeyEvent) -> Result<Value, String> { Ok(json!(false)) }
     fn filter_key_up(&mut self, _ev: &KeyEvent) -> Result<Value, String> { Ok(json!(false)) }
@@ -270,7 +270,7 @@ pub fn handle_request(service: &mut dyn Service, msg: &Map<String, Value>) -> Re
     let mut ret: Option<Value> = None;
 
     if service.ts().is_activated {
-        service.check_config_change();
+        service.check_config_change()?;
     }
     let field = |name: &str| msg.get(name).cloned().ok_or_else(|| format!("KeyError: '{}'", name));
     match method.as_str() {
@@ -308,10 +308,10 @@ pub fn handle_request(service: &mut dyn Service, msg: &Map<String, Value>) -> Re
         "onActivate" => {
             service.ts().is_activated = true;
             service.ts().keyboard_open = truthy(Some(&field("isKeyboardOpen")?));
-            service.on_activate();
+            service.on_activate()?;
         }
         "onDeactivate" => {
-            service.on_deactivate();
+            service.on_deactivate()?;
             service.ts().is_activated = false;
         }
         "ping" => {}

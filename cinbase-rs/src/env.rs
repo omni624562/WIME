@@ -125,6 +125,31 @@ pub fn shell_execute(file: &str, params: &str) {
     }
 }
 
+/// ShellExecuteW(None, "open", file, params, directory, show_cmd), the call
+/// CinBase makes to start the settings tool (python.exe "<configtool.py>"
+/// config <ime>, SW_HIDE, in the cinbase directory).
+pub fn shell_execute_in(file: &str, params: &str, directory: &str, show_cmd: i32) {
+    if test_mode() {
+        STATE.with(|s| s.borrow_mut().launches.push(("ShellExecuteW".into(), basename(file))));
+        return;
+    }
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    let verb = wide("open");
+    let file_w = wide(file);
+    let params_w = wide(params);
+    let dir_w = wide(directory);
+    unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            verb.as_ptr(),
+            file_w.as_ptr(),
+            if params.is_empty() { std::ptr::null() } else { params_w.as_ptr() },
+            if directory.is_empty() { std::ptr::null() } else { dir_w.as_ptr() },
+            show_cmd,
+        );
+    }
+}
+
 /// os.startfile(url)
 pub fn startfile(target: &str) {
     if test_mode() {
