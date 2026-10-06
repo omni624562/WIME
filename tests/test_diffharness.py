@@ -119,5 +119,30 @@ class ReferenceBackendTests(unittest.TestCase):
                                                "record %s %s" % (suite_path, golden))
 
 
+RUST_BACKEND = os.environ.get("WIME_CINBASE_EXE") or os.path.join(
+    HERE, os.pardir, "cinbase-rs", "target", "release", "wime-cinbase.exe")
+
+
+@requires_backend
+@unittest.skipUnless(os.path.exists(RUST_BACKEND), "cinbase-rs is not built (cargo build --release)")
+class RustBackendTests(unittest.TestCase):
+    """The Rust 大易 backend must answer exactly like the Python one."""
+
+    def test_golden_transcripts(self):
+        import suites
+        for name, suite in suites.SUITES.items():
+            golden = suites.golden_path(name)
+            if not os.path.exists(golden):
+                continue
+            with self.subTest(suite=name):
+                problems = driver.compare(driver.load(golden), driver.run_suite(suite, [RUST_BACKEND]))
+                self.assertEqual(problems, [])
+
+    def test_random_sessions_match_python(self):
+        suite = driver.generate(seed=2026, count=20, length=80)
+        expected = driver.run_suite(suite, driver.REFERENCE)
+        self.assertEqual(driver.compare(expected, driver.run_suite(suite, [RUST_BACKEND])), [])
+
+
 if __name__ == "__main__":
     unittest.main()

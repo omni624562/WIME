@@ -43,6 +43,14 @@ jobs:
         run: |
           .\python\python3\python.exe python\cinbase\tools\cintojson.py
 
+      # Rust 版大易後端：單元測試（含和 Python 逐項比對），並建出 release 版，
+      # 讓下面的 tests/test_diffharness.py 拿它和 golden 標準答案比對
+      - name: Build and test cinbase-rs (Rust 大易後端)
+        run: |
+          cd cinbase-rs
+          cargo test --release
+          cargo build --release
+
       - name: Run Python backend tests
         run: |
           .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v
