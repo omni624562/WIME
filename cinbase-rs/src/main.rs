@@ -10,12 +10,15 @@
 #![allow(dead_code)] // the port is filled in module by module
 
 mod candidate_theme;
+mod cin;
 mod config;
 mod data;
 mod env;
+mod hcin;
 mod keycodes;
 mod pager;
 mod paths;
+mod rcin;
 mod textservice;
 
 use serde_json::{json, Map, Value};
