@@ -1,0 +1,33 @@
+[package]
+name = "wime-cinbase"
+version = "0.1.0"
+edition = "2021"
+description = "WIME table-based input methods (大易, later 酷倉) as a standalone backend for PIMELauncher"
+license = "LGPL-2.1-or-later"
+
+[[bin]]
+name = "wime-cinbase"
+path = "src/main.rs"
+
+[dependencies]
+# preserve_order: table JSON object order is significant (candidate order,
+# reverse index order), exactly like Python dicts
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = "2"
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_Media_Audio",
+    "Win32_System_Registry",
+] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+# a panic in one request must not take the other clients down: the server
+# catches it and answers {"success":false} like server.py does for exceptions
+panic = "unwind"
+strip = true

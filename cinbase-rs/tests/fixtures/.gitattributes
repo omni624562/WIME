@@ -1,0 +1,3 @@
+# exact bytes matter (BOM, CRLF / lone CR, cp950): never convert line endings
+data/** -text
+expected.json -text
