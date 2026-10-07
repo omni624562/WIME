@@ -1,0 +1,8 @@
+[build]
+# Same as PIMELauncher: a 32-bit executable runs on every Windows the installer
+# supports (x64 and ARM64 included), next to the 32-bit launcher.
+target = "i686-pc-windows-msvc"
+
+# Link the C runtime statically: no Visual C++ redistributable needed.
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

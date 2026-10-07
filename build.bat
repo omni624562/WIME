@@ -14,6 +14,12 @@ python\python3\python.exe installer\trim_python_zip.py || exit /b 1
 cmake . -Bbuild -A Win32 || exit /b 1
 cmake --build build --config Release || exit /b 1
 
+REM Rust Dayi backend (cinbase-rs): 32-bit, static CRT (see cinbase-rs\.cargo\config.toml)
+REM cargo reads .cargo\config.toml from the current directory, not from --manifest-path
+pushd cinbase-rs
+cargo build --release || (popd & exit /b 1)
+popd
+
 cmake . -Bbuild64 -A x64 || exit /b 1
 cmake --build build64 --config Release --target PIMETextService || exit /b 1
 

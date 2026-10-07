@@ -4,5 +4,11 @@
         "command": "python\\python3\\python.exe",
         "workingDir": "python",
         "params": "-O server.py"
+    },
+    {
+        "name": "cinbase_rs",
+        "command": "cinbase_rs\\wime-cinbase.exe",
+        "workingDir": "cinbase_rs",
+        "params": ""
     }
 ]

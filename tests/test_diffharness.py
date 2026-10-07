@@ -119,8 +119,19 @@ class ReferenceBackendTests(unittest.TestCase):
                                                "record %s %s" % (suite_path, golden))
 
 
-RUST_BACKEND = os.environ.get("WIME_CINBASE_EXE") or os.path.join(
-    HERE, os.pardir, "cinbase-rs", "target", "release", "wime-cinbase.exe")
+def _rust_backend():
+    if os.environ.get("WIME_CINBASE_EXE"):
+        return os.environ["WIME_CINBASE_EXE"]
+    target = os.path.join(HERE, os.pardir, "cinbase-rs", "target")
+    # cinbase-rs/.cargo/config.toml builds for i686 by default (like the installer ships)
+    for sub in (("i686-pc-windows-msvc", "release"), ("release",)):
+        path = os.path.join(target, *sub, "wime-cinbase.exe")
+        if os.path.exists(path):
+            return path
+    return os.path.join(target, "i686-pc-windows-msvc", "release", "wime-cinbase.exe")
+
+
+RUST_BACKEND = _rust_backend()
 
 
 @requires_backend

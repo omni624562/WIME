@@ -33,6 +33,7 @@
 !insertmacro LANG_STRING CHELIU "虾米 (须自备正版码表)"
 !insertmacro LANG_STRING CHEARRAY 行列
 !insertmacro LANG_STRING CHEDAYI 大易
+!insertmacro LANG_STRING CHEDAYI_RUST "大易使用 Rust 新后端（实验）"
 !insertmacro LANG_STRING CHEPINYIN 拼音
 !insertmacro LANG_STRING CHESIMPLEX 速成
 !insertmacro LANG_STRING CHEPHONETIC 注音
@@ -53,6 +54,7 @@
 !insertmacro LANG_STRING cheliu_DESC "安装虾米输入法模块。"
 !insertmacro LANG_STRING chearray_DESC "安装行列输入法模块。"
 !insertmacro LANG_STRING chedayi_DESC "安装大易输入法模块。"
+!insertmacro LANG_STRING chedayi_rust_DESC "大易改用 Rust 写的新后端：启动更快，打字行为与原本的 Python 后端完全相同。取消勾选即维持 Python 后端。"
 !insertmacro LANG_STRING chepinyin_DESC "安装拼音输入法模块。"
 !insertmacro LANG_STRING chesimplex_DESC "安装速成输入法模块。"
 !insertmacro LANG_STRING chephonetic_DESC "安装注音输入法模块。"
