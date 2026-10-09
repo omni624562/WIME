@@ -33,6 +33,7 @@
 !insertmacro LANG_STRING CHELIU "蝦米 (須自備正版表格檔)"
 !insertmacro LANG_STRING CHEARRAY 行列
 !insertmacro LANG_STRING CHEDAYI 大易
+!insertmacro LANG_STRING CHEDAYI_RUST "大易使用 Rust 新後端（實驗）"
 !insertmacro LANG_STRING CHEPINYIN 拼音
 !insertmacro LANG_STRING CHESIMPLEX 速成
 !insertmacro LANG_STRING CHEPHONETIC 注音
@@ -53,6 +54,7 @@
 !insertmacro LANG_STRING cheliu_DESC "安裝蝦米輸入法模組。"
 !insertmacro LANG_STRING chearray_DESC "安裝行列輸入法模組。"
 !insertmacro LANG_STRING chedayi_DESC "安裝大易輸入法模組。"
+!insertmacro LANG_STRING chedayi_rust_DESC "大易改用 Rust 寫的新後端：啟動更快，打字行為與原本的 Python 後端完全相同。取消勾選即維持 Python 後端。"
 !insertmacro LANG_STRING chepinyin_DESC "安裝拼音輸入法模組。"
 !insertmacro LANG_STRING chesimplex_DESC "安裝速成輸入法模組。"
 !insertmacro LANG_STRING chephonetic_DESC "安裝注音輸入法模組。"
