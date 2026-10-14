@@ -139,7 +139,6 @@ var REMOVE_OLD_VERSION
 
 var INST_PYTHON
 var INST_CINBASE
-var INST_DAYI_RUST
 
 ; The table file of Liu input method
 !ifndef ONLY_DAYI_CHEWING_CHECJ
@@ -513,7 +512,6 @@ Function .onInit
 
 	StrCpy $INST_PYTHON "False"
 	StrCpy $INST_CINBASE "False"
-	StrCpy $INST_DAYI_RUST "False"
 
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 	; The component page is skipped during /S installs, so explicitly select the
@@ -630,13 +628,6 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 			StrCpy $INST_PYTHON "True"
 			StrCpy $INST_CINBASE "True"
 		SectionEnd
-
-		; 大易改由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理；不勾選就維持 Python 後端。
-		; 只在大易也勾選時有作用（實際安裝在 Register 區段，Python 的檔案複製完之後）
-		Section $(CHEDAYI_RUST) chedayi_rust
-			SectionIn 1 2
-			StrCpy $INST_DAYI_RUST "True"
-		SectionEnd
 	SectionGroupEnd
 SectionGroupEnd
 !else
@@ -690,13 +681,6 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 			File /r "..\python\input_methods\chedayi\*.*"
 			StrCpy $INST_PYTHON "True"
 			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		; 大易改由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理；不勾選就維持 Python 後端。
-		; 只在大易也勾選時有作用（實際安裝在 Register 區段，Python 的檔案複製完之後）
-		Section $(CHEDAYI_RUST) chedayi_rust
-			SectionIn 1 2
-			StrCpy $INST_DAYI_RUST "True"
 		SectionEnd
 
 		Section $(CHEPINYIN) chepinyin
@@ -773,7 +757,6 @@ Function selectLimitedSilentSections
 	!insertmacro SelectSection ${chewing}
 	!insertmacro SelectSection ${checj}
 	!insertmacro SelectSection ${chedayi}
-	!insertmacro SelectSection ${chedayi_rust}
 FunctionEnd
 !endif
 
@@ -853,11 +836,12 @@ Section "" Register
 !endif
 	${EndIf}
 
-	; 大易的 Rust 後端：backends.json 的 cinbase_rs 資料夾放 ime.json，大易的 GUID 就由它接手。
-	; 同一個 GUID 只能有一個後端：拿掉 Python 那份 ime.json（設定頁與 config\ 照舊在 python 下，
-	; Rust 後端也讀同一份設定、碼表與資料檔）
-	${If} $INST_DAYI_RUST == "True"
-	${AndIf} ${SectionIsSelected} ${chedayi}
+	; 大易由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理：backends.json 的 cinbase_rs 資料夾放
+	; ime.json，大易的 GUID 就由它接手。同一個 GUID 只能有一個後端：拿掉 Python 那份 ime.json
+	; （設定頁與 config\ 照舊在 python 下，Rust 後端也讀同一份設定、碼表與資料檔）。
+	; 以前是可取消勾選的「實驗」選項；它和 Python 後端的回覆完全相同（tests/diffharness），
+	; 一般使用者無從判斷要不要勾，改為一律使用
+	${If} ${SectionIsSelected} ${chedayi}
 		SetOutPath "$INSTDIR\cinbase_rs"
 		File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
 		SetOutPath "$INSTDIR\cinbase_rs\input_methods\chedayi"
@@ -992,7 +976,6 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi_rust} $(chedayi_rust_DESC)
 !else
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_chs_section_group} $(PYTHON_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
@@ -1000,7 +983,6 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${cheliu} $(cheliu_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chearray} $(chearray_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi_rust} $(chedayi_rust_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chepinyin} $(chepinyin_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chesimplex} $(chesimplex_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chephonetic} $(chephonetic_DESC)
