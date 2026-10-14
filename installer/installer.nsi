@@ -793,14 +793,12 @@ Section "" Register
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 		; .pytest_cache：在 python\ 下跑過 pytest 就會出現，不入 git 但會被 /r 一起打包
 		; python3\ 裡從不會被載入的檔案：沒用到的擴充模組、python3.dll（沒有程式匯入）、
-		; 簽章目錄 python.cat、不會被讀取的 PIME.pth、設定工具沒用到的 tornado 模組。
+		; 簽章目錄 python.cat、不會被讀取的 PIME.pth。（tornado 與 OpenSSL 已從 python3\ 移除：
+		; 設定工具改用標準函式庫的 http.server，沒有任何程式需要 ssl）
 		; 標準函式庫 zip 改用 build\ 裡精簡過的版本（build.bat 執行 installer\trim_python_zip.py 產生）
 		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" \
 			/x "python312.zip" /x "python3.dll" /x "python.cat" /x "PIME.pth" \
 			/x "_decimal.pyd" /x "_elementtree.pyd" /x "_msi.pyd" /x "_multiprocessing.pyd" /x "_zoneinfo.pyd" /x "pyexpat.pyd" \
-			/x "auth.py" /x "autoreload.py" /x "curl_httpclient.py" /x "httpclient.py" /x "locks.py" /x "options.py" \
-			/x "queues.py" /x "simple_httpclient.py" /x "tcpclient.py" /x "testing.py" /x "websocket.py" /x "wsgi.py" \
-			/x "speedups.c" /x "caresresolver.py" /x "twisted.py" \
 			"..\python\*.*"
 		SetOutPath "$INSTDIR\python\python3"
 		File "..\build\python312.zip"
