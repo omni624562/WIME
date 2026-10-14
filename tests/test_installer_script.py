@@ -3,8 +3,9 @@
 makensis /PPO, and only when NSIS is installed).
 
 Windows version: the gate in .onInit only turned away Windows XP, but the embedded
-Python 3.12 supports Windows 8.1 and later, and python312.dll and PIMELauncher.exe
-import Windows 8 APIs. On Vista and 7 setup finished and registered the keyboards,
+Python 3.12 supports Windows 8.1 and later, python312.dll imports Windows 8 APIs, and
+PIMELauncher.exe and the Rust 大易 backend are built with Rust, which needs Windows 10
+(Rust 1.78+); the gate is Windows 10. On Vista and 7 setup finished and registered the keyboards,
 and then the launcher failed to load at the end of setup and at every logon, so
 the IME never worked there.
 
@@ -171,7 +172,7 @@ class LocaleTests(unittest.TestCase):
 
 
 class WindowsVersionTests(unittest.TestCase):
-    def test_gate_turns_away_windows_7_and_older(self):
+    def test_gate_turns_away_windows_8_1_and_older(self):
         functions, _ = read_script()
         on_init = functions[".onInit"]
         gates = [(index, match) for index, line in enumerate(on_init)
@@ -180,7 +181,8 @@ class WindowsVersionTests(unittest.TestCase):
         self.assertEqual(len(gates), 1, "one ${IfNot} ${AtLeastWin<version>} in .onInit")
         index, match = gates[0]
         version = match.group(1)
-        self.assertGreaterEqual(tuple(map(int, version.split("."))), (8, 1))
+        # the Rust launcher and backend need Windows 10 (Rust 1.78+)
+        self.assertGreaterEqual(tuple(map(int, version.split("."))), (10,))
         # the message, then Quit (also in silent installs, where nobody sees it)
         message, follow = on_init[index + 1], on_init[index + 2]
         self.assertTrue(message.startswith("MessageBox"), message)
