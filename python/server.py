@@ -15,17 +15,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-try:
-    import orjson as json
-    # orjson returns bytes for dumps, so we wrap it to ensure string or handle it
-    _has_orjson = True
-except ImportError:
-    try:
-        import ujson as json
-        _has_orjson = False
-    except ImportError:
-        import json
-        _has_orjson = False
+# 標準函式庫的 json：以前優先用 orjson，但光是匯入它就要約 60 ms（連帶載入
+# dataclasses、inspect、uuid），每個按鍵的訊息只有幾百位元組，碼表也是內建 json
+# 解析得比較快（酷倉 checj.json 48 ms，匯入 orjson 再解析 92 ms），從來沒有省到時間
+import json
 import sys
 import traceback
 import os
@@ -118,10 +111,8 @@ class Server(object):
                     ret = client.handleRequest(msg)
                     # Send the response to the client via stdout
                     # one response per line in the format "PIME_MSG|<client_id>|<json reply>"
-                    if _has_orjson:
-                        json_str = json.dumps(ret).decode('utf-8')
-                    else:
-                        json_str = json.dumps(ret, ensure_ascii=False)
+                    # 不轉義非 ASCII、不加空白（和以前 orjson 的輸出一樣精簡）
+                    json_str = json.dumps(ret, ensure_ascii=False, separators=(",", ":"))
                     reply_line = '|'.join(["PIME_MSG", client_id, json_str])
                     print(reply_line, flush=True)
             except EOFError:

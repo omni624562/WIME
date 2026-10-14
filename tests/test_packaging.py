@@ -5,7 +5,8 @@ The installer ships a trimmed standard library zip, skips some extension modules
 and cinbase/tools/, and the backend must not need any of them. OpenSSL (_ssl,
 _hashlib, libssl/libcrypto) and tornado are not in python/python3 at all any more:
 the settings tools use the standard library's http.server, and nothing may import
-ssl again (the embedded Python would fail at runtime on every machine). The
+ssl again (the embedded Python would fail at runtime on every machine). orjson is gone
+too: importing it took about 60 ms, more than it ever saved over the standard json. The
 check imports everything the backend (大易 / 新酷音 / 酷倉 services), the settings
 tools and the shared config server load, in a separate process with APPDATA
 redirected, and fails if a trimmed module shows up in sys.modules. If you add an
@@ -30,7 +31,7 @@ import trim_python_zip  # noqa: E402
 EXCLUDED_MODULES = {
     "_decimal", "_elementtree", "_msi", "_multiprocessing", "_zoneinfo", "pyexpat",
     "cinbase.debug", "cinbase.tools", "cinbase.tools.cpuinfo",
-    "ssl", "_ssl", "_hashlib", "tornado",
+    "ssl", "_ssl", "_hashlib", "tornado", "orjson",
 }
 
 PROBE = r"""
@@ -82,9 +83,9 @@ class TrimmedInstallTests(unittest.TestCase):
         self.assertEqual(sorted(self.modules & EXCLUDED_MODULES), [])
         self.assertEqual(sorted(m for m in self.modules if m.split(".")[0] == "tornado"), [])
 
-    def test_openssl_and_tornado_are_not_shipped(self):
+    def test_openssl_tornado_and_orjson_are_not_shipped(self):
         python3 = os.path.join(PYTHON_DIR, "python3")
-        for name in ("_ssl.pyd", "_hashlib.pyd", "libssl-3.dll", "libcrypto-3.dll", "tornado"):
+        for name in ("_ssl.pyd", "_hashlib.pyd", "libssl-3.dll", "libcrypto-3.dll", "tornado", "orjson"):
             with self.subTest(name=name):
                 self.assertFalse(os.path.exists(os.path.join(python3, name)))
 

@@ -68,21 +68,8 @@ class Cin(object):
         self.privateuse = {}
         self.dupchardefs = {}
 
-        try:
-            import orjson
-            content = fs.read()
-            data = orjson.loads(content)
-        except Exception:
-            try:
-                import ujson
-                fs.seek(0)
-                data = ujson.load(fs)
-            except Exception:
-                try:
-                    fs.seek(0)
-                except Exception:
-                    pass
-                data = json.load(fs)
+        # 標準函式庫的 json：比「匯入 orjson 再解析」快（見 server.py）
+        data = json.load(fs)
         # 碼表 JSON 的 "cincount" 是 cintojson 產生的字集統計（{"big5F": 10505, ...}），
         # 和使用者選字次數同名；直接 update 進來會被一起寫進 cincount.json
         data.pop("cincount", None)

@@ -2215,7 +2215,7 @@ class CinBase:
                                 if cbTS.compositionChar[:2] == '`U':
                                     codePoint = self.unicodeInputCodePoint(cbTS.compositionChar[2:])
                                     if len(cbTS.compositionChar) > 2 and codePoint is None:
-                                        # 超出 U+10FFFF、代理字元（送給 C++ 前 orjson 就會失敗）或控制字元：
+                                        # 超出 U+10FFFF、代理字元（無法編成 UTF-8 送給 C++）或控制字元：
                                         # 保留組字讓使用者用 Backspace 修正
                                         if not cbTS.client.isUiLess:
                                             cbTS.isShowMessage = True

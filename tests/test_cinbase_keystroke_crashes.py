@@ -76,7 +76,7 @@ class UnicodeInputTests(unittest.TestCase):
                 with self.subTest(ime=ime, digits=digits):
                     (commits, last), _ = self.unicode_input(ime, digits)
                     self.assertEqual(commits, [])
-                    # every reply must be serializable (lone surrogates broke orjson in server.py)
+                    # every reply must be serializable as UTF-8 (a lone surrogate cannot be sent to C++)
                     json.dumps(last, ensure_ascii=False).encode("utf-8")
 
 
