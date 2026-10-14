@@ -54,26 +54,25 @@ class InstallerTests(unittest.TestCase):
     def setUp(self):
         self.nsi = read("installer", "installer.nsi")
 
-    def test_option_in_both_builds_and_selected_for_silent_installs(self):
-        self.assertEqual(self.nsi.count("Section $(CHEDAYI_RUST) chedayi_rust"), 2)
-        self.assertIn("!insertmacro SelectSection ${chedayi_rust}", self.nsi)
+    def test_no_installer_option(self):
+        # it used to be an "experimental" checkbox; 大易 now always uses it
+        self.assertNotIn("chedayi_rust", self.nsi)
+        self.assertNotIn("INST_DAYI_RUST", self.nsi)
         for locale in ("English", "TradChinese", "SimpChinese"):
-            text = read("installer", "locale", locale + ".nsh")
-            self.assertIn("LANG_STRING CHEDAYI_RUST ", text)
-            self.assertIn("LANG_STRING chedayi_rust_DESC ", text)
+            self.assertNotIn("CHEDAYI_RUST", read("installer", "locale", locale + ".nsh"))
 
     def test_rust_backend_takes_over_the_dayi_profile(self):
-        block = re.search(r'\$\{If\} \$INST_DAYI_RUST == "True"\n(.*?)\$\{EndIf\}', self.nsi.replace("\r\n", "\n"), re.S)
-        self.assertIsNotNone(block)
-        body = block.group(0)
-        self.assertIn("${AndIf} ${SectionIsSelected} ${chedayi}", body)
+        nsi = self.nsi.replace("\r\n", "\n")
+        pattern = r"\$\{If\} \$\{SectionIsSelected\} \$\{chedayi\}\n.*?\$\{EndIf\}"
+        blocks = [m.group(0) for m in re.finditer(pattern, nsi, re.S) if "wime-cinbase.exe" in m.group(0)]
+        self.assertEqual(len(blocks), 1)
+        body = blocks[0]
         self.assertIn(r'File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"', body)
         self.assertIn(r'File "..\cinbase-rs\input_methods\chedayi\ime.json"', body)
         # one GUID, one backend: the Python copy of ime.json goes away
         self.assertIn(r'Delete "$INSTDIR\python\input_methods\chedayi\ime.json"', body)
         # before the DLL registration that scans the backend folders
-        self.assertLess(self.nsi.index('${If} $INST_DAYI_RUST == "True"'),
-                        self.nsi.index('regsvr32.exe" /s "$INSTDIR\\x86\\PIMETextService.dll'))
+        self.assertLess(nsi.index(body), nsi.index(r'regsvr32.exe" /s "$INSTDIR\x86\PIMETextService.dll'))
 
     def test_upgrade_and_uninstall_remove_the_folder(self):
         self.assertIn('RMDir /r "$INSTDIR\\cinbase_rs"', self.nsi)
