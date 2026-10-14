@@ -21,21 +21,8 @@ class RCin(object):
         self.cincount = {}
         self.chardefs = {}
 
-        try:
-            import orjson
-            content = fs.read()
-            self.__dict__.update(orjson.loads(content))
-        except Exception:
-            try:
-                import ujson
-                fs.seek(0)
-                self.__dict__.update(ujson.load(fs))
-            except Exception:
-                try:
-                    fs.seek(0)
-                except Exception:
-                    pass
-                self.__dict__.update(json.load(fs))
+        # 標準函式庫的 json：比「匯入 orjson 再解析」快（見 server.py）
+        self.__dict__.update(json.load(fs))
 
         self._build_reverse_index()
 
