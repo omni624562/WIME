@@ -146,6 +146,53 @@ class ConfigToolTestMixin:
         missing = [ref for ref in local if _get(opener, self.base + "/" + ref.lstrip("./")).status != 200]
         self.assertEqual(missing, [], "assets referenced by the page but not served")
 
+    def test_6b_paths_outside_the_page_folders_are_not_served(self):
+        opener, _ = self._logged_in_opener()
+        for path in ("/css/..%2f..%2fconfigtool.py", "/css/..%2F..%2F..%2Fconfig_server.py",
+                     "/js/..%5c..%5cconfig_server.py", "/css/%2e%2e/%2e%2e/version.txt.bak",
+                     "/css/C:%5cWindows%5cwin.ini", "/no_such_route", "/config_server.py"):
+            with self.subTest(path=path):
+                self.assertIn(_get(opener, self.base + path).status, (403, 404))
+
+    def test_6c_login_by_form_post_and_method_checks(self):
+        # the fallback launch_<tool>.html posts the token as a form
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), _NoRedirect())
+        request = urllib.request.Request(self.base + "/login/" + self.MAIN_PAGE, method="POST",
+                                         data=("token=" + self.token).encode("ascii"),
+                                         headers={"Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            response = opener.open(request, timeout=10)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            self.assertEqual(response.code, 302)
+        self.assertEqual([c.name for c in jar], [self.COOKIE_ID])
+        logged_in = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+        # POST to a GET-only resource
+        request = urllib.request.Request(self.base + "/keep_alive", method="POST", data=b"x")
+        try:
+            response = logged_in.open(request, timeout=10)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            self.assertEqual(response.code, 405)
+
+    def test_6d_oversized_body_is_refused_unread(self):
+        import socket
+        host, port = self.base[len("http://"):].split(":")
+        with socket.create_connection((host, int(port)), timeout=10) as sock:
+            sock.sendall(("POST /config HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\n"
+                          "Content-Length: %d\r\n\r\n" % (1 << 40)).encode("ascii"))
+            status_line = sock.makefile("rb").readline().decode("ascii")
+        self.assertIn(" 413 ", status_line)
+
+    def test_6e_no_python_details_in_headers(self):
+        reply = _get(urllib.request.build_opener(), self.base + "/config")
+        self.assertNotIn("Python", reply.headers.get("Server", ""))
+        self.assertNotIn("Tornado", reply.headers.get("Server", ""))
+        self.assertEqual(reply.headers.get("X-Content-Type-Options"), "nosniff")
+
     def test_9_process_exits_on_idle_timeout(self):
         # Runs last (unittest sorts by name). No requests from here on, so the
         # tool must terminate by itself shortly after IDLE_TIMEOUT.

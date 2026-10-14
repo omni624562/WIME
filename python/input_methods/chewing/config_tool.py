@@ -15,8 +15,6 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import tornado.escape
-import tornado.web
 import sys
 import os
 import json
@@ -34,7 +32,7 @@ sys.path.append(current_dir)
 from chewing_config import chewingConfig, defaultValues, normalizeValues, readUserConfig
 from libchewing import ChewingContext, ChewingError, CHEWING_DATA_DIR, encodeDataPath
 from ctypes import c_uint, byref, create_string_buffer
-from config_server import BaseHandler, NoCacheStaticFileHandler, ConfigServerApp
+from config_server import BaseHandler, HTTPError, NoCacheStaticFileHandler, ConfigServerApp, authenticated
 
 config_dir = os.path.join(os.path.expandvars("%APPDATA%"), "PIME", "chewing")
 localdata_dir = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "PIME", "chewing")
@@ -67,7 +65,7 @@ def get_chewing_ctx():
         try:
             _chewing_ctx = ChewingContext(syspath=search_paths, userpath=user_phrase)
         except ChewingError:
-            raise tornado.web.HTTPError(503, reason="Cannot open the user phrase database")
+            raise HTTPError(503, reason="Cannot open the user phrase database")
     return _chewing_ctx
 
 
@@ -151,7 +149,7 @@ def import_user_phrase_db(data):
 
 class ConfigHandler(BaseHandler):
 
-    @tornado.web.authenticated
+    @authenticated
     def get(self):  # get config
         data = {
             "config": self.load_config(),
@@ -160,22 +158,22 @@ class ConfigHandler(BaseHandler):
         }
         self.write(data)
 
-    @tornado.web.authenticated
+    @authenticated
     def post(self):  # save config
-        data = tornado.escape.json_decode(self.request.body)
+        data = json.loads(self.request.body)
         #print(data)
         config = data.get("config", None)
         symbols = data.get("symbols", None)
         swkb = data.get("swkb", None)
         if config is not None and not isinstance(config, dict):
-            raise tornado.web.HTTPError(400, reason="config must be an object")
+            raise HTTPError(400, reason="config must be an object")
         if symbols is not None:
             if not isinstance(symbols, str):
-                raise tornado.web.HTTPError(400, reason="symbols must be a string")
+                raise HTTPError(400, reason="symbols must be a string")
             if any(len(line.encode("utf-8")) > SYMBOLS_MAX_LINE_BYTES for line in symbols.split("\n")):
-                raise tornado.web.HTTPError(400, reason="symbols.dat line too long")
+                raise HTTPError(400, reason="symbols.dat line too long")
         if swkb is not None and not isinstance(swkb, str):
-            raise tornado.web.HTTPError(400, reason="swkb must be a string")
+            raise HTTPError(400, reason="swkb must be a string")
         try:
             # ensure the config dir exists
             os.makedirs(config_dir, exist_ok=True)
@@ -189,7 +187,7 @@ class ConfigHandler(BaseHandler):
         except OSError as err:
             # 以前錯誤被吞掉、一律回答成功，設定頁顯示「已儲存」但檔案沒變
             print("cannot save settings:", err, file=sys.stderr)
-            raise tornado.web.HTTPError(500, reason="Cannot save the settings")
+            raise HTTPError(500, reason="Cannot save the settings")
         self.write('{"return":true}')
 
     def load_config(self):
@@ -218,7 +216,7 @@ class ConfigHandler(BaseHandler):
 
 class UserPhraseHandler(BaseHandler):
 
-    @tornado.web.authenticated
+    @authenticated
     def get(self):  # get all user phrases
         chewing_ctx = get_chewing_ctx()
         phrase_len = c_uint(0)
@@ -239,10 +237,10 @@ class UserPhraseHandler(BaseHandler):
             })
         self.write({"data": phrases})
 
-    @tornado.web.authenticated
+    @authenticated
     def post(self):  # add new user phrases or remove existing ones
         chewing_ctx = get_chewing_ctx()
-        data = tornado.escape.json_decode(self.request.body)
+        data = json.loads(self.request.body)
         added = data.get("add", [])
         removed = data.get("remove", [])
         print("add", added, "remove", removed)
@@ -267,11 +265,11 @@ class UserPhraseHandler(BaseHandler):
 
 class UserPhraseFileHandler(BaseHandler):
 
-    @tornado.web.authenticated
+    @authenticated
     def get(self):  # download user phrase file
         user_phrase_file = os.path.join(config_dir, "chewing.sqlite3")
         if not os.path.exists(user_phrase_file):
-            raise tornado.web.HTTPError(404)
+            raise HTTPError(404)
         self.set_header("Content-Type", "application/force-download")
         self.set_header("Content-Disposition", "attachment; filename=chewing.sqlite3")
         with open(user_phrase_file, "rb") as f:
@@ -281,10 +279,10 @@ class UserPhraseFileHandler(BaseHandler):
                 self.finish()
                 return
             except:
-                raise tornado.web.HTTPError(404)
-        raise tornado.web.HTTPError(500)
+                raise HTTPError(404)
+        raise HTTPError(500)
 
-    @tornado.web.authenticated
+    @authenticated
     def post(self):  # upload file
         # 以前驗證用的 cursor 沒關，暫存檔刪不掉，每次都回報「格式錯誤」，
         # 但原本的詞庫其實已經被覆寫了

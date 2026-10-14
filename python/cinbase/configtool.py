@@ -15,8 +15,6 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import tornado.escape
-import tornado.web
 import sys
 import os
 import json
@@ -31,7 +29,7 @@ if python_dir not in sys.path:
 
 from config import CinBaseConfig, RCIN_FILE_LIST
 from cin import Cin
-from config_server import BaseHandler, NoCacheStaticFileHandler, ConfigServerApp
+from config_server import BaseHandler, HTTPError, NoCacheStaticFileHandler, ConfigServerApp, authenticated
 
 
 cfg = CinBaseConfig
@@ -61,7 +59,7 @@ class ConfigHandler(BaseHandler):
     # (檔案路徑 → (mtime, cincount)) 快取，避免重複解析多 MB 碼表 JSON
     _cincount_cache = {}
 
-    @tornado.web.authenticated
+    @authenticated
     def get(self):  # get config
         data = {
             "imename": cfg.imeDirName,
@@ -78,9 +76,9 @@ class ConfigHandler(BaseHandler):
         }
         self.write(data)
 
-    @tornado.web.authenticated
+    @authenticated
     def post(self):  # save config
-        data = tornado.escape.json_decode(self.request.body)
+        data = json.loads(self.request.body)
         # print(data)
         try:
             self.save_all(data)
@@ -88,7 +86,7 @@ class ConfigHandler(BaseHandler):
             # 以前錯誤被吞掉、一律回答成功，設定頁顯示「設定已套用」但 config.json 沒變
             # （例如另一個程式正開著 config.json，os.replace 會被拒絕）
             print("cannot save settings:", err, file=sys.stderr)
-            raise tornado.web.HTTPError(500, reason="Cannot save the settings")
+            raise HTTPError(500, reason="Cannot save the settings")
         self.write('{"return":true}')
 
     def save_all(self, data):

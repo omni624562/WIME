@@ -177,6 +177,19 @@
 - `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
 - 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
+## 2026-10-14 安全性與安裝檔瘦身
+
+- **設定工具改用 Python 內建的網頁伺服器**（`http.server`），不再用 tornado。
+  - 原本附的 tornado 6.4.0 沒有 multipart 解析等多個 CVE 的修正。
+  - 安裝檔不再附 tornado 和已停止支援的 OpenSSL 3.0，約小 1.4 MB（11.57 → 10.16 MB）。
+  - 設定工具啟動約快一倍（大易／酷倉 437 → 232 ms，新酷音 508 → 249 ms）。
+  - 安全機制不變：一次性 token、HttpOnly 與 SameSite=Strict 的 Cookie、只接受本機 Host、閒置後自動結束。另外：
+    - 靜態檔案拒絕 `..`、磁碟代號與資料流路徑。
+    - 請求本文上限 64 MB。
+    - port 以獨占方式綁定。
+- **x86／x64 的 PIMETextService.dll 真正啟用 CFG**（控制流程防護）。以前只在編譯時加 `/guard:cf`，連結時沒加，CFG 實際上沒有作用；現在 CI 會檢查三種架構的 DLL。
+- **安裝程式最低需求改為 Windows 10**：啟動器與 Rust 大易後端需要 Windows 10。以前 Windows 8.1 也能裝，但輸入法完全不能用。
+
 ## 2026-10-07 大易改用 Rust 新後端（實驗）
 
 - 大易可以改由 Rust 寫的新後端（`cinbase_rs\wime-cinbase.exe`）處理。打字行為與原本的 Python 後端完全相同：用差異測試比對過 60 萬個以上的回覆，0 差異。
