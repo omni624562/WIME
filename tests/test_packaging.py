@@ -29,7 +29,7 @@ import trim_python_zip  # noqa: E402
 # extension modules and cinbase files the limited installer skips (the /x lists in
 # installer/installer.nsi), and modules that are not shipped at all
 EXCLUDED_MODULES = {
-    "_decimal", "_elementtree", "_msi", "_multiprocessing", "_zoneinfo", "pyexpat",
+    "_decimal", "_elementtree", "_multiprocessing", "_zoneinfo", "pyexpat", "_zstd", "_remote_debugging",
     "cinbase.debug", "cinbase.tools", "cinbase.tools.cpuinfo",
     "ssl", "_ssl", "_hashlib", "tornado", "orjson",
 }

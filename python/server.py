@@ -20,7 +20,6 @@
 # 解析得比較快（酷倉 checj.json 48 ms，匯入 orjson 再解析 92 ms），從來沒有省到時間
 import json
 import sys
-import traceback
 import os
 
 if __name__ == "__main__":
@@ -120,7 +119,10 @@ class Server(object):
                 break
             except Exception as e:
                 print("ERROR:", e, line, file=sys.stderr)
-                # print the exception traceback for ease of debugging
+                # print the exception traceback for ease of debugging. Imported here, not
+                # at startup: on Python 3.14 traceback pulls in _colorize, dataclasses and
+                # inspect (about 70 ms before the first key), and it is only needed on errors
+                import traceback
                 traceback.print_exc()
                 append_error_log("ERROR: {0}\nREQUEST: {1}\n{2}\n".format(e, line, traceback.format_exc()))
                 # generate an empty output containing {success: False} to prevent the client from being blocked

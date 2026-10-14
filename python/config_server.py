@@ -22,7 +22,6 @@ import re
 import socket
 import sys
 import threading
-import traceback
 import urllib.parse
 import uuid  # use to generate a random auth token
 
@@ -392,6 +391,7 @@ class ConfigServerApp:
             headers = {"Content-Type": "text/html; charset=UTF-8"}
             body = b"<html><title>500</title><body>500</body></html>"
             if sys.stderr is not None:
+                import traceback  # only on errors: slow to import on Python 3.14
                 traceback.print_exc()
         self._respond(raw, status, reason, headers, cookies, body)
 
