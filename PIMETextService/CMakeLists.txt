@@ -34,3 +34,12 @@ add_library(PIMETextService SHARED
 target_link_libraries(PIMETextService
     libIME2_static
 )
+
+if(MSVC)
+    # /guard:cf 只在編譯時加（cmake/*_flag_overrides.cmake）不夠：連結器也要 /GUARD:CF
+    # 才會寫入 CFG 表並設定 DLL 的 GuardCF 特性，否則 x86/x64 的 DLL 實際上沒有 CFG
+    # （dumpbin /headers 看不到 "Guard"、/loadconfig 的 Guard CF function count 為 0）。
+    # ARM64 的連結器預設就開。用 target 選項而不是 CMAKE_SHARED_LINKER_FLAGS_INIT：
+    # 已存在的 build 目錄的快取不會重新套用 _INIT
+    target_link_options(PIMETextService PRIVATE /GUARD:CF)
+endif()

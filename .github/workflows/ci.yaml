@@ -83,6 +83,15 @@ jobs:
             exit $code
           }
 
+      # 三種架構的 PIMETextService.dll 都要真的帶 CFG（連結時要 /GUARD:CF，見
+      # PIMETextService/CMakeLists.txt）；DLL 缺了也算失敗
+      - name: Check DLL hardening (Control Flow Guard)
+        env:
+          WIME_REQUIRE_DLLS: "1"
+        run: |
+          .\python\python3\python.exe -m unittest discover -s tests -p "test_dll_hardening.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run C++ tests (libIME2, incl. candidate window rendering)
         run: |
           cd build
