@@ -210,7 +210,51 @@ NO_SMART_SELECT = scenarios(
     order_stays=seq("o o SPACE a ' o o SPACE a ' o o SPACE a SPACE"),
 )
 
+# --- 酷倉 (checj): same CinBase core, 1234567890 selection keys, up to 5 roots ---
+
+CHECJ_DEFAULT = scenarios(
+    commit_space=seq("a SPACE a b SPACE h q i SPACE o n f SPACE"),
+    select_digits=seq("a 2 j j 3 j j 5 j j 0"),
+    five_roots=seq("y r m m r SPACE m m m m m m SPACE"),
+    dead_prefix_restart=seq("z z z z a SPACE"),
+    not_found=seq("x x x x SPACE ESC"),
+    zx_symbols=seq("z x a b SPACE"),
+    backspace_escape=seq("y r m BACK BACK SPACE a b ESC a SPACE"),
+    paging=seq("j PGDN PGUP RIGHT RIGHT SPACE j DOWN UP END SPACE"),
+    wildcard=seq("a * SPACE * b SPACE y * r SPACE"),
+    homophone_off=seq("o n f ` SPACE"),
+    punctuation=seq("S+, S+. S+/ S+1 , . ;"),
+    shift_toggle=seq("SHIFT a b SPACE SHIFT a SPACE"),
+    full_shape=seq(SHIFT_SPACE, "a SPACE , SPACE", SHIFT_SPACE),
+    ctrl_symbols=seq("C+; SPACE C+, C+, ENTER"),
+    menu=seq("` m 1 1 1 ESC ` u 4 e 0 0 SPACE"),
+    numpad=seq("NUM1 a NUM2 o n f NUM+"),
+    smart_select=seq("h q i SPACE j j 2 h q i SPACE j j 2 h q i SPACE j j SPACE"),
+    buttons=seq(CMD(1), "a SPACE", CMD(1), CMD(2), "a SPACE", CMD(2), CMD(4), CMD(4, 1),
+                MENU("windows-mode-icon"), MENU("settings")),
+    settings_and_links=seq(CMD(3), CMD(5), CMD(6)),
+    keyboard_off_on=seq("a", KEYBOARD(False), "a SPACE", KEYBOARD(True), "a SPACE"),
+    composition_terminated=seq("o n", TERMINATED(True), "a", KILL_FOCUS, "SPACE"),
+)
+
+CHECJ_OPTIONS = scenarios(
+    homophone=seq("o n f ` SPACE o n f ` DOWN SPACE"),
+    reverse_lookup=seq("a SPACE h q i SPACE a * SPACE"),
+    phrase=seq("o n f SPACE 1 a SPACE ESC"),
+    autocommit=seq("x SPACE y r m m r SPACE a"),
+)
+
 SUITES = {
+    "checj_default": {"ime": "checj", "scenarios": CHECJ_DEFAULT},
+    "checj_options": {"ime": "checj",
+                      "config": {"homophoneQuery": True, "imeReverseLookup": True, "selRCinType": 19,
+                                 "showPhrase": True, "autoCommitSingleCandidate": True},
+                      "scenarios": CHECJ_OPTIONS},
+    "checj_mscj3_wildcard_z": {"ime": "checj", "config": {"selCinType": 1, "selWildcardType": 0},
+                               "scenarios": scenarios(
+                                   typing=seq("a SPACE h q i SPACE y r m m r SPACE"),
+                                   wildcard_z=seq("a z SPACE z b SPACE"),
+                               )},
     "dayi3_default": {"ime": "chedayi", "scenarios": DEFAULT},
     "dayi3_autocommit": {"ime": "chedayi", "config": {"autoCommitSingleCandidate": True},
                          "scenarios": AUTO_COMMIT},
