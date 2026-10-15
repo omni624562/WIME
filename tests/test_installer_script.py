@@ -3,7 +3,7 @@
 makensis /PPO, and only when NSIS is installed).
 
 Windows version: the gate in .onInit only turned away Windows XP, but the embedded
-Python 3.12 supports Windows 8.1 and later, python312.dll imports Windows 8 APIs, and
+Python 3.12 supported Windows 8.1 and later (3.14 needs Windows 10), and
 PIMELauncher.exe and the Rust 大易 backend are built with Rust, which needs Windows 10
 (Rust 1.78+); the gate is Windows 10. On Vista and 7 setup finished and registered the keyboards,
 and then the launcher failed to load at the end of setup and at every logon, so

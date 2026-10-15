@@ -482,7 +482,7 @@ Function .onInit
 	; (cinbase_rs\wime-cinbase.exe) are built with Rust, whose Windows targets need
 	; Windows 10 since Rust 1.78 (they import ProcessPrng and other Windows 10 APIs);
 	; on 8.1 setup would finish and then the launcher failed to load at every logon,
-	; so no keyboard ever worked. The embedded Python 3.12 alone would allow 8.1.
+	; so no keyboard ever worked. (The embedded Python 3.14 needs Windows 10 too.)
 	; (The version is reported correctly because NSIS manifests the installer for
 	; Windows 8.1/10.)
 	${IfNot} ${AtLeastWin10}
@@ -780,11 +780,11 @@ Section "" Register
 		; 設定工具改用標準函式庫的 http.server，沒有任何程式需要 ssl）
 		; 標準函式庫 zip 改用 build\ 裡精簡過的版本（build.bat 執行 installer\trim_python_zip.py 產生）
 		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" \
-			/x "python312.zip" /x "python3.dll" /x "python.cat" /x "PIME.pth" \
-			/x "_decimal.pyd" /x "_elementtree.pyd" /x "_msi.pyd" /x "_multiprocessing.pyd" /x "_zoneinfo.pyd" /x "pyexpat.pyd" \
+			/x "python314.zip" /x "python3.dll" /x "python.cat" /x "PIME.pth" \
+			/x "_decimal.pyd" /x "_elementtree.pyd" /x "_multiprocessing.pyd" /x "_zoneinfo.pyd" /x "pyexpat.pyd" \
 			"..\python\*.*"
 		SetOutPath "$INSTDIR\python\python3"
-		File "..\build\python312.zip"
+		File "..\build\python314.zip"
 		SetOutPath "$INSTDIR\python"
 !else
 		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"

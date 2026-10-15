@@ -1,10 +1,10 @@
 """Build the Python standard library zip shipped by the installer.
 
-Reads python/python3/python312.zip (the embeddable distribution's library, which
-the tests run against and so stays complete) and writes build/python312.zip
+Reads python/python3/python314.zip (the embeddable distribution's library, which
+the tests run against and so stays complete) and writes build/python314.zip
 without the packages and modules that neither the backend (大易 / 新酷音 / 酷倉),
-the two settings tools nor the installer's compileall step ever import: 404 of
-599 entries are kept. Every module in the deny lists was checked against the
+the two settings tools nor the installer's compileall step ever import: 427 of
+563 entries are kept (Python 3.14). Every module in the deny lists was checked against the
 modules those programs actually load.
 
 The entries are stored uncompressed: the installer compresses the whole payload
@@ -17,19 +17,25 @@ import sys
 import zipfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-SOURCE = os.path.join(ROOT, "python", "python3", "python312.zip")
-TARGET = os.path.join(ROOT, "build", "python312.zip")
+SOURCE = os.path.join(ROOT, "python", "python3", "python314.zip")
+TARGET = os.path.join(ROOT, "build", "python314.zip")
 
 DENY_PACKAGES = {
     "pydoc_data", "lib2to3", "xml", "xmlrpc", "unittest", "msilib", "wsgiref", "zoneinfo",
     "tomllib", "curses", "dbm", "__phello__", "site-packages",
+    # 3.13+: the interactive REPL
+    "_pyrepl",
 }
 DENY_MODULES = set("""
     _pydecimal pydoc mailbox tarfile _pyio _pydatetime doctest pickletools pdb bdb optparse
     imaplib plistlib aifc pstats nntplib ftplib smtplib cgi cgitb trace profile cProfile
     telnetlib sunau wave sndhdr xdrlib mailcap pipes tabnanny pyclbr symtable modulefinder
     timeit zipapp shelve netrc poplib imghdr chunk antigravity this turtle tracemalloc
+    ssl _ast_unparse _android_support _apple_support _ios_support
 """.split())
+# ssl: _ssl.pyd and OpenSSL are not shipped (nothing needs TLS), so ssl.py cannot load.
+# _ast_unparse (ast.unparse) and the mobile platform helpers are new in 3.13/3.14 and
+# never imported here.
 
 
 def keep(name):
@@ -52,7 +58,7 @@ def main():
                 target.writestr(zipfile.ZipInfo(info.filename, info.date_time), source.read(info.filename))
                 kept += 1
     os.replace(TARGET + ".tmp", TARGET)
-    print("python312.zip: kept %d of %d entries, %d bytes" % (kept, len(infos), os.path.getsize(TARGET)))
+    print("python314.zip: kept %d of %d entries, %d bytes" % (kept, len(infos), os.path.getsize(TARGET)))
     return 0
 
 

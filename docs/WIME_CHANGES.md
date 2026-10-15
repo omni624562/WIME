@@ -177,6 +177,16 @@
 - `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
 - 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
+## 2026-10-14 內嵌 Python 升到 3.14、拿掉 orjson
+
+- **內嵌 Python 3.12.1 → 3.14.8**：
+  - 3.12 在 3.12.10 之後就不再出 Windows 安裝檔，2028 年 10 月停止支援；3.14 支援到 2030 年 10 月。
+  - 下載自 python.org，SHA-256 與官方公告一致。
+  - 照舊不附 OpenSSL；3.14 新增的 `_zstd`、`_remote_debugging`、`libtommath.dll`，以及互動式命令列 `_pyrepl` 都用不到，不打包。
+  - 安裝檔約大 0.34 MB（python314.dll 比較大）；酷倉、新酷音的後端啟動約慢 10～15 ms。
+  - 3.14 的 `traceback` 會連帶載入 `_colorize`、`dataclasses`、`inspect`（約 70 ms），後端與設定工具改成出錯時才匯入。
+- **不再使用 orjson**：光匯入就要約 58 ms，內建 json 解析碼表反而更快。新酷音、酷倉的第一個字約快 30～40 ms。
+
 ## 2026-10-14 安全性與安裝檔瘦身
 
 - **設定工具改用 Python 內建的網頁伺服器**（`http.server`），不再用 tornado。

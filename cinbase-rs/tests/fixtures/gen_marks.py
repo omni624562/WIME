@@ -1,7 +1,7 @@
 #! python3
 # Regenerates cinbase-rs/src/data/marks.rs: the code points whose Unicode general
 # category is Mn, Me or Mc, as seen by the Python that runs the backend
-# (python/python3, 3.12 => Unicode 15.0). textclusters._isExtender uses exactly
+# (python/python3, 3.14 => Unicode 16.0). textclusters._isExtender uses exactly
 # unicodedata.category(ch) in ("Mn", "Me", "Mc").
 #
 #   python\python3\python.exe cinbase-rs\tests\fixtures\gen_marks.py > cinbase-rs\src\data\marks.rs
