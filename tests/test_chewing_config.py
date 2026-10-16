@@ -17,6 +17,10 @@
   candidateMessageBehavior (提示強度行為) never did anything in 新酷音; they are
   dropped from old config files.
 - The blank lines the settings page left in symbols.dat are removed.
+- libchewing 0.13 reads symbols.dat / swkb.dat only as UTF-8 (one bad byte and
+  the whole file is ignored); files saved in the ANSI code page are converted.
+- The settings tool's user phrase changes (chewing-userphrase.stamp) make the
+  IME rebuild its libchewing context (0.13 keeps the dictionary in memory).
 """
 
 import importlib
@@ -219,10 +223,7 @@ class ValueNormalizationTests(ConfigFileTestCase):
             self.assertNotIn(key, saved)
 
 
-class BlankSymbolLineTests(ConfigFileTestCase):
-    """symbols.dat: libchewing reads each blank line as an empty ` menu item, and
-    the settings page used to add one each time the 特殊符號 were edited."""
-
+class SymbolFileTestCase(ConfigFileTestCase):
     def setUp(self):
         super().setUp()
         self.symbols = os.path.join(self.dir, "symbols.dat")
@@ -238,6 +239,11 @@ class BlankSymbolLineTests(ConfigFileTestCase):
     def read_symbols(self):
         with open(self.symbols, "rb") as f:
             return f.read()
+
+
+class BlankSymbolLineTests(SymbolFileTestCase):
+    """symbols.dat: libchewing reads each blank line as an empty ` menu item, and
+    the settings page used to add one each time the 特殊符號 were edited."""
 
     def test_blank_lines_are_removed_when_the_settings_load(self):
         # line endings, a line of spaces and a last line without a newline stay as they are
@@ -261,6 +267,50 @@ class BlankSymbolLineTests(ConfigFileTestCase):
         # the version taken is the cleaned file's: it does not change again later
         self.assertTrue(cfg.isFullReloadNeeded(version))
         self.assertEqual(cfg.getVersion()[1], os.path.getmtime(self.symbols))
+
+
+class LegacyEncodingTests(SymbolFileTestCase):
+    def test_ansi_symbol_files_are_converted_to_utf8(self):
+        try:
+            big5 = "甲=１２\r\n".encode("mbcs")
+        except UnicodeEncodeError:
+            self.skipTest("the ANSI code page has no Chinese")
+        if big5 == "甲=１２\r\n".encode("utf-8"):
+            self.skipTest("the ANSI code page is UTF-8")
+        self.write_symbols(big5)
+        cfg = cc.ChewingConfig()
+        self.assertEqual(self.read_symbols(), "甲=１２\r\n".encode("utf-8"))
+        with open(self.symbols + ".ansi-backup", "rb") as f:
+            self.assertEqual(f.read(), big5)
+        os.remove(self.symbols + ".ansi-backup")
+        # a later ANSI file (e.g. saved again by an old editor) is converted on the reload
+        version = cfg.getVersion()
+        self.write_symbols(big5)
+        cfg._lastUpdateTime = None
+        cfg.update()
+        self.assertEqual(self.read_symbols(), "甲=１２\r\n".encode("utf-8"))
+        self.assertTrue(cfg.isFullReloadNeeded(version))
+        os.remove(self.symbols + ".ansi-backup")
+
+    def test_utf8_files_are_left_alone(self):
+        mtime = self.write_symbols("甲=１\r\n".encode("utf-8"))
+        cc.ChewingConfig()
+        self.assertEqual(os.stat(self.symbols).st_mtime_ns, mtime)
+        self.assertFalse(os.path.exists(self.symbols + ".ansi-backup"))
+
+
+class UserPhraseStampTests(ConfigFileTestCase):
+    def test_user_phrase_changes_need_a_full_reload(self):
+        stamp = os.path.join(self.dir, "chewing-userphrase.stamp")
+        self.addCleanup(lambda: os.path.exists(stamp) and os.remove(stamp))
+        cfg = cc.ChewingConfig()
+        version = cfg.getVersion()
+        with open(stamp, "w"):
+            pass
+        cfg._lastUpdateTime = None
+        cfg.update()
+        self.assertTrue(cfg.isFullReloadNeeded(version))
+        self.assertFalse(cfg.isConfigChanged(version))
 
 
 class ReloadThrottleTests(ConfigFileTestCase):
@@ -302,6 +352,16 @@ class LegacyMigrationTests(ConfigFileTestCase):
         with open(self.db, "rb") as f:
             self.assertEqual(f.read(), b"current phrases")
         self.assertEqual(cfg.candPerPage, 9)
+
+    def test_a_converted_dictionary_is_never_overwritten(self):
+        dat = os.path.join(self.dir, "chewing.dat")
+        self.addCleanup(lambda: os.path.exists(dat) and os.remove(dat))
+        with open(dat, "wb") as f:
+            f.write(b"converted phrases")
+        cc.ChewingConfig()
+        self.assertFalse(os.path.exists(self.db))  # the old folder was not copied
+        with open(dat, "rb") as f:
+            self.assertEqual(f.read(), b"converted phrases")
 
     def test_first_run_migrates_the_old_folder(self):
         cfg = cc.ChewingConfig()

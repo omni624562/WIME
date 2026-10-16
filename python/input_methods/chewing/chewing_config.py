@@ -28,8 +28,12 @@ SWITCH_LANG_WITH_BOTH_SHIFT = 0
 SWITCH_LANG_WITH_LEFT_SHIFT = 1
 SWITCH_LANG_WITH_RIGHT_SHIFT = 2
 
-# from libchewing/include/internal/userphrase-private.h
-DB_NAME = "chewing.sqlite3"
+# 使用者詞庫：libchewing 0.13 (Rust) 的 chewing.dat。舊版 (C 版 libchewing) 的
+# chewing.sqlite3 第一次開啟時轉換 (見 libchewing/userdict.py)，原檔保留給舊版用
+DB_NAME = "chewing.dat"
+LEGACY_DB_NAME = "chewing.sqlite3"
+# 設定工具改了使用者詞庫時更新的檔案 (同 libchewing.userdict.CHANGE_STAMP_NAME)
+USER_PHRASE_STAMP_NAME = "chewing-userphrase.stamp"
 
 selKeys = (
     "1234567890",
@@ -238,8 +242,9 @@ class ChewingConfig:
             "borderRadius": 6,
         }
 
-        # version: last modified time of (config.json, symbols.dat, swkb.dat)
-        self._version = (0.0, 0.0, 0.0)
+        # version: last modified time of (config.json, symbols.dat, swkb.dat,
+        # 設定工具改使用者詞庫的時間)
+        self._version = (0.0, 0.0, 0.0, 0.0)
         self._lastUpdateTime = None  # time.monotonic() of the last update()
         if load:
             self.load()  # try to load from the config file
@@ -256,6 +261,9 @@ class ChewingConfig:
     def getUserPhrase(self):
         return os.path.join(self.getConfigDir(), DB_NAME)
 
+    def getLegacyUserPhrase(self):
+        return os.path.join(self.getConfigDir(), LEGACY_DB_NAME)
+
     def getSelKeys(self):
         return selKeys[self.selKeyType]
 
@@ -266,7 +274,8 @@ class ChewingConfig:
         filename = self.getConfigFile()
         if not _hasContent(filename):
             self.migrateLegacyConfig()
-        self.removeBlankSymbolLines()  # 先於記下版本：剛改過的檔案不會讓輸入法再重建一次
+        self.convertLegacyEncoding()  # 先於記下版本：剛改過的檔案不會讓輸入法再重建一次
+        self.removeBlankSymbolLines()
         version = self._currentVersion()  # 讀檔前先記下版本，讀檔期間的變更下次還會重讀
         if _hasContent(filename):
             try:
@@ -308,12 +317,55 @@ class ChewingConfig:
         dst_dir = self.getConfigDir()
         if os.path.normcase(os.path.abspath(src_dir)) == os.path.normcase(os.path.abspath(dst_dir)):
             return
-        if not _hasContent(os.path.join(src_dir, "config.json")) or os.path.exists(self.getUserPhrase()):
+        if not _hasContent(os.path.join(src_dir, "config.json")) or \
+                os.path.exists(self.getUserPhrase()) or os.path.exists(self.getLegacyUserPhrase()):
             return
         try:
             self.copytree(src_dir, dst_dir)
         except Exception as err:
             print("chewing: cannot migrate %s: %s" % (src_dir, err), file=sys.stderr)
+
+    # libchewing 0.13 (Rust) 只讀 UTF-8 的 symbols.dat / swkb.dat：有一個位元組不合法，
+    # 整個檔案就讀不進來 (` 符號選單變空的、簡易符號全部失效)。舊的 C 版逐行讀、不檢查
+    # 編碼，所以以前存成 ANSI (Big5) 的檔案也能部分使用。把使用者目錄裡的這種檔案轉成
+    # UTF-8，原檔另存一份 (.ansi-backup)。有改檔案時傳回 True
+    def convertLegacyEncoding(self):
+        changed = False
+        for name in ("symbols.dat", "swkb.dat"):
+            path = self.getConfigFile(name)
+            try:
+                with open(path, "rb") as f:
+                    raw = f.read()
+            except OSError:
+                continue
+            try:
+                raw.decode("utf-8")
+                continue
+            except UnicodeDecodeError:
+                pass
+            try:
+                text = raw.decode("mbcs")
+            except (UnicodeDecodeError, LookupError):
+                text = raw.decode("utf-8", "replace")
+            backup = path + ".ansi-backup"
+            tmp_path = "%s.%d.tmp" % (path, os.getpid())
+            try:
+                if not os.path.exists(backup):
+                    shutil.copy2(path, backup)
+                with open(tmp_path, "wb") as f:
+                    f.write(text.encode("utf-8"))
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp_path, path)
+                changed = True
+            except OSError as err:
+                print("chewing: cannot convert %s to UTF-8: %s" % (path, err), file=sys.stderr)
+                try:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except OSError:
+                    pass
+        return changed
 
     # libchewing 把 symbols.dat 的每個空行讀成一個沒有名稱的分類，` 符號選單裡出現
     # 選了也不會輸入的空白選項。以前設定頁每編輯一次特殊符號就在結尾多存一個空行
@@ -417,7 +469,11 @@ class ChewingConfig:
                 ezSymbolsTime = os.path.getmtime(ezSymbolsFile)
             except Exception:
                 pass
-        return (configTime, symbolsTime, ezSymbolsTime)
+        try:
+            userPhraseTime = os.path.getmtime(os.path.join(self.getConfigDir(), USER_PHRASE_STAMP_NAME))
+        except Exception:
+            userPhraseTime = 0.0
+        return (configTime, symbolsTime, ezSymbolsTime, userPhraseTime)
 
     # check if the config files are changed and relaod as needed
     def update(self):
@@ -429,8 +485,11 @@ class ChewingConfig:
         self._lastUpdateTime = now
 
         version = self._currentVersion()
-        if version[1] != self._version[1] and self.removeBlankSymbolLines():
-            version = self._currentVersion()  # 剛改過的檔案，見 removeBlankSymbolLines
+        if version[1:3] != self._version[1:3]:
+            # 剛改過的檔案，見 convertLegacyEncoding、removeBlankSymbolLines
+            converted = self.convertLegacyEncoding()
+            if (version[1] != self._version[1] and self.removeBlankSymbolLines()) or converted:
+                version = self._currentVersion()
         configChanged = version[0] != self._version[0]
         self._version = version
         # the main config file is changed, reload it

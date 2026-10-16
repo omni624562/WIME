@@ -7,7 +7,7 @@ $(function () {
         VERSION_URL = "/version.txt",
         KEEP_ALIVE_URL = "/keep_alive",
         // 與 config_tool.py 的 SYMBOLS_MAX_LINE_BYTES 相同
-        SYMBOLS_MAX_LINE_BYTES = 500;
+        SYMBOLS_MAX_LINE_BYTES = 16384;
 
     function utf8ByteLength(text) {
         return new TextEncoder().encode(text).length;
@@ -489,7 +489,7 @@ $(function () {
                 );
                 return false;
             }
-            // 新酷音每行最多讀 511 bytes，更長的一行會被截斷在字的中間，選字清單出現亂碼
+            // 舊的 C 版新酷音每行最多讀 511 bytes；0.13 版沒有限制，只擋明顯異常的長度
             if (utf8ByteLength(symbols_array[i]) > SYMBOLS_MAX_LINE_BYTES) {
                 $("#symbols").select();
                 var lineStart = 0;
@@ -501,7 +501,7 @@ $(function () {
                 swal.fire(
                     "輸入錯誤",
                     "特殊符號設定第 " + (i + 1) + " 行太長：每行最多 " + SYMBOLS_MAX_LINE_BYTES +
-                    " bytes（約 160 個中文字或 120 個表情符號），請分成兩個類別",
+                    " bytes，請分成兩個類別",
                     "error"
                 );
                 return false;

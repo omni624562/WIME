@@ -1,6 +1,8 @@
 import os
 
-from .libchewing import ChewingContext, ChewingError, ChewingFault
+from .libchewing import ChewingContext, ChewingError, ChewingFault, version
+from .userdict import UserDictionaryError, prepareUserDictionary, importUserDictionary, \
+    touchChangeStamp, changeStampTime, USER_DICT_NAME, LEGACY_DB_NAME, LEGACY_BACKUP_NAME
 
 _current_dir = os.path.dirname(__file__)
 
@@ -10,28 +12,19 @@ CHEWING_DATA_DIR = os.path.join(_current_dir, "data")
 def encodeDataPath(path):
     """Encode a directory for the syspath argument of ChewingContext.
 
-    The bundled (old C) libchewing opens its data files with ANSI APIs (fopen,
-    ...), so the path must be in the system code page (mbcs). With UTF-8, the
-    user's own symbols.dat / swkb.dat were ignored when the Windows user name is
-    not ASCII. A path the code page cannot represent falls back to its 8.3 short
-    name; None if that does not work either (leave the directory out).
-    The user phrase database is opened by sqlite, which takes UTF-8 instead."""
-    candidates = [path]
-    if os.name == "nt":
-        try:
-            import ctypes
-            buf = ctypes.create_unicode_buffer(1024)
-            if 0 < ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf)) < len(buf):
-                candidates.append(buf.value)
-        except Exception:
-            pass
-    encoding = "mbcs" if os.name == "nt" else "utf-8"
-    for candidate in candidates:
-        try:
-            return candidate.encode(encoding)
-        except UnicodeEncodeError:
-            pass
-    return None
+    libchewing 0.13 (Rust) takes every path as UTF-8, so a non-ASCII user name
+    works without the old work-arounds (the C version needed the ANSI code page
+    and, failing that, the 8.3 short name)."""
+    if path is None:
+        return None
+    return path.encode("utf-8")
+
+
+def searchPath(*dirs):
+    """syspath 參數：用 ; 分隔的多個目錄，前面的優先 (使用者設定目錄放在內建資料前面，
+    使用者自己的 symbols.dat / swkb.dat 才會蓋過預設值)"""
+    return b";".join(encodeDataPath(path) for path in dirs if path)
+
 
 # from libchewing/include/global.h
 CHINESE_MODE = 1
