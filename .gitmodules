@@ -6,4 +6,4 @@
 	url = https://github.com/omni624562/libIME2.git
 [submodule "libchewing"]
 	path = libchewing
-	url = https://github.com/chewing/libchewing.git
+	url = https://codeberg.org/chewing/libchewing.git
