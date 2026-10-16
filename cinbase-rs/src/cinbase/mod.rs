@@ -775,17 +775,33 @@ impl CbTs {
 }
 
 // ---------------------------------------------------------------------------
-// 大易 (python/input_methods/chedayi/chedayi_ime.py)
+// 大易 (python/input_methods/chedayi/chedayi_ime.py) and 酷倉
+// (python/input_methods/checj/checj_ime.py): CinBaseTextService subclasses that
+// only differ in their settings, plus 大易's own onKeyDown prelude
 
 pub const CHEDAYI_GUID: &str = "{e6943374-70f5-4540-aa0f-3205c7dcca84}";
 pub const CHEDAYI_IME_DIR_NAME: &str = "chedayi";
 pub const CHEDAYI_MAX_CHAR_LENGTH: i64 = 4;
 pub const CHEDAYI_CIN_FILE_LIST: &[&str] = &["thdayi.json", "dayi4.json", "dayi3.json"];
 
-/// DY:20 CheDayiTextService
-pub struct CheDayiTextService {
+pub const CHECJ_GUID: &str = "{f828d2dc-81be-466e-9cfe-24bb03172693}";
+pub const CHECJ_IME_DIR_NAME: &str = "checj";
+pub const CHECJ_MAX_CHAR_LENGTH: i64 = 5;
+pub const CHECJ_CIN_FILE_LIST: &[&str] = &[
+    "checj.json", "mscj3.json", "mscj3-ext.json", "cj-ext.json",
+    "cnscj.json", "thcj.json", "newcj3.json", "cj5.json",
+    "newcj.json", "scj6.json", "cj-fast.json",
+];
+
+/// DY:20 CheDayiTextService / checj_ime.py CheCJTextService
+pub struct CinBaseService {
     pub st: CbTs,
+    /// 大易 runs DY:33-65 before CinBase.onKeyDown; 酷倉 uses CinBase.onKeyDown as is
+    pub dayi: bool,
 }
+
+/// Kept for code that names the 大易 service
+pub type CheDayiTextService = CinBaseService;
 
 /// DY:28 initTextServiceExtra: must run before initCinBaseContext so the
 /// dsymbols table is loaded
@@ -794,15 +810,23 @@ fn chedayi_init_text_service_extra(st: &mut CbTs) {
     st.sel_dayi_symbol_char_type = 0;
 }
 
-impl CheDayiTextService {
-    pub fn new(client: ClientInfo) -> Result<CheDayiTextService, String> {
+/// IB:103 the default initTextServiceExtra hook does nothing
+fn no_init_text_service_extra(_st: &mut CbTs) {}
+
+impl CinBaseService {
+    pub fn new(client: ClientInfo) -> Result<CinBaseService, String> {
         let st = CbTs::new(client, CHEDAYI_IME_DIR_NAME, CHEDAYI_MAX_CHAR_LENGTH, CHEDAYI_CIN_FILE_LIST, chedayi_init_text_service_extra)?;
-        Ok(CheDayiTextService { st })
+        Ok(CinBaseService { st, dayi: true })
+    }
+
+    pub fn new_checj(client: ClientInfo) -> Result<CinBaseService, String> {
+        let st = CbTs::new(client, CHECJ_IME_DIR_NAME, CHECJ_MAX_CHAR_LENGTH, CHECJ_CIN_FILE_LIST, no_init_text_service_extra)?;
+        Ok(CinBaseService { st, dayi: false })
     }
 }
 
 /// IB:108-150: CinBaseTextService forwards every event to CinBase.
-impl Service for CheDayiTextService {
+impl Service for CinBaseService {
     fn ts(&mut self) -> &mut TextService {
         &mut self.st.ts
     }
@@ -824,7 +848,11 @@ impl Service for CheDayiTextService {
     }
 
     fn on_key_down(&mut self, ev: &KeyEvent) -> Result<Value, String> {
-        Ok(json!(self.st.chedayi_on_key_down(ev)?))
+        if self.dayi {
+            Ok(json!(self.st.chedayi_on_key_down(ev)?))
+        } else {
+            Ok(json!(self.st.on_key_down(ev)?))
+        }
     }
 
     fn filter_key_up(&mut self, ev: &KeyEvent) -> Result<Value, String> {
@@ -867,7 +895,10 @@ impl Service for CheDayiTextService {
 /// serviceManager.createService for the IMEs this backend implements.
 pub fn create_service(guid: &str, client: &ClientInfo) -> Result<Option<Box<dyn Service>>, String> {
     if guid == CHEDAYI_GUID {
-        return Ok(Some(Box::new(CheDayiTextService::new(client.clone())?)));
+        return Ok(Some(Box::new(CinBaseService::new(client.clone())?)));
+    }
+    if guid == CHECJ_GUID {
+        return Ok(Some(Box::new(CinBaseService::new_checj(client.clone())?)));
     }
     Ok(None)
 }

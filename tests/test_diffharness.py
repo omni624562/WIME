@@ -150,9 +150,11 @@ class RustBackendTests(unittest.TestCase):
                 self.assertEqual(problems, [])
 
     def test_random_sessions_match_python(self):
-        suite = driver.generate(seed=2026, count=20, length=80)
-        expected = driver.run_suite(suite, driver.REFERENCE)
-        self.assertEqual(driver.compare(expected, driver.run_suite(suite, [RUST_BACKEND])), [])
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                suite = driver.generate(seed=2026, count=20, length=80, ime=ime)
+                expected = driver.run_suite(suite, driver.REFERENCE)
+                self.assertEqual(driver.compare(expected, driver.run_suite(suite, [RUST_BACKEND])), [])
 
 
 if __name__ == "__main__":

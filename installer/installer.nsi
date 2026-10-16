@@ -836,18 +836,26 @@ Section "" Register
 !endif
 	${EndIf}
 
-	; 大易由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理：backends.json 的 cinbase_rs 資料夾放
-	; ime.json，大易的 GUID 就由它接手。同一個 GUID 只能有一個後端：拿掉 Python 那份 ime.json
-	; （設定頁與 config\ 照舊在 python 下，Rust 後端也讀同一份設定、碼表與資料檔）。
-	; 以前是可取消勾選的「實驗」選項；它和 Python 後端的回覆完全相同（tests/diffharness），
-	; 一般使用者無從判斷要不要勾，改為一律使用
+	; 大易與酷倉由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理：backends.json 的 cinbase_rs
+	; 資料夾放它們的 ime.json，那兩個 GUID 就由它接手。同一個 GUID 只能有一個後端：拿掉 Python
+	; 那份 ime.json（設定頁與 config\ 照舊在 python 下，Rust 後端也讀同一份設定、碼表與資料檔）。
+	; 它和 Python 後端的回覆完全相同（tests/diffharness），一律使用；新酷音仍由 Python 處理
 	${If} ${SectionIsSelected} ${chedayi}
+	${OrIf} ${SectionIsSelected} ${checj}
 		SetOutPath "$INSTDIR\cinbase_rs"
 		File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
+	${EndIf}
+	${If} ${SectionIsSelected} ${chedayi}
 		SetOutPath "$INSTDIR\cinbase_rs\input_methods\chedayi"
 		File "..\cinbase-rs\input_methods\chedayi\ime.json"
 		File "..\python\input_methods\chedayi\icon.ico"
 		Delete "$INSTDIR\python\input_methods\chedayi\ime.json"
+	${EndIf}
+	${If} ${SectionIsSelected} ${checj}
+		SetOutPath "$INSTDIR\cinbase_rs\input_methods\checj"
+		File "..\cinbase-rs\input_methods\checj\ime.json"
+		File "..\python\input_methods\checj\icon.ico"
+		Delete "$INSTDIR\python\input_methods\checj\ime.json"
 	${EndIf}
 
 	; Install the text service dlls
