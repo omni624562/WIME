@@ -1,0 +1,77 @@
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "shift_moves_cursor", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "shift_moves_cursor", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "shift_moves_cursor", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "shift_moves_cursor", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "shift_moves_cursor", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "shift_moves_cursor", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "shift_moves_cursor", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "shift_moves_cursor", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "shift_moves_cursor", "step": "2:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "shift_moves_cursor", "step": "3:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "3:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "shift_moves_cursor", "step": "3:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "shift_moves_cursor", "step": "4:l"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏㄠ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "4:l"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "shift_moves_cursor", "step": "4:l"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "shift_moves_cursor", "step": "5:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 19, "showCandidates": false, "success": true}, "scenario": "shift_moves_cursor", "step": "5:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "shift_moves_cursor", "step": "5:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "shift_moves_cursor", "step": "6:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 22, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "6:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "shift_moves_cursor", "step": "6:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "shift_moves_cursor", "step": "7:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 25, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "7:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "shift_moves_cursor", "step": "7:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "shift_moves_cursor", "step": "8:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 3, "compositionString": "你好測", "return": true, "seqNum": 28, "showCandidates": false, "success": true}, "scenario": "shift_moves_cursor", "step": "8:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "shift_moves_cursor", "step": "8:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "shift_moves_cursor", "step": "9:SHIFT"}
+{"method": "onKeyDown", "reply": {"return": false, "seqNum": 31, "success": true}, "scenario": "shift_moves_cursor", "step": "9:SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 32, "success": true}, "scenario": "shift_moves_cursor", "step": "9:SHIFT"}
+{"method": "onKeyUp", "reply": {"compositionCursor": 2, "return": true, "seqNum": 33, "success": true}, "scenario": "shift_moves_cursor", "step": "9:SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 34, "success": true}, "scenario": "shift_moves_cursor", "step": "10:SHIFT"}
+{"method": "onKeyDown", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "shift_moves_cursor", "step": "10:SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "shift_moves_cursor", "step": "10:SHIFT"}
+{"method": "onKeyUp", "reply": {"compositionCursor": 1, "return": true, "seqNum": 37, "success": true}, "scenario": "shift_moves_cursor", "step": "10:SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 38, "success": true}, "scenario": "shift_moves_cursor", "step": "11:R+SHIFT"}
+{"method": "onKeyDown", "reply": {"return": false, "seqNum": 39, "success": true}, "scenario": "shift_moves_cursor", "step": "11:R+SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 40, "success": true}, "scenario": "shift_moves_cursor", "step": "11:R+SHIFT"}
+{"method": "onKeyUp", "reply": {"compositionCursor": 2, "return": true, "seqNum": 41, "success": true}, "scenario": "shift_moves_cursor", "step": "11:R+SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "shift_moves_cursor", "step": "12:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "你好測", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 43, "success": true}, "scenario": "shift_moves_cursor", "step": "12:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "shift_moves_cursor", "step": "12:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": false, "seqNum": 45, "success": true}, "scenario": "shift_moves_cursor", "step": "13:SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 46, "success": true}, "scenario": "shift_moves_cursor", "step": "13:SHIFT"}
+{"method": "onKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "shift_moves_cursor", "step": "13:SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "shift_moves_cursor", "step": "14:a"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄇ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 49, "showCandidates": true, "success": true}, "scenario": "shift_moves_cursor", "step": "14:a"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "shift_moves_cursor", "step": "14:a"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 51, "success": true}, "scenario": "shift_moves_cursor", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "with_bopomofo", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "with_bopomofo", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "with_bopomofo", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "with_bopomofo", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "with_bopomofo", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "with_bopomofo", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "with_bopomofo", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "with_bopomofo", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "with_bopomofo", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "with_bopomofo", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "with_bopomofo", "step": "2:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "with_bopomofo", "step": "3:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "with_bopomofo", "step": "3:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "with_bopomofo", "step": "3:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "with_bopomofo", "step": "4:SHIFT"}
+{"method": "onKeyDown", "reply": {"return": false, "seqNum": 16, "success": true}, "scenario": "with_bopomofo", "step": "4:SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 17, "success": true}, "scenario": "with_bopomofo", "step": "4:SHIFT"}
+{"method": "onKeyUp", "reply": {"return": false, "seqNum": 18, "success": true}, "scenario": "with_bopomofo", "step": "4:SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 19, "success": true}, "scenario": "with_bopomofo", "step": "5:R+SHIFT"}
+{"method": "onKeyDown", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "with_bopomofo", "step": "5:R+SHIFT"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "with_bopomofo", "step": "5:R+SHIFT"}
+{"method": "onKeyUp", "reply": {"return": false, "seqNum": 22, "success": true}, "scenario": "with_bopomofo", "step": "5:R+SHIFT"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 23, "success": true}, "scenario": "with_bopomofo", "step": "6:ENTER"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 24, "showCandidates": true, "success": true}, "scenario": "with_bopomofo", "step": "6:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 25, "success": true}, "scenario": "with_bopomofo", "step": "6:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 26, "success": true}, "scenario": "with_bopomofo", "step": "deactivate"}

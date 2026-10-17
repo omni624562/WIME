@@ -1,0 +1,131 @@
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "narrow_rows", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 20, "candPerRow": 10, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 160, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 10, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"contentMargin": 10, "textMargin": 8}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "narrow_rows", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "narrow_rows", "step": "0:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "0:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "narrow_rows", "step": "0:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "narrow_rows", "step": "1:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "亦", "return": true, "seqNum": 7, "showCandidates": false, "success": true}, "scenario": "narrow_rows", "step": "1:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "narrow_rows", "step": "1:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "narrow_rows", "step": "2:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["意", "義", "易", "議", "亦", "益", "異", "藝", "億"], "candidatePageInfo": "1/24", "compositionCursor": 0, "compositionString": "亦", "return": true, "seqNum": 10, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "2:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "narrow_rows", "step": "2:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "narrow_rows", "step": "3:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 2, "return": true, "seqNum": 13, "success": true}, "scenario": "narrow_rows", "step": "3:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "narrow_rows", "step": "3:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "narrow_rows", "step": "4:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 4, "return": true, "seqNum": 16, "success": true}, "scenario": "narrow_rows", "step": "4:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "narrow_rows", "step": "4:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "narrow_rows", "step": "5:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 6, "return": true, "seqNum": 19, "success": true}, "scenario": "narrow_rows", "step": "5:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "narrow_rows", "step": "5:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "narrow_rows", "step": "6:UP"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 4, "return": true, "seqNum": 22, "success": true}, "scenario": "narrow_rows", "step": "6:UP"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "narrow_rows", "step": "6:UP"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "narrow_rows", "step": "7:UP"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 2, "return": true, "seqNum": 25, "success": true}, "scenario": "narrow_rows", "step": "7:UP"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "narrow_rows", "step": "7:UP"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "narrow_rows", "step": "8:UP"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "return": true, "seqNum": 28, "success": true}, "scenario": "narrow_rows", "step": "8:UP"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "narrow_rows", "step": "8:UP"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "narrow_rows", "step": "9:ENTER"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": [], "compositionCursor": 1, "compositionString": "意", "return": true, "seqNum": 31, "showCandidates": false, "success": true}, "scenario": "narrow_rows", "step": "9:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "narrow_rows", "step": "9:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "narrow_rows", "step": "10:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "意", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 34, "success": true}, "scenario": "narrow_rows", "step": "10:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "narrow_rows", "step": "10:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "narrow_rows", "step": "11:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 37, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "11:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "narrow_rows", "step": "11:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "narrow_rows", "step": "12:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 40, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "12:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "narrow_rows", "step": "12:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "narrow_rows", "step": "13:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "測", "return": true, "seqNum": 43, "showCandidates": false, "success": true}, "scenario": "narrow_rows", "step": "13:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "narrow_rows", "step": "13:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "narrow_rows", "step": "14:g"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄕ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "測", "return": true, "seqNum": 46, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "14:g"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "narrow_rows", "step": "14:g"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "narrow_rows", "step": "15:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 49, "showCandidates": false, "success": true}, "scenario": "narrow_rows", "step": "15:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "narrow_rows", "step": "15:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "narrow_rows", "step": "16:HOME"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 0, "compositionString": "測試", "return": true, "seqNum": 52, "success": true}, "scenario": "narrow_rows", "step": "16:HOME"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 53, "success": true}, "scenario": "narrow_rows", "step": "16:HOME"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 54, "success": true}, "scenario": "narrow_rows", "step": "17:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["測試", "策試", "策士", "側視", "側室"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "測試", "return": true, "seqNum": 55, "showCandidates": true, "success": true}, "scenario": "narrow_rows", "step": "17:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 56, "success": true}, "scenario": "narrow_rows", "step": "17:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 57, "success": true}, "scenario": "narrow_rows", "step": "18:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 1, "return": true, "seqNum": 58, "success": true}, "scenario": "narrow_rows", "step": "18:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 59, "success": true}, "scenario": "narrow_rows", "step": "18:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 60, "success": true}, "scenario": "narrow_rows", "step": "19:UP"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "return": true, "seqNum": 61, "success": true}, "scenario": "narrow_rows", "step": "19:UP"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 62, "success": true}, "scenario": "narrow_rows", "step": "19:UP"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 63, "success": true}, "scenario": "narrow_rows", "step": "20:ENTER"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": [], "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 64, "showCandidates": false, "success": true}, "scenario": "narrow_rows", "step": "20:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 65, "success": true}, "scenario": "narrow_rows", "step": "20:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 66, "success": true}, "scenario": "narrow_rows", "step": "21:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "測試", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 67, "success": true}, "scenario": "narrow_rows", "step": "21:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 68, "success": true}, "scenario": "narrow_rows", "step": "21:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 69, "success": true}, "scenario": "narrow_rows", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "long_phrases", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 20, "candPerRow": 10, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 160, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 10, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"contentMargin": 10, "textMargin": 8}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "long_phrases", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "long_phrases", "step": "0:w"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄊ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "0:w"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "long_phrases", "step": "0:w"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "long_phrases", "step": "1:9"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄊㄞ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "1:9"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "long_phrases", "step": "1:9"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "long_phrases", "step": "2:6"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "台", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "long_phrases", "step": "2:6"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "long_phrases", "step": "2:6"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "long_phrases", "step": "3:j"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄨ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "台", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "3:j"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "long_phrases", "step": "3:j"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "long_phrases", "step": "4:0"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄨㄢ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "台", "return": true, "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "4:0"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "long_phrases", "step": "4:0"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "long_phrases", "step": "5:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "台灣", "return": true, "seqNum": 19, "showCandidates": false, "success": true}, "scenario": "long_phrases", "step": "5:SPACE"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "long_phrases", "step": "5:SPACE"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "long_phrases", "step": "6:2"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄉ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "台灣", "return": true, "seqNum": 22, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "6:2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "long_phrases", "step": "6:2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "long_phrases", "step": "7:8"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄉㄚ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "台灣", "return": true, "seqNum": 25, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "7:8"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "long_phrases", "step": "7:8"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "long_phrases", "step": "8:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 3, "compositionString": "台灣大", "return": true, "seqNum": 28, "showCandidates": false, "success": true}, "scenario": "long_phrases", "step": "8:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "long_phrases", "step": "8:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "long_phrases", "step": "9:v"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄒ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 3, "compositionString": "台灣大", "return": true, "seqNum": 31, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "9:v"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "long_phrases", "step": "9:v"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "long_phrases", "step": "10:m"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄒㄩ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 3, "compositionString": "台灣大", "return": true, "seqNum": 34, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "10:m"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "long_phrases", "step": "10:m"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "long_phrases", "step": "11:,"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄒㄩㄝ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 3, "compositionString": "台灣大", "return": true, "seqNum": 37, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "11:,"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "long_phrases", "step": "11:,"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "long_phrases", "step": "12:6"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 4, "compositionString": "台灣大學", "return": true, "seqNum": 40, "showCandidates": false, "success": true}, "scenario": "long_phrases", "step": "12:6"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "long_phrases", "step": "12:6"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "long_phrases", "step": "13:HOME"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 0, "compositionString": "台灣大學", "return": true, "seqNum": 43, "success": true}, "scenario": "long_phrases", "step": "13:HOME"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "long_phrases", "step": "13:HOME"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "long_phrases", "step": "14:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["台灣大學", "臺灣大學"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "台灣大學", "return": true, "seqNum": 46, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "14:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "long_phrases", "step": "14:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "long_phrases", "step": "15:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 1, "return": true, "seqNum": 49, "success": true}, "scenario": "long_phrases", "step": "15:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "long_phrases", "step": "15:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "long_phrases", "step": "16:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["台灣", "臺灣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "台灣大學", "return": true, "seqNum": 52, "showCandidates": true, "success": true}, "scenario": "long_phrases", "step": "16:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 53, "success": true}, "scenario": "long_phrases", "step": "16:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 54, "success": true}, "scenario": "long_phrases", "step": "17:UP"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": [], "compositionCursor": 0, "compositionString": "台灣大學", "return": true, "seqNum": 55, "showCandidates": false, "success": true}, "scenario": "long_phrases", "step": "17:UP"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 56, "success": true}, "scenario": "long_phrases", "step": "17:UP"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 57, "success": true}, "scenario": "long_phrases", "step": "18:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "台灣大學", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 58, "success": true}, "scenario": "long_phrases", "step": "18:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 59, "success": true}, "scenario": "long_phrases", "step": "18:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": false, "seqNum": 60, "success": true}, "scenario": "long_phrases", "step": "19:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 61, "success": true}, "scenario": "long_phrases", "step": "19:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 62, "success": true}, "scenario": "long_phrases", "step": "deactivate"}
