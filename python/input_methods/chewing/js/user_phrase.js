@@ -342,11 +342,13 @@ function onImportPhrase() {
         buttons: {
             "繼續": function() {
                 $("#import_user_phrase").on("change", function() {
-                    if (this.files[0].name.split(".").pop() === "sqlite3") {
+                    // chewing.dat (新版)，或舊版匯出的 chewing.sqlite3 (匯入時轉換)
+                    var ext = this.files[0].name.split(".").pop().toLowerCase();
+                    if (ext === "dat" || ext === "sqlite3") {
                         $("#import_user_phrase_form").submit();
                     } else {
                         jQueryDialogAlert({
-                            message: "副檔名錯誤！只允許 .sqlite3 檔案上傳！",
+                            message: "副檔名錯誤！只允許 .dat 或 .sqlite3 檔案上傳！",
                             icon: "error"
                         });
                     }

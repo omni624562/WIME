@@ -20,14 +20,14 @@ from textService import *
 import os.path
 import time
 from libchewing import ChewingContext, ChewingError, ChewingFault, CHEWING_DATA_DIR, \
-    CHINESE_MODE, ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE, encodeDataPath
+    CHINESE_MODE, ENGLISH_MODE, FULLSHAPE_MODE, HALFSHAPE_MODE, searchPath, \
+    prepareUserDictionary, UserDictionaryError
 
 import sys
 import copy
 from ctypes import windll  # for ShellExecuteW() and GetAsyncKeyState()
 
 from .chewing_config import chewingConfig, SWITCH_LANG_WITH_BOTH_SHIFT, SWITCH_LANG_WITH_LEFT_SHIFT, SWITCH_LANG_WITH_RIGHT_SHIFT
-import sqlite3
 
 
 # 按鍵內碼和名稱的對應
@@ -97,9 +97,9 @@ def splitTrailingBopomofo(text):
     return text[:rootStart], text[rootStart:]
 
 
-# libchewing 回傳的是 UTF-8 bytes。資料檔有問題時可能不是合法的 UTF-8 (symbols.dat 一行
-# 超過 511 bytes 會被 libchewing 截斷在字的中間、或檔案存成 ANSI)，以前嚴格解碼會讓之後
-# 每個按鍵都丟例外，連 Esc 都清不掉
+# libchewing 回傳的是 UTF-8 bytes。以前的 C 版在資料檔有問題時可能傳回不合法的 UTF-8
+# (symbols.dat 一行超過 511 bytes 會被截斷在字的中間、或檔案存成 ANSI)，嚴格解碼會讓之後
+# 每個按鍵都丟例外，連 Esc 都清不掉。0.13 版不會這樣，仍保留寬鬆解碼
 def decodeText(data):
     return data.decode("UTF-8", "replace") if data else ""
 
@@ -121,10 +121,10 @@ RIGHT_SHIFT_SCAN_CODE = 0x36
 
 # KeyEvent.isSymbols() 的 = [ \ ] ' 是預設鍵盤配置的標點鍵，有些配置拿其中幾個鍵打注音
 # (keyboardLayout: 這幾個鍵)。關掉「非注音符號對應鍵輸出全形標點」時，以前連這些鍵也
-# 當成標點、送出半形符號：精業打不出ㄤㄥㄦ、倚天 41 鍵打不出ㄘㄦ、DVORAK 打不出ㄆㄦ。
+# 當成標點、送出半形符號：精業打不出ㄨㄩㄦ、倚天 41 鍵打不出ㄘㄦ、DVORAK 打不出ㄆㄦ。
 # 其他配置的這五個鍵都不是注音 (tests/test_chewing_keys.py 逐一問 libchewing 確認)
 LAYOUT_BOPOMOFO_SYMBOL_KEYS = {
-    3: "=['",  # 精業：ㄦ ㄤ ㄥ
+    3: "=['",  # 精業：ㄦ ㄨ ㄩ (舊的 C 版 libchewing 精業配置錯了，[ ' 是ㄤ ㄥ)
     4: "='",   # 倚天 41 鍵：ㄦ ㄘ
     6: "['",   # DVORAK：ㄦ ㄆ
 }
@@ -163,8 +163,8 @@ class ChewingTextService(TextService):
         try:
             return TextService.handleRequest(self, msg)
         except ChewingFault as err:
-            # 內附的舊版 chewing.dll 在少數按鍵序列會存取違規 (例如許氏鍵盤的
-            # 「k 空白 4 k 空白」)。以前例外一路丟到 server.py，C++ 端會重設整條連線，
+            # 以前內附的 C 版 chewing.dll 在少數按鍵序列會存取違規 (例如許氏鍵盤的
+            # 「k 空白 4 k 空白」，0.13 版已不會)。以前例外一路丟到 server.py，C++ 端會重設整條連線，
             # 之後每個空白鍵、Enter 都再出錯一次。丟掉壞掉的 context、重建一個新的，
             # 並清掉組字狀態 (這個按鍵和正在組的字會遺失)
             return self.recoverFromEngineFault(msg, err)
@@ -325,22 +325,24 @@ class ChewingTextService(TextService):
         # syspath 參數可包含多個路徑，用 ; 分隔
         # 此處把 user 設定檔目錄插入到 system-wide 資料檔路徑前
         # 如此使用者變更設定後，可以比系統預設值有優先權
-        search_paths = b";".join(
-            path for path in (encodeDataPath(cfg.getConfigDir()), encodeDataPath(CHEWING_DATA_DIR)) if path)
-        # 使用者詞庫由 sqlite 開啟，路徑用 UTF-8
-        user_phrase = cfg.getUserPhrase().encode("UTF-8")
+        config_dir = cfg.getConfigDir()
+        search_paths = searchPath(config_dir, CHEWING_DATA_DIR)
 
         self.userPhraseFallback = False
         try:
-            return ChewingContext(syspath=search_paths, userpath=user_phrase)
-        except ChewingError:
-            # 詞庫被其他程式鎖住、損毀或唯讀時 libchewing 會失敗。以前沒有檢查，
+            # 舊版的 chewing.sqlite3 第一次用到時轉成 chewing.dat (原檔保留給舊版)
+            user_phrase = prepareUserDictionary(config_dir, search_paths)
+            return ChewingContext(syspath=search_paths, userpath=user_phrase, userdir=config_dir)
+        except (ChewingError, UserDictionaryError) as err:
+            # 詞庫損毀、被其他程式鎖住、唯讀，或舊詞庫轉換失敗。以前沒有檢查，
             # 所有按鍵都被吃掉卻打不出字
-            print("chewing: cannot open the user phrase database %s" % cfg.getUserPhrase(), file=sys.stderr)
+            print("chewing: cannot open the user phrase dictionary %s: %s" % (cfg.getUserPhrase(), err),
+                  file=sys.stderr)
         try:
-            chewingContext = ChewingContext(syspath=search_paths, userpath=b":memory:")
-        except ChewingError:
-            print("chewing: cannot create a libchewing context (data: %s)" % CHEWING_DATA_DIR, file=sys.stderr)
+            chewingContext = ChewingContext(syspath=search_paths, userpath=b":memory:", userdir=config_dir)
+        except ChewingError as err:
+            print("chewing: cannot create a libchewing context (data: %s): %s" % (CHEWING_DATA_DIR, err),
+                  file=sys.stderr)
             return None
         self.userPhraseFallback = True
         if not _userPhraseWarningShown:
@@ -626,41 +628,49 @@ class ChewingTextService(TextService):
             getattr(cfg, 'candidateKeyStyle', 'word-first'), CANDIDATE_FONT_NAME)
 
     # Ctrl + Del 刪除詞彙、Ctrl + PageUp 提昇 / Ctrl + PageDown 降低詞頻
+    # 只處理使用者詞庫裡的詞 (同一個詞的每個讀音)。libchewing 0.13 的詞庫不是 SQLite 了，
+    # 改用它的 API (以前直接把 userphrase_v1 的 user_freq 改成 5000 / 0)
     def maintainUserPhrase(self, keyCode, target_phrase):
-        phraseConnect = None
+        ctx = self.chewingContext
         try:
-            # 詞庫被設定工具等鎖住時不能等太久：後端只有一個執行緒，預設的 5 秒會讓
-            # 所有程式的輸入法一起卡住 (C++ 端 2 秒就逾時)
-            phraseConnect = sqlite3.connect(chewingConfig.getUserPhrase(), timeout=0.2)
-            cursor = phraseConnect.cursor()
-            cursor.execute("SELECT * FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-            result = cursor.fetchone()
-            if (result is None):
+            readings = [bopomofo.encode("UTF-8") for phrase, bopomofo in ctx.userPhrases()
+                        if phrase == target_phrase]
+            if not readings:
                 if keyCode == VK_DELETE:
                     self.showMessage("詞彙「" + target_phrase + "」不存在，無法刪除", 2)
                 elif keyCode == VK_NEXT:
                     self.showMessage("詞彙「" + target_phrase + "」不存在，無法降低詞頻", 2)
                 elif keyCode == VK_PRIOR:
                     self.showMessage("詞彙「" + target_phrase + "」不存在，無法提昇詞頻", 2)
-            else:
-                if keyCode == VK_DELETE:
-                    cursor.execute("DELETE FROM userphrase_v1 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                    phraseConnect.commit()
-                    self.showMessage("刪除「" + target_phrase + "」成功", 2)
-                elif keyCode == VK_NEXT:
-                    cursor.execute("UPDATE userphrase_v1 SET user_freq = 0 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                    phraseConnect.commit()
+                return
+            phrase = target_phrase.encode("UTF-8")
+            if keyCode == VK_DELETE:
+                for bopomofo in readings:
+                    ctx.userphrase_remove(phrase, bopomofo)
+                self.showMessage("刪除「" + target_phrase + "」成功", 2)
+            elif keyCode == VK_PRIOR:
+                # 移除學到的詞頻再重新加入：libchewing 把新加入的詞排在同音詞的最前面
+                for bopomofo in readings:
+                    ctx.userphrase_remove(phrase, bopomofo)
+                    ctx.userphrase_add(phrase, bopomofo)
+                self.showMessage("↑提昇「" + target_phrase + "」詞頻成功", 2)
+            elif keyCode == VK_NEXT:
+                # 移除學到的詞頻，回到內建詞庫的排序。只在使用者詞庫裡的詞 (自己加的詞)
+                # 移除後就從候選清單消失了，要加回去：不能因為降低詞頻就把詞刪掉
+                for bopomofo in readings:
+                    ctx.userphrase_remove(phrase, bopomofo)
+                candidates = {decodeText(ctx.cand_string_by_index_static(i))
+                              for i in range(max(ctx.cand_TotalChoice(), 0))}
+                if target_phrase in candidates:
                     self.showMessage("↓降低「" + target_phrase + "」詞頻成功", 2)
-                elif keyCode == VK_PRIOR:
-                    cursor.execute("UPDATE userphrase_v1 SET user_freq = 5000 WHERE phrase=:target_phrase", {"target_phrase": target_phrase})
-                    phraseConnect.commit()
-                    self.showMessage("↑提昇「" + target_phrase + "」詞頻成功", 2)
-            cursor.close()
+                else:
+                    for bopomofo in readings:
+                        ctx.userphrase_add(phrase, bopomofo)
+                    self.showMessage("「" + target_phrase + "」是自訂詞，無法再降低詞頻；要刪除請按 Ctrl+Del", 3)
+        except ChewingFault:
+            raise  # handleRequest 重建 context
         except Exception as err:
             self.showMessage(str(err), 2)
-        finally:
-            if phraseConnect is not None:
-                phraseConnect.close()
 
     def onKeyDown(self, keyEvent):
         chewingContext = self.chewingContext

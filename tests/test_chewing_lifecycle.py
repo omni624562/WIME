@@ -4,6 +4,9 @@
   the next request.
 - chewing_new2() returning NULL (user phrase database locked / corrupt, data
   files missing) was not detected: every key was swallowed without output.
+  libchewing 0.13 no longer returns NULL (it silently falls back to an in-memory
+  user dictionary / a built-in mini dictionary); the binding detects that from
+  the errors it logs.
 - A native fault inside chewing.dll (the bundled 2021 C libchewing) escaped as
   OSError, so the C++ side reset the pipe, and the same key sequence kept failing.
 - Saving symbols.dat / swkb.dat rebuilt the context mid-composition and reset the
@@ -12,12 +15,12 @@
   middle of a character) made every following key raise.
 - Blank lines the settings page left in symbols.dat were empty ` menu items.
 - A non-ASCII %APPDATA% (e.g. a Chinese user name) made libchewing ignore the
-  user's own symbol files, because the path was passed as UTF-8.
+  user's own symbol files, because the path was passed as UTF-8 (the old C
+  libchewing wanted the ANSI code page; 0.13 takes UTF-8, so any name works).
 """
 
 import os
 import shutil
-import sqlite3
 import tempfile
 import time
 import unittest
@@ -99,12 +102,18 @@ class ContextCreationTests(ChewingTestCase):
         ctx.close()
         self.assertLessEqual(ctx.bopomofo_Check(), 0)  # a NULL context (error), not the freed pointer
 
-    def test_locked_user_phrase_database_falls_back_to_memory(self):
+    def test_unreadable_user_phrase_dictionary_falls_back_to_memory(self):
         module = ch.load_module()
         module._userPhraseWarningShown = False
-        conn = sqlite3.connect(ch.config().getUserPhrase())
-        conn.execute("CREATE TABLE IF NOT EXISTS lock_test (x)")
-        conn.execute("BEGIN EXCLUSIVE")
+        path = ch.config().getUserPhrase()
+        ch.close_all()
+        saved = None
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                saved = f.read()
+        corrupt = b"\x30\x82\x00\x10\x0c\x04CHEW" + b"\xff" * 32  # a damaged chewing.dat
+        with open(path, "wb") as f:
+            f.write(corrupt)
         try:
             service = module.ChewingTextService(ch.DummyClient())
             ch._services.append(service)
@@ -113,11 +122,16 @@ class ContextCreationTests(ChewingTestCase):
             self.assertTrue(service.userPhraseFallback)
             self.assertIn("showMessage", reply)
             self.assertEqual(self.type(service, list("su3") + ["ENTER"]), "你")  # typing still works
+            ch.request(service, "onDeactivate")
+            with open(path, "rb") as f:
+                self.assertEqual(f.read(), corrupt)  # never overwritten with the in-memory phrases
         finally:
-            conn.rollback()
-            conn.close()
-        # the next activation retries the real database
-        ch.request(service, "onDeactivate")
+            if saved is None:
+                os.remove(path)
+            else:
+                with open(path, "wb") as f:
+                    f.write(saved)
+        # the next activation retries the real dictionary
         ch.request(service, "onActivate", isKeyboardOpen=True)
         self.assertFalse(service.userPhraseFallback)
 
@@ -264,6 +278,26 @@ class NonAsciiAppDataTests(ChewingTestCase):
         self.type(s, [("Q", "S")])
         self.assertEqual(s.compositionString, "\u2605")  # the shipped swkb.dat gives 〔
         ch.close_all()
+
+    def test_user_files_under_a_name_outside_the_ansi_code_page(self):
+        # the old C libchewing could only use the 8.3 short name here (or nothing)
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        appdata = os.path.join(root, "\u0e2a\u0e21\u0e0a\u0e32\u0e22\U0001F600")  # Thai + emoji
+        saved = os.environ["APPDATA"]
+        os.environ["APPDATA"] = appdata
+        self.addCleanup(os.environ.__setitem__, "APPDATA", saved)
+        os.makedirs(config_dir(), exist_ok=True)
+        with open(os.path.join(config_dir(), "swkb.dat"), "w", encoding="utf-8") as f:
+            f.write("Q \u2605\n")
+        s = self.service(easySymbolsWithShift=True)
+        self.type(s, [("Q", "S")])
+        self.assertEqual(s.compositionString, "\u2605")
+        self.assertFalse(s.userPhraseFallback)
+        self.type(s, ["ESC"])
+        self.assertEqual(self.type(s, list("su3") + ["ENTER"]), "你")
+        ch.close_all()
+        self.assertTrue(os.path.exists(ch.config().getUserPhrase()))  # the learned phrase was saved there
 
 
 if __name__ == "__main__":

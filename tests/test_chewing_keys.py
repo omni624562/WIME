@@ -60,8 +60,10 @@ class TypingTests(ChewingTestCase):
         s = self.service()
         self.assertEqual(self.type(s, list("5j/") + ["SPACE"] + list("jp6") + ["ENTER"]), "中文")
         self.assertEqual(self.type(s, list("ji3ap7") + ["ENTER"]), "我們")
-        # 3/4/6/7 are tones, not selection keys: 你 + ㄨㄛˋ used to commit 禰
-        self.assertEqual(self.type(s, list("su3ji4") + ["ENTER"]), "你握")
+        # 3/4/6/7 are tones, not selection keys: 你 + ㄨㄛˋ used to commit 禰.
+        # (libchewing 0.13 learns a picked single character: after the test above
+        # picked 妳, ㄋㄧˇ defaults to 妳 in this module's user dictionary)
+        self.assertRegex(self.type(s, list("su3ji4") + ["ENTER"]), "^[你妳]握$")
 
     def test_composition_is_inline_and_no_candidates_until_asked(self):
         s = self.service()
@@ -295,8 +297,9 @@ class LanguageToggleTests(ChewingTestCase):
 class HalfShapeSymbolKeyTests(ChewingTestCase):
     """非注音符號對應鍵輸出全形標點 off: the = [ \\ ] ' keys type half-width
     punctuation, except where the keyboard layout types bopomofo with them -
-    精業 (=[' ㄦㄤㄥ), 倚天 41 鍵 (=' ㄦㄘ), DVORAK ([' ㄦㄆ). Those used to type the
-    ASCII symbol as well, and the rest of the syllable became another character."""
+    精業 (=[' ㄦㄨㄩ; ㄦㄤㄥ with the old C libchewing), 倚天 41 鍵 (=' ㄦㄘ),
+    DVORAK ([' ㄦㄆ). Those used to type the ASCII symbol as well, and the rest of
+    the syllable became another character."""
 
     SYMBOL_KEYS = "=[\\]'"
 
@@ -335,8 +338,10 @@ class HalfShapeSymbolKeyTests(ChewingTestCase):
                         self.assertRegex(half[key][1], r"^[!-~]$")
 
     def test_words_typed_with_those_keys(self):
-        for layout, keys, word in ((3, "=z", "二"), (3, "h[z", "上"), (4, "'i2", "才"), (4, "=4", "二"),
-                                   (6, "'gz6", "平"), (6, "[6", "兒")):
+        # libchewing 0.13: 精業 [ is ㄨ (ㄕㄨˋ 恕; ㄕㄤˋ 上 is h;z now), and the new
+        # dictionary's default for ㄦˊ is 而 (兒 with the old C libchewing)
+        for layout, keys, word in ((3, "=z", "二"), (3, "h[z", "恕"), (3, "h;z", "上"), (3, "t'z", "據"),
+                                   (4, "'i2", "才"), (4, "=4", "二"), (6, "'gz6", "平"), (6, "[6", "而")):
             with self.subTest(layout=layout, keys=keys), self.layout_service(layout, False) as s:
                 # "=", "[", "'捱", "'營" before
                 self.assertEqual(self.type(s, list(keys) + ["ENTER"]), word)

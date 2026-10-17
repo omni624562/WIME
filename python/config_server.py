@@ -25,6 +25,16 @@ import threading
 import urllib.parse
 import uuid  # use to generate a random auth token
 
+# 錯誤訊息常含中文（檔名、詞彙）：主控台的字碼頁不是繁中（例如 GitHub 的 cp1252）時，
+# print 會丟 UnicodeEncodeError，請求變成 500。改用跳脫序列輸出。pythonw 沒有
+# stdout／stderr（None），不受影響
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(errors="backslashreplace")
+        except (ValueError, OSError):
+            pass
+
 # 閒置多久（秒）沒有任何請求就結束伺服器行程；設定頁會定期打 /keep_alive。
 SERVER_TIMEOUT = 120
 

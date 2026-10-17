@@ -18,9 +18,6 @@
 import sys
 import os
 import json
-import sqlite3
-import tempfile
-from contextlib import closing
 
 current_dir = os.path.dirname(__file__)
 
@@ -30,8 +27,8 @@ sys.path.append(os.path.dirname(os.path.dirname(current_dir)))
 sys.path.append(current_dir)
 
 from chewing_config import chewingConfig, defaultValues, normalizeValues, readUserConfig
-from libchewing import ChewingContext, ChewingError, CHEWING_DATA_DIR, encodeDataPath
-from ctypes import c_uint, byref, create_string_buffer
+from libchewing import ChewingContext, ChewingError, CHEWING_DATA_DIR, searchPath, \
+    prepareUserDictionary, importUserDictionary, touchChangeStamp, UserDictionaryError
 from config_server import BaseHandler, HTTPError, NoCacheStaticFileHandler, ConfigServerApp, authenticated
 
 config_dir = os.path.join(os.path.expandvars("%APPDATA%"), "PIME", "chewing")
@@ -39,34 +36,28 @@ localdata_dir = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "PIME", "chew
 
 COOKIE_ID = "chewing_config_token"
 
-# libchewing 以 512 bytes 的緩衝區逐行讀取 symbols.dat (含換行 \r\n 與結尾的 \0)，
-# 更長的一行會被截斷在字的中間，選字清單出現亂碼
-SYMBOLS_MAX_LINE_BYTES = 500
-
-# libchewing 使用者詞庫 (userphrase_v1) 的欄位
-USER_PHRASE_COLUMNS = {"time", "user_freq", "max_freq", "orig_freq", "length", "phrase"} | \
-    {"phone_%d" % i for i in range(11)}
+# 舊的 C 版 libchewing 以 512 bytes 的緩衝區逐行讀取 symbols.dat，更長的一行會被截斷
+# 在字的中間。0.13 版沒有這個限制 (內附的 symbols.dat 就有 800 多 bytes 的表情符號列)，
+# 只擋明顯異常的大小
+SYMBOLS_MAX_LINE_BYTES = 16384
 
 # syspath 參數可包含多個路徑，用 ; 分隔
 # 此處把 user 設定檔目錄插入到 system-wide 資料檔路徑前
 # 如此使用者變更設定後，可以比系統預設值有優先權
-search_paths = b";".join(
-    path for path in (encodeDataPath(chewingConfig.getConfigDir()), encodeDataPath(CHEWING_DATA_DIR)) if path)
-user_phrase = chewingConfig.getUserPhrase().encode("UTF-8")
-# print(search_paths, user_phrase)
-_chewing_ctx = None
+search_paths = searchPath(chewingConfig.getConfigDir(), CHEWING_DATA_DIR)
 
 
-def get_chewing_ctx():
-    """詞庫編輯器用的 libchewing context，第一次用到時才建立。以前在啟動時建立且不檢查，
-    詞庫剛好被鎖住或損毀時設定工具打不開、或詞庫編輯器的每個操作都靜靜地失敗"""
-    global _chewing_ctx
-    if _chewing_ctx is None:
-        try:
-            _chewing_ctx = ChewingContext(syspath=search_paths, userpath=user_phrase)
-        except ChewingError:
-            raise HTTPError(503, reason="Cannot open the user phrase database")
-    return _chewing_ctx
+def open_chewing_ctx():
+    """詞庫編輯器用的 libchewing context，每個請求開一個、用完關掉 (with 區塊)。
+    libchewing 0.13 把整個使用者詞庫讀進記憶體，關閉時才寫回檔案：一直開著的話，
+    看不到輸入法之後學到的詞，編輯的結果也要等設定工具結束才存檔。
+    詞庫損毀、被鎖住，或舊詞庫轉換失敗時回 503 (以前詞庫編輯器的每個操作都靜靜地失敗)"""
+    try:
+        user_phrase = prepareUserDictionary(config_dir, search_paths)
+        return ChewingContext(syspath=search_paths, userpath=user_phrase, userdir=config_dir)
+    except (ChewingError, UserDictionaryError) as err:
+        print("cannot open the user phrase dictionary:", err, file=sys.stderr)
+        raise HTTPError(503, reason="Cannot open the user phrase database")
 
 
 def read_text_file(path):
@@ -112,39 +103,13 @@ def save_file(filename, data):
         raise
 
 
-def check_user_phrase_db(path):
-    """確認 path 是可以用的 libchewing 使用者詞庫，否則丟出例外。以前只檢查有沒有
-    config_v1 表格，欄位不對的檔案匯入後，輸入法就再也開不了詞庫"""
-    with closing(sqlite3.connect(path)) as conn:
-        if conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-            raise ValueError("integrity check failed")
-        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if not {"userphrase_v1", "config_v1"} <= tables:
-            raise ValueError("not a libchewing user phrase database")
-        columns = {row[1] for row in conn.execute("PRAGMA table_info(userphrase_v1)")}
-        if not USER_PHRASE_COLUMNS <= columns:
-            raise ValueError("unexpected userphrase_v1 columns")
-        conn.execute("SELECT phrase FROM userphrase_v1").fetchall()  # 詞彙必須是合法的 UTF-8
-
-
 def import_user_phrase_db(data):
-    """以上傳的檔案內容取代使用者詞庫；格式不對時丟出例外，原本的詞庫不變"""
+    """以上傳的檔案內容取代使用者詞庫：新版的 chewing.dat，或舊版匯出的 chewing.sqlite3
+    (轉換成 chewing.dat)。格式不對時丟出例外，原本的詞庫不變"""
     os.makedirs(config_dir, exist_ok=True)
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite3", prefix="import_", dir=config_dir)
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(data)
-        check_user_phrase_db(temp_path)
-        # 用 sqlite 的 backup API 寫進原本的詞庫：輸入法的 libchewing 一直開著這個檔案，
-        # 以前直接覆寫檔案內容 (不是原子操作)，寫到一半時輸入法可能讀到損毀的資料庫
-        with closing(sqlite3.connect(temp_path)) as src, \
-                closing(sqlite3.connect(chewingConfig.getUserPhrase(), timeout=5)) as dst:
-            src.backup(dst)
-    finally:
-        try:
-            os.remove(temp_path)
-        except OSError:
-            pass
+    # 還沒轉換的舊詞庫先轉換、備份，匯入的內容才不會在下次開啟時又被舊詞庫取代
+    prepareUserDictionary(config_dir, search_paths)
+    return importUserDictionary(data, config_dir, search_paths)
 
 
 class ConfigHandler(BaseHandler):
@@ -218,47 +183,41 @@ class UserPhraseHandler(BaseHandler):
 
     @authenticated
     def get(self):  # get all user phrases
-        chewing_ctx = get_chewing_ctx()
-        phrase_len = c_uint(0)
-        bopomofo_len = c_uint(0)
-        phrases = []
-        ret = chewing_ctx.userphrase_enumerate()
-        print(chewing_ctx, ret)
-        while chewing_ctx.userphrase_has_next(byref(phrase_len), byref(bopomofo_len)):
-            phrase_buf = create_string_buffer(phrase_len.value)
-            bopomofo_buf = create_string_buffer(bopomofo_len.value)
-            chewing_ctx.userphrase_get(phrase_buf, phrase_len, bopomofo_buf, bopomofo_len)
-            # 匯入的詞庫可能有不是 UTF-8 的詞，以前整個清單載入失敗
-            phrase = phrase_buf.value.decode("utf-8", "replace")
-            bopomofo = bopomofo_buf.value.decode("utf-8", "replace")
-            phrases.append({
-                "phrase": phrase,
-                "bopomofo": bopomofo
-            })
+        chewing_ctx = open_chewing_ctx()
+        try:
+            # 匯入的詞庫可能有不是 UTF-8 的詞，以前整個清單載入失敗 (userPhrases 寬鬆解碼)
+            phrases = [{"phrase": phrase, "bopomofo": bopomofo}
+                       for phrase, bopomofo in chewing_ctx.userPhrases()]
+        finally:
+            chewing_ctx.close()
         self.write({"data": phrases})
 
     @authenticated
     def post(self):  # add new user phrases or remove existing ones
-        chewing_ctx = get_chewing_ctx()
         data = json.loads(self.request.body)
         added = data.get("add", [])
         removed = data.get("remove", [])
-        print("add", added, "remove", removed)
 
         # 0: error (any item failed), 1: success
         result = 1
 
-        for item in added:  # add new phrases
-            phrase = item["phrase"].encode("utf8")
-            bopomofo = item["bopomofo"].encode("utf8")
-            if chewing_ctx.userphrase_add(phrase, bopomofo) <= 0:
-                result = 0
+        chewing_ctx = open_chewing_ctx()
+        try:
+            for item in added:  # add new phrases
+                phrase = item["phrase"].encode("utf8")
+                bopomofo = item["bopomofo"].encode("utf8")
+                if chewing_ctx.userphrase_add(phrase, bopomofo) <= 0:
+                    result = 0
 
-        for item in removed:  # remove existing phrases
-            phrase = item["phrase"].encode("utf8")
-            bopomofo = item["bopomofo"].encode("utf8")
-            if chewing_ctx.userphrase_remove(phrase, bopomofo) <= 0:
-                result = 0
+            for item in removed:  # remove existing phrases
+                phrase = item["phrase"].encode("utf8")
+                bopomofo = item["bopomofo"].encode("utf8")
+                if chewing_ctx.userphrase_remove(phrase, bopomofo) <= 0:
+                    result = 0
+        finally:
+            chewing_ctx.close()  # 寫回 chewing.dat
+        if added or removed:
+            touchChangeStamp(config_dir)  # 輸入法重新讀取詞庫
 
         self.write({"result": result})
 
@@ -267,20 +226,18 @@ class UserPhraseFileHandler(BaseHandler):
 
     @authenticated
     def get(self):  # download user phrase file
-        user_phrase_file = os.path.join(config_dir, "chewing.sqlite3")
-        if not os.path.exists(user_phrase_file):
+        try:
+            user_phrase_file = prepareUserDictionary(config_dir, search_paths)
+        except UserDictionaryError:
+            raise HTTPError(503, reason="Cannot convert the old user phrase database")
+        try:
+            with open(user_phrase_file, "rb") as f:  # libchewing 整個換掉檔案，讀到的一定完整
+                content = f.read()
+        except OSError:
             raise HTTPError(404)
         self.set_header("Content-Type", "application/force-download")
-        self.set_header("Content-Disposition", "attachment; filename=chewing.sqlite3")
-        with open(user_phrase_file, "rb") as f:
-            try:
-                self.write(f.read())
-                f.close()
-                self.finish()
-                return
-            except:
-                raise HTTPError(404)
-        raise HTTPError(500)
+        self.set_header("Content-Disposition", "attachment; filename=chewing.dat")
+        self.write(content)
 
     @authenticated
     def post(self):  # upload file

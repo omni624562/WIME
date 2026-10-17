@@ -772,6 +772,12 @@ Section "" Register
 	SectionIn 1 2
 	; Install the python backend and input method modules along with an embedable version of python 3.
 	${If} $INST_PYTHON == "True"
+		; 新酷音改用 libchewing 0.13（Rust 版），資料檔換成 tsi.dat、word.dat。有解除安裝
+		; 資訊的升級會先整個刪掉 python\；沒有的舊安裝不會，舊 C 版的資料檔在這裡清掉
+		; （新版不會讀，只是佔空間）
+		Delete "$INSTDIR\python\libchewing\data\dictionary.dat"
+		Delete "$INSTDIR\python\libchewing\data\index_tree.dat"
+		Delete "$INSTDIR\python\libchewing\data\pinyin.tab"
 		SetOutPath "$INSTDIR\python"
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 		; .pytest_cache：在 python\ 下跑過 pytest 就會出現，不入 git 但會被 /r 一起打包

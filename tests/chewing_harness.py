@@ -97,3 +97,37 @@ def close_all():
 
 def commit_text(replies):
     return "".join(r.get("commitString", "") for r in replies if r)
+
+
+# Rows of the old C libchewing user phrase database (chewing.sqlite3, written by
+# the chewing.dll WIME shipped up to 1.3.0-beta17): phrase, phone_0.., user_freq,
+# time. The phone values are what that DLL stored for these readings.
+LEGACY_PHRASES = [
+    ("測試", (10268, 8708), 9318, 0),          # ㄘㄜˋ ㄕˋ
+    ("新酷音", (7376, 5380, 208), 1, 0),       # ㄒㄧㄣ ㄎㄨˋ ㄧㄣ
+    ("王小明", (346, 7355, 1762), 1, 0),       # ㄨㄤˊ ㄒㄧㄠˇ ㄇㄧㄥˊ
+    ("的", (2585,), 0, 0),                     # ㄉㄜ˙
+]
+LEGACY_READINGS = {
+    "測試": "ㄘㄜˋ ㄕˋ",
+    "新酷音": "ㄒㄧㄣ ㄎㄨˋ ㄧㄣ",
+    "王小明": "ㄨㄤˊ ㄒㄧㄠˇ ㄇㄧㄥˊ",
+    "的": "ㄉㄜ˙",
+}
+
+
+def make_legacy_user_db(path, rows=LEGACY_PHRASES):
+    """Write an old-format (userphrase_v1) chewing.sqlite3 with the old DLL's schema."""
+    import sqlite3
+    from contextlib import closing
+    phones = ["phone_%d" % i for i in range(11)]
+    with closing(sqlite3.connect(path)) as conn:
+        conn.execute("CREATE TABLE userphrase_v1 (time INTEGER,user_freq INTEGER,max_freq INTEGER,"
+                     "orig_freq INTEGER,length INTEGER,%s,phrase TEXT,PRIMARY KEY (%s,phrase))"
+                     % (",".join(p + " INTEGER" for p in phones), ",".join(phones)))
+        conn.execute("CREATE TABLE config_v1 (id INTEGER,value INTEGER,PRIMARY KEY (id))")
+        for phrase, codes, freq, time in rows:
+            values = list(codes) + [0] * (11 - len(codes))
+            conn.execute("INSERT INTO userphrase_v1 VALUES (?,?,?,?,?,%s,?)" % ",".join("?" * 11),
+                         [time, freq, freq, freq, len(codes)] + values + [phrase])
+        conn.commit()

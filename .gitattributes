@@ -1,3 +1,7 @@
 # cmd.exe needs CRLF line endings in batch files; do not rely on core.autocrlf
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# libchewing 0.13 dictionaries (tools/build_libchewing.ps1): never convert line endings
+python/libchewing/data/tsi.dat binary
+python/libchewing/data/word.dat binary
