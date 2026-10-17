@@ -197,7 +197,6 @@ class UserPhraseHandler(BaseHandler):
         data = json.loads(self.request.body)
         added = data.get("add", [])
         removed = data.get("remove", [])
-        print("add", added, "remove", removed)
 
         # 0: error (any item failed), 1: success
         result = 1
