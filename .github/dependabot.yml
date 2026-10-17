@@ -1,0 +1,41 @@
+# 相依套件的自動更新：每週檢查一次，有新版（含安全更新）就開 PR，CI 照常把關。
+# 不涵蓋：內嵌的 Python（python/python3，手動從 python.org 更新並核對 SHA-256）、
+# libchewing 子模組（要配合 tools/build_libchewing.ps1 重建 DLL 與詞庫，見
+# tests/test_libchewing_build.py），以及 libIME2 子模組（自己的 repo）。
+version: 2
+updates:
+  # Rust：啟動器
+  - package-ecosystem: "cargo"
+    directory: "/PIMELauncher"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(PIMELauncher)"
+    groups:
+      # 小版號與修正版合成一個 PR，大版號（可能不相容）各自一個
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Rust：大易／酷倉後端
+  - package-ecosystem: "cargo"
+    directory: "/cinbase-rs"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(cinbase-rs)"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # CI 用到的 GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
