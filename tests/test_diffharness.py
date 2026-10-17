@@ -88,6 +88,23 @@ class ReferenceBackendTests(unittest.TestCase):
         failed = [r for r in first if r["reply"].get("success") is False or "error" in r["reply"]]
         self.assertEqual(failed, [], "requests failed inside the backend")
 
+    def test_chewing_random_sessions_are_deterministic(self):
+        # 新酷音: libchewing learns from what is typed, the user dictionary is
+        # fresh for every run (temporary APPDATA), Shift taps read the virtual clock
+        suite = driver.generate(seed=12, count=6, length=60, ime="chewing")
+        first = driver.run_suite(suite, driver.REFERENCE)
+        second = driver.run_suite(suite, driver.REFERENCE)
+        self.assertEqual(driver.compare(first, second), [])
+        failed = [r for r in first if r["reply"].get("success") is False or "error" in r["reply"]]
+        self.assertEqual(failed, [], "requests failed inside the backend")
+        self.assertTrue(any(r["reply"].get("commitString") for r in first))
+
+    def test_chewing_types_through_the_real_backend(self):
+        suite = {"ime": "chewing", "scenarios": [{"name": "你好", "steps": ["s", "u", "3", "c", "l", "3", "ENTER"]}]}
+        transcript = driver.run_suite(suite, driver.REFERENCE)
+        commits = [r["reply"]["commitString"] for r in transcript if r["reply"].get("commitString")]
+        self.assertEqual(commits, ["你好"])
+
     def test_wait_moves_the_virtual_clock(self):
         # with auto-commit on, bt commits 孫 at once and a Space within
         # AUTO_COMMIT_SPACE_GRACE (1 s) is swallowed; after 2 s it reaches the app
@@ -137,7 +154,7 @@ RUST_BACKEND = _rust_backend()
 @requires_backend
 @unittest.skipUnless(os.path.exists(RUST_BACKEND), "cinbase-rs is not built (cargo build --release)")
 class RustBackendTests(unittest.TestCase):
-    """The Rust 大易 backend must answer exactly like the Python one."""
+    """The Rust backend (大易, 酷倉, 新酷音) must answer exactly like the Python one."""
 
     def test_golden_transcripts(self):
         import suites
@@ -149,8 +166,22 @@ class RustBackendTests(unittest.TestCase):
                 problems = driver.compare(driver.load(golden), driver.run_suite(suite, [RUST_BACKEND]))
                 self.assertEqual(problems, [])
 
+    def test_chewing_options_match_python(self):
+        # a few option and layout combinations, with random 新酷音 sessions
+        configs = [
+            {"keyboardLayout": 1, "spaceKeyAction": 0, "spaceKeyCandidatesAction": 1},
+            {"keyboardLayout": 5, "selKeyType": 1, "candPerPage": 5, "upDownAction": 1, "leftRightAction": 1},
+            {"easySymbolsWithShift": False, "fullShapeSymbols": False, "easySymbolsWithCtrl": True,
+             "escCleanAllBuf": False, "phraseChoiceRearward": True, "autoLearn": False, "shiftMoveCursor": 1},
+        ]
+        for number, config in enumerate(configs):
+            with self.subTest(config=config):
+                suite = driver.generate(seed=300 + number, count=6, length=80, ime="chewing", config=config)
+                expected = driver.run_suite(suite, driver.REFERENCE)
+                self.assertEqual(driver.compare(expected, driver.run_suite(suite, [RUST_BACKEND])), [])
+
     def test_random_sessions_match_python(self):
-        for ime in ("chedayi", "checj"):
+        for ime in ("chedayi", "checj", "chewing"):
             with self.subTest(ime=ime):
                 suite = driver.generate(seed=2026, count=20, length=80, ime=ime)
                 expected = driver.run_suite(suite, driver.REFERENCE)
