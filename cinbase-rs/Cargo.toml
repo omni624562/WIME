@@ -14,11 +14,19 @@ path = "src/lib.rs"
 name = "wime-cinbase"
 path = "src/main.rs"
 
+# the settings tools (大易/酷倉 and 新酷音), a port of python/cinbase/configtool.py,
+# python/input_methods/chewing/config_tool.py and python/config_server.py
+[[bin]]
+name = "wime-config"
+path = "src/bin/wime-config.rs"
+
 [dependencies]
 # preserve_order: table JSON object order is significant (candidate order,
 # reverse index order), exactly like Python dicts
 serde_json = { version = "1", features = ["preserve_order"] }
 indexmap = "2"
+# the settings tool reads only "cincount" of a multi-MB table JSON (serde::de::IgnoredAny)
+serde = "1"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_UI_Shell",
@@ -29,6 +37,8 @@ windows-sys = { version = "0.61", features = [
     "Win32_Graphics_Gdi",
     "Win32_UI_HiDpi",
     "Win32_Storage_FileSystem",
+    "Win32_Networking_WinSock",
+    "Win32_Security_Cryptography",
 ] }
 # 新酷音: upstream libchewing (submodule libchewing, tag v0.13.1) linked
 # in-process through its C API crate -- the same code python/libchewing/chewing.dll

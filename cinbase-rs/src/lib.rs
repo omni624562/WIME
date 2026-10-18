@@ -1,7 +1,10 @@
-//! The WIME input methods (大易, 酷倉, 新酷音) as a library, so that more than one
-//! executable can use them. `wime-cinbase.exe` (src/main.rs) is the backend process
-//! for PIMELauncher, a port of python/server.py, the cinbase package and
-//! input_methods/chewing.
+//! The WIME input methods (大易, 酷倉, 新酷音) as a library shared by the two
+//! executables of this crate:
+//! - `wime-cinbase.exe` (src/main.rs): the backend process for PIMELauncher,
+//!   a port of python/server.py, the cinbase package and input_methods/chewing;
+//! - `wime-config.exe` (src/bin/wime-config.rs): the settings tools, a port of
+//!   python/cinbase/configtool.py, python/input_methods/chewing/config_tool.py
+//!   and python/config_server.py (module `configtool`).
 
 #![allow(dead_code)] // the port is filled in module by module
 
@@ -10,6 +13,7 @@ pub mod chewing;
 pub mod cin;
 pub mod cinbase;
 pub mod config;
+pub mod configtool;
 pub mod data;
 pub mod env;
 pub mod hcin;
