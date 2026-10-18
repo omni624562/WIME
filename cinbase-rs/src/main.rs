@@ -8,21 +8,7 @@
 //!   stdin  "<client_id>|<JSON request>"
 //!   stdout "PIME_MSG|<client_id>|<JSON reply>"
 
-#![allow(dead_code)] // the port is filled in module by module
-
-mod candidate_theme;
-mod chewing;
-mod cin;
-mod cinbase;
-mod config;
-mod data;
-mod env;
-mod hcin;
-mod keycodes;
-mod pager;
-mod paths;
-mod rcin;
-mod textservice;
+use wime::{chewing, cinbase, env, textservice, ClientInfo};
 
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
@@ -37,16 +23,6 @@ fn create_service(guid: &str, client: &ClientInfo) -> Result<Option<Box<dyn Serv
         return Ok(Some(Box::new(chewing::ChewingService::new(client.clone()))));
     }
     cinbase::create_service(guid, client)
-}
-
-/// What server.py's Client keeps from the init request.
-#[derive(Debug, Clone, Default)]
-pub struct ClientInfo {
-    pub guid: String,
-    pub is_windows8_above: bool,
-    pub is_metro_app: bool,
-    pub is_ui_less: bool,
-    pub is_console: bool,
 }
 
 struct Client {
