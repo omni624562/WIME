@@ -19,6 +19,8 @@ user's real settings and data are never read or written.
 Suites (JSON):
     {"ime": "chedayi",                 # input method folder name
      "config": {...},                  # optional user config.json
+     "files": {"name": "text" | {"base64": "..."}},   # optional, more files
+                                       # in %APPDATA%/PIME/<ime> (e.g. symbols.dat)
      "scenarios": [
         {"name": "...", "keyboardOpen": true,
          "steps": ["a", "SPACE", ["a", "S"], {"wait": 1.5},
@@ -38,6 +40,7 @@ Usage:
 """
 
 import argparse
+import base64
 import json
 import os
 import queue
@@ -60,6 +63,7 @@ REFERENCE = [PYTHON_EXE, "-O", os.path.join(HERE, "py_reference_backend.py")]
 IME_GUIDS = {
     "chedayi": "{E6943374-70F5-4540-AA0F-3205C7DCCA84}",
     "checj": "{F828D2DC-81BE-466E-9CFE-24BB03172693}",
+    "chewing": "{F80736AA-28DB-423A-92C9-5540F501C939}",
 }
 REPLY_TIMEOUT = 30.0
 
@@ -71,7 +75,7 @@ class BackendDied(RuntimeError):
 class Backend:
     """One backend process with its own temporary profile directories."""
 
-    def __init__(self, command, ime, config=None):
+    def __init__(self, command, ime, config=None, files=None):
         self.command = command
         self._tmp = tempfile.TemporaryDirectory(prefix="wime-diff-", ignore_cleanup_errors=True)
         profile = self._tmp.name
@@ -83,11 +87,17 @@ class Backend:
         env["PYTHONUNBUFFERED"] = "1"
         env["WIME_TEST_MODE"] = "1"
         env.pop("WIME_E2E", None)
-        if config is not None:
-            config_dir = os.path.join(profile, "PIME", ime)
+        config_dir = os.path.join(profile, "PIME", ime)
+        if config is not None or files:
             os.makedirs(config_dir)
+        if config is not None:
             with open(os.path.join(config_dir, "config.json"), "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False)
+        for name, content in (files or {}).items():
+            # a str is written as UTF-8; {"base64": ...} as bytes
+            data = base64.b64decode(content["base64"]) if isinstance(content, dict) else content.encode("utf-8")
+            with open(os.path.join(config_dir, name), "wb") as f:
+                f.write(data)
         self.proc = subprocess.Popen(
             command, cwd=os.path.join(ROOT, "python"), env=env,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -209,7 +219,7 @@ def run_suite(suite, command):
     a list of {"scenario", "step", "method", "reply"} records."""
     ime = suite.get("ime", "chedayi")
     transcript = []
-    backend = Backend(command, ime, suite.get("config"))
+    backend = Backend(command, ime, suite.get("config"), suite.get("files"))
     try:
         for number, scenario in enumerate(suite["scenarios"]):
             log = []
@@ -225,7 +235,7 @@ def run_suite(suite, command):
                     record["scenario"] = scenario.get("name", str(number))
                 transcript.extend(log)
                 backend.close()
-                backend = Backend(command, ime, suite.get("config"))
+                backend = Backend(command, ime, suite.get("config"), suite.get("files"))
                 continue
             for record in log:
                 record["scenario"] = scenario.get("name", str(number))
@@ -344,14 +354,66 @@ def random_steps(rng, length):
     return steps[:length]
 
 
+# 新酷音: the standard layout's bopomofo keys (other layouts use the same
+# keys differently), tones, selection digits, Space/Down for the candidates,
+# editing keys, Shift (letters, symbols, taps of either side), Caps Lock, Ctrl
+# (digits add phrases, Del/PageUp/PageDown edit the user dictionary, letters),
+# Alt, the ` symbol menu, the numpad and the requests the DLL sends.
+_CHEWING_BOPOMOFO = list("1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-")
+_CHEWING_TONES = ["SPACE", "6", "3", "4", "7"]
+_CHEWING_EDIT = ["SPACE", "SPACE", "DOWN", "DOWN", "ENTER", "ENTER", "ESC", "BACK", "BACK", "LEFT",
+                 "RIGHT", "UP", "HOME", "END", "PGUP", "PGDN", "DEL", "TAB"]
+_CHEWING_SHIFTED = [["a", "S"], ["q", "S"], ["z", "S"], [",", "S"], [".", "S"], ["/", "S"],
+                    ["1", "S"], [";", "S"], ["'", "S"], ["[", "S"], ["SPACE", "S"], "SHIFT",
+                    ["SHIFT", "R"], "SHIFT"]
+_CHEWING_CTRL = [["1", "C"], ["2", "C"], ["3", "C"], ["4", "C"], ["DEL", "C"], ["PGUP", "C"],
+                 ["PGDN", "C"], ["a", "C"], ["c", "C"], ["SHIFT", "C"], ["SPACE", "C"], ["a", "A"],
+                 ["1", "A"]]
+_CHEWING_RARE = ["`", "CAPS", "NUM1", "NUM.", "NUM+", "=", "[", "]", "\\", "'", "?", "*"]
+_CHEWING_REQUESTS = _REQUESTS + [
+    {"request": "onCommand", "id": 2, "type": 2},
+    {"request": "onCommand", "id": 1, "type": 2},
+    {"request": "onCommand", "id": 3, "type": 0},
+    {"request": "onCommand", "id": 19, "type": 0},
+    {"request": "onCommand", "id": 13, "type": 0},
+]
+
+
+def random_steps_chewing(rng, length):
+    steps = []
+    while len(steps) < length:
+        r = rng.random()
+        if r < 0.03:
+            steps.append(dict(rng.choice(_CHEWING_REQUESTS)))
+        elif r < 0.50:
+            # one syllable: 1-3 bopomofo keys and usually a tone
+            steps.extend(rng.choice(_CHEWING_BOPOMOFO) for _ in range(rng.randint(1, 3)))
+            if rng.random() < 0.8:
+                steps.append(rng.choice(_CHEWING_TONES))
+        elif r < 0.62:
+            steps.append(rng.choice("1234567890"))
+        elif r < 0.84:
+            steps.append(rng.choice(_CHEWING_EDIT))
+        elif r < 0.91:
+            steps.append(rng.choice(_CHEWING_SHIFTED))
+        elif r < 0.955:
+            steps.append(rng.choice(_CHEWING_CTRL))
+        elif r < 0.985:
+            steps.append(rng.choice(_CHEWING_RARE))
+        else:
+            steps.append({"wait": rng.choice([0.4, 1.5, 4.0])})
+    return steps[:length]
+
+
 def generate(seed, count, length, ime="chedayi", config=None):
     rng = random.Random(seed)
+    make_steps = random_steps_chewing if ime == "chewing" else random_steps
     suite = {"ime": ime, "scenarios": []}
     if config is not None:
         suite["config"] = config
     for i in range(count):
         suite["scenarios"].append({"name": "random-%d-%d" % (seed, i),
-                                   "steps": random_steps(rng, length)})
+                                   "steps": make_steps(rng, length)})
     return suite
 
 

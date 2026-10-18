@@ -265,7 +265,7 @@ impl ConfigPaths {
     }
 }
 
-fn mtime(path: &Path) -> Option<f64> {
+pub(crate) fn mtime(path: &Path) -> Option<f64> {
     let modified = fs::metadata(path).ok()?.modified().ok()?;
     Some(match modified.duration_since(std::time::UNIX_EPOCH) {
         Ok(d) => d.as_secs_f64(),
@@ -278,7 +278,7 @@ fn file_size(path: &Path) -> Option<u64> {
 }
 
 /// shutil.copy2: contents and modification time
-fn copy2(src: &Path, dst: &Path) -> std::io::Result<()> {
+pub(crate) fn copy2(src: &Path, dst: &Path) -> std::io::Result<()> {
     let dst = if dst.is_dir() { dst.join(src.file_name().unwrap_or_default()) } else { dst.to_path_buf() };
     fs::copy(src, &dst)?;
     if let Ok(modified) = fs::metadata(src).and_then(|m| m.modified()) {
@@ -319,7 +319,7 @@ pub(crate) fn py_strip(s: &str) -> &str {
 }
 
 /// Value of a Unicode decimal digit (the Nd blocks int() accepts).
-fn decimal_digit(c: char) -> Option<u32> {
+pub(crate) fn decimal_digit(c: char) -> Option<u32> {
     const ZEROS: &[u32] = &[
         0x30, 0x660, 0x6F0, 0x7C0, 0x966, 0x9E6, 0xA66, 0xAE6, 0xB66, 0xBE6, 0xC66, 0xCE6, 0xD66, 0xDE6, 0xE50, 0xED0,
         0xF20, 0x1040, 0x1090, 0x17E0, 0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90, 0x1B50, 0x1BB0, 0x1C40, 0x1C50, 0xA620,
@@ -546,7 +546,7 @@ fn dump_value(value: &Value, level: usize, out: &mut String) {
 }
 
 /// bytes.decode("mbcs"): the ANSI code page, strict
-fn decode_mbcs(raw: &[u8]) -> Option<String> {
+pub(crate) fn decode_mbcs(raw: &[u8]) -> Option<String> {
     if raw.is_empty() {
         return Some(String::new());
     }
@@ -577,7 +577,7 @@ fn decode_utf8_sig(raw: &[u8]) -> Option<&str> {
 }
 
 /// CinBaseConfig._readUserConfig
-fn read_user_config(filename: &Path) -> Result<Map<String, Value>, String> {
+pub(crate) fn read_user_config(filename: &Path) -> Result<Map<String, Value>, String> {
     let raw = fs::read(filename).map_err(|e| e.to_string())?;
     let text = match decode_utf8_sig(&raw) {
         Some(t) => t.to_string(),

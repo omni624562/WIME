@@ -1,7 +1,8 @@
-//! wime-cinbase: WIME's table-based input methods (大易; 酷倉 later) as a
-//! backend process for PIMELauncher, a port of python/server.py and the
-//! cinbase package. The goal of the port is identical replies: every change is
-//! checked with tests/diffharness against the Python backend.
+//! wime-cinbase: WIME's input methods (大易 and 酷倉 on the table-based
+//! cinbase core, 新酷音 on libchewing) as a backend process for PIMELauncher,
+//! a port of python/server.py, the cinbase package and input_methods/chewing.
+//! The goal of the port is identical replies: every change is checked with
+//! tests/diffharness against the Python backend.
 //!
 //! Protocol (one request per line, like server.py):
 //!   stdin  "<client_id>|<JSON request>"
@@ -10,6 +11,7 @@
 #![allow(dead_code)] // the port is filled in module by module
 
 mod candidate_theme;
+mod chewing;
 mod cin;
 mod cinbase;
 mod config;
@@ -31,6 +33,9 @@ use textservice::Service;
 /// Creates the text service for a language profile GUID (serviceManager.py).
 /// Err: the service's constructor raised (init answers success:false).
 fn create_service(guid: &str, client: &ClientInfo) -> Result<Option<Box<dyn Service>>, String> {
+    if guid == chewing::CHEWING_GUID {
+        return Ok(Some(Box::new(chewing::ChewingService::new(client.clone()))));
+    }
     cinbase::create_service(guid, client)
 }
 

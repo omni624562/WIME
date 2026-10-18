@@ -1,0 +1,269 @@
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "esc_keeps_buffer", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "esc_keeps_buffer", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "esc_keeps_buffer", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "esc_keeps_buffer", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "esc_keeps_buffer", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "esc_keeps_buffer", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "esc_keeps_buffer", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "esc_keeps_buffer", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "esc_keeps_buffer", "step": "2:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "esc_keeps_buffer", "step": "3:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "3:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "esc_keeps_buffer", "step": "3:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "esc_keeps_buffer", "step": "4:l"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏㄠ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "4:l"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "esc_keeps_buffer", "step": "4:l"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "esc_keeps_buffer", "step": "5:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 19, "showCandidates": false, "success": true}, "scenario": "esc_keeps_buffer", "step": "5:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "esc_keeps_buffer", "step": "5:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "esc_keeps_buffer", "step": "6:ESC"}
+{"method": "onKeyDown", "reply": {"return": true, "seqNum": 22, "success": true}, "scenario": "esc_keeps_buffer", "step": "6:ESC"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "esc_keeps_buffer", "step": "6:ESC"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "esc_keeps_buffer", "step": "7:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "你好", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 25, "success": true}, "scenario": "esc_keeps_buffer", "step": "7:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "esc_keeps_buffer", "step": "7:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "esc_keeps_buffer", "step": "8:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 28, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "8:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "esc_keeps_buffer", "step": "8:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "esc_keeps_buffer", "step": "9:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 31, "showCandidates": true, "success": true}, "scenario": "esc_keeps_buffer", "step": "9:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "esc_keeps_buffer", "step": "9:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "esc_keeps_buffer", "step": "10:ESC"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 34, "showCandidates": false, "success": true}, "scenario": "esc_keeps_buffer", "step": "10:ESC"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "esc_keeps_buffer", "step": "10:ESC"}
+{"method": "filterKeyDown", "reply": {"return": false, "seqNum": 36, "success": true}, "scenario": "esc_keeps_buffer", "step": "11:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 37, "success": true}, "scenario": "esc_keeps_buffer", "step": "11:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 38, "success": true}, "scenario": "esc_keeps_buffer", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "phrase_backward", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "phrase_backward", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "phrase_backward", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "phrase_backward", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "phrase_backward", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "phrase_backward", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "phrase_backward", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "phrase_backward", "step": "2:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "phrase_backward", "step": "3:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "3:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "phrase_backward", "step": "3:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "phrase_backward", "step": "4:l"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏㄠ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "4:l"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "phrase_backward", "step": "4:l"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "phrase_backward", "step": "5:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 19, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "5:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "phrase_backward", "step": "5:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "phrase_backward", "step": "6:C+2"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 22, "showMessage": {"duration": 2, "message": "加詞失敗：字數不符或夾雜符號"}, "success": true}, "scenario": "phrase_backward", "step": "6:C+2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "phrase_backward", "step": "6:C+2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "phrase_backward", "step": "7:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "你好", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 25, "success": true}, "scenario": "phrase_backward", "step": "7:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "phrase_backward", "step": "7:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "phrase_backward", "step": "8:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 28, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "8:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "phrase_backward", "step": "8:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "phrase_backward", "step": "9:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 31, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "9:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "phrase_backward", "step": "9:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "phrase_backward", "step": "10:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 34, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "10:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "phrase_backward", "step": "10:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "phrase_backward", "step": "11:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 37, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "11:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "phrase_backward", "step": "11:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "phrase_backward", "step": "12:l"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏㄠ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 40, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "12:l"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "phrase_backward", "step": "12:l"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "phrase_backward", "step": "13:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 43, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "13:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "phrase_backward", "step": "13:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "phrase_backward", "step": "14:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 46, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "14:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "phrase_backward", "step": "14:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "phrase_backward", "step": "15:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 49, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "15:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "phrase_backward", "step": "15:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "phrase_backward", "step": "16:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 3, "compositionString": "你好測", "return": true, "seqNum": 52, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "16:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 53, "success": true}, "scenario": "phrase_backward", "step": "16:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 54, "success": true}, "scenario": "phrase_backward", "step": "17:g"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄕ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 3, "compositionString": "你好測", "return": true, "seqNum": 55, "showCandidates": true, "success": true}, "scenario": "phrase_backward", "step": "17:g"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 56, "success": true}, "scenario": "phrase_backward", "step": "17:g"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 57, "success": true}, "scenario": "phrase_backward", "step": "18:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 4, "compositionString": "你好測試", "return": true, "seqNum": 58, "showCandidates": false, "success": true}, "scenario": "phrase_backward", "step": "18:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 59, "success": true}, "scenario": "phrase_backward", "step": "18:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 60, "success": true}, "scenario": "phrase_backward", "step": "19:C+2"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 4, "compositionString": "你好測試", "return": true, "seqNum": 61, "showMessage": {"duration": 2, "message": "加詞失敗：字數不符或夾雜符號"}, "success": true}, "scenario": "phrase_backward", "step": "19:C+2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 62, "success": true}, "scenario": "phrase_backward", "step": "19:C+2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 63, "success": true}, "scenario": "phrase_backward", "step": "20:ESC"}
+{"method": "onKeyDown", "reply": {"return": true, "seqNum": 64, "success": true}, "scenario": "phrase_backward", "step": "20:ESC"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 65, "success": true}, "scenario": "phrase_backward", "step": "20:ESC"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 66, "success": true}, "scenario": "phrase_backward", "step": "21:ESC"}
+{"method": "onKeyDown", "reply": {"return": true, "seqNum": 67, "success": true}, "scenario": "phrase_backward", "step": "21:ESC"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 68, "success": true}, "scenario": "phrase_backward", "step": "21:ESC"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 69, "success": true}, "scenario": "phrase_backward", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "no_advance", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "no_advance", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "no_advance", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "no_advance", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "no_advance", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "no_advance", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "no_advance", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "no_advance", "step": "2:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "no_advance", "step": "3:c"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "3:c"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "no_advance", "step": "3:c"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "no_advance", "step": "4:l"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄏㄠ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "4:l"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "no_advance", "step": "4:l"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "no_advance", "step": "5:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 19, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "5:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "no_advance", "step": "5:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "no_advance", "step": "6:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 22, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "6:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "no_advance", "step": "6:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "no_advance", "step": "7:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "你好", "return": true, "seqNum": 25, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "7:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "no_advance", "step": "7:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "no_advance", "step": "8:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 3, "compositionString": "你好測", "return": true, "seqNum": 28, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "8:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "no_advance", "step": "8:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "no_advance", "step": "9:HOME"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 0, "compositionString": "你好測", "return": true, "seqNum": 31, "success": true}, "scenario": "no_advance", "step": "9:HOME"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "no_advance", "step": "9:HOME"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "no_advance", "step": "10:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["你", "妳", "擬", "禰", "儗", "旎", "昵", "坭", "柅"], "candidatePageInfo": "1/4", "compositionCursor": 0, "compositionString": "你好測", "return": true, "seqNum": 34, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "10:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "no_advance", "step": "10:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "no_advance", "step": "11:2"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 0, "compositionString": "妳好測", "return": true, "seqNum": 37, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "11:2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "no_advance", "step": "11:2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "no_advance", "step": "12:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["你", "妳", "擬", "禰", "儗", "旎", "昵", "坭", "柅"], "candidatePageInfo": "1/4", "compositionCursor": 0, "compositionString": "妳好測", "return": true, "seqNum": 40, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "12:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "no_advance", "step": "12:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "no_advance", "step": "13:2"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 0, "compositionString": "妳好測", "return": true, "seqNum": 43, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "13:2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "no_advance", "step": "13:2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "no_advance", "step": "14:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["你", "妳", "擬", "禰", "儗", "旎", "昵", "坭", "柅"], "candidatePageInfo": "1/4", "compositionCursor": 0, "compositionString": "妳好測", "return": true, "seqNum": 46, "showCandidates": true, "success": true}, "scenario": "no_advance", "step": "14:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "no_advance", "step": "14:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "no_advance", "step": "15:2"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 0, "compositionString": "妳好測", "return": true, "seqNum": 49, "showCandidates": false, "success": true}, "scenario": "no_advance", "step": "15:2"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "no_advance", "step": "15:2"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "no_advance", "step": "16:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "妳好測", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 52, "success": true}, "scenario": "no_advance", "step": "16:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 53, "success": true}, "scenario": "no_advance", "step": "16:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 54, "success": true}, "scenario": "no_advance", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "rearward", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "rearward", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "rearward", "step": "0:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "0:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "rearward", "step": "0:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "rearward", "step": "1:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "1:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "rearward", "step": "1:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "rearward", "step": "2:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "測", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "2:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "rearward", "step": "2:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "rearward", "step": "3:g"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄕ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "測", "return": true, "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "3:g"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "rearward", "step": "3:g"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "rearward", "step": "4:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 16, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "4:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "rearward", "step": "4:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "rearward", "step": "5:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["測試", "策試", "策士", "側視", "側室"], "candidatePageInfo": "1/1", "compositionCursor": 1, "compositionString": "測試", "return": true, "seqNum": 19, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "5:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "rearward", "step": "5:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "rearward", "step": "6:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 4, "return": true, "seqNum": 22, "success": true}, "scenario": "rearward", "step": "6:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "rearward", "step": "6:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "rearward", "step": "7:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["市", "是", "事", "世", "士", "勢", "識", "室", "示"], "candidatePageInfo": "1/12", "compositionCursor": 1, "compositionString": "測試", "return": true, "seqNum": 25, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "7:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "rearward", "step": "7:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "rearward", "step": "8:ESC"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": [], "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 28, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "8:ESC"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "rearward", "step": "8:ESC"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "rearward", "step": "9:h"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 31, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "9:h"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "rearward", "step": "9:h"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "rearward", "step": "10:k"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄘㄜ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 2, "compositionString": "測試", "return": true, "seqNum": 34, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "10:k"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "rearward", "step": "10:k"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "rearward", "step": "11:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 3, "compositionString": "測試測", "return": true, "seqNum": 37, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "11:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "rearward", "step": "11:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "rearward", "step": "12:g"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄕ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 3, "compositionString": "測試測", "return": true, "seqNum": 40, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "12:g"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "rearward", "step": "12:g"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "rearward", "step": "13:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 4, "compositionString": "測試測試", "return": true, "seqNum": 43, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "13:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "rearward", "step": "13:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "rearward", "step": "14:END"}
+{"method": "onKeyDown", "reply": {"compositionCursor": 4, "compositionString": "測試測試", "return": true, "seqNum": 46, "success": true}, "scenario": "rearward", "step": "14:END"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "rearward", "step": "14:END"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "rearward", "step": "15:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["測試", "策試", "策士", "側視", "側室"], "candidatePageInfo": "1/1", "compositionCursor": 3, "compositionString": "測試測試", "return": true, "seqNum": 49, "showCandidates": true, "success": true}, "scenario": "rearward", "step": "15:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "rearward", "step": "15:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "rearward", "step": "16:1"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 4, "compositionString": "測試測試", "return": true, "seqNum": 52, "showCandidates": false, "success": true}, "scenario": "rearward", "step": "16:1"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 53, "success": true}, "scenario": "rearward", "step": "16:1"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 54, "success": true}, "scenario": "rearward", "step": "17:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "測試測試", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 55, "success": true}, "scenario": "rearward", "step": "17:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 56, "success": true}, "scenario": "rearward", "step": "17:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 57, "success": true}, "scenario": "rearward", "step": "deactivate"}
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "no_learning", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 1, "icon": "traC.ico", "id": "switch-lang", "tooltip": "中英文切換"}, {"commandId": 2, "icon": "half.ico", "id": "switch-shape", "tooltip": "全形/半形切換"}, {"icon": "config.ico", "id": "settings", "tooltip": "設定", "type": "menu"}, {"commandId": 4, "icon": "traC.ico", "id": "windows-mode-icon", "tooltip": "新酷音：中文、半形（按一下切換中英文）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": true, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "no_learning", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "no_learning", "step": "0:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "0:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "no_learning", "step": "0:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "no_learning", "step": "1:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "亦", "return": true, "seqNum": 7, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "1:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "no_learning", "step": "1:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "no_learning", "step": "2:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["意", "義", "易", "議", "亦", "益", "異", "藝", "億"], "candidatePageInfo": "1/24", "compositionCursor": 0, "compositionString": "亦", "return": true, "seqNum": 10, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "2:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "no_learning", "step": "2:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "no_learning", "step": "3:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "易", "return": true, "seqNum": 13, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "3:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 14, "success": true}, "scenario": "no_learning", "step": "3:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "no_learning", "step": "4:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "易", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 16, "success": true}, "scenario": "no_learning", "step": "4:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 17, "success": true}, "scenario": "no_learning", "step": "4:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 18, "success": true}, "scenario": "no_learning", "step": "5:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 19, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "5:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 20, "success": true}, "scenario": "no_learning", "step": "5:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "no_learning", "step": "6:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "亦", "return": true, "seqNum": 22, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "6:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "no_learning", "step": "6:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "no_learning", "step": "7:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "亦", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 25, "success": true}, "scenario": "no_learning", "step": "7:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "no_learning", "step": "7:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "no_learning", "step": "8:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 28, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "8:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 29, "success": true}, "scenario": "no_learning", "step": "8:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 30, "success": true}, "scenario": "no_learning", "step": "9:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "亦", "return": true, "seqNum": 31, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "9:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "no_learning", "step": "9:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "no_learning", "step": "10:DOWN"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "新酷音", "candidateList": ["意", "義", "易", "議", "亦", "益", "異", "藝", "億"], "candidatePageInfo": "1/24", "compositionCursor": 0, "compositionString": "亦", "return": true, "seqNum": 34, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "10:DOWN"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "no_learning", "step": "10:DOWN"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "no_learning", "step": "11:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "易", "return": true, "seqNum": 37, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "11:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "no_learning", "step": "11:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 39, "success": true}, "scenario": "no_learning", "step": "12:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "易", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 40, "success": true}, "scenario": "no_learning", "step": "12:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 41, "success": true}, "scenario": "no_learning", "step": "12:ENTER"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 42, "success": true}, "scenario": "no_learning", "step": "13:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 43, "showCandidates": true, "success": true}, "scenario": "no_learning", "step": "13:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 44, "success": true}, "scenario": "no_learning", "step": "13:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 45, "success": true}, "scenario": "no_learning", "step": "14:4"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "亦", "return": true, "seqNum": 46, "showCandidates": false, "success": true}, "scenario": "no_learning", "step": "14:4"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 47, "success": true}, "scenario": "no_learning", "step": "14:4"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "no_learning", "step": "15:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "亦", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 49, "success": true}, "scenario": "no_learning", "step": "15:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "no_learning", "step": "15:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "seqNum": 51, "success": true}, "scenario": "no_learning", "step": "deactivate"}

@@ -104,6 +104,61 @@ for module in list(sys.modules.values()):
     if getattr(module, "systemPrefersLightTheme", None) is not None and module is not candidate_theme:
         module.systemPrefersLightTheme = candidate_theme.systemPrefersLightTheme
 
+# 新酷音 (input_methods/chewing) is imported when the first chewing client is
+# created; patch it right after the import, before its first service exists.
+# - time: Shift taps (< 0.5 s) read time.time(); the config reload throttle
+#   (3 s) reads time.monotonic(). Both see the virtual clock.
+# - machine state: Caps Lock off (getCapslockState), no key down (isPressed)
+# - candidate_layout measures candidate widths with GDI for the Up/Down step.
+#   Fonts and DPI differ between machines, so by default the harness uses a
+#   fixed model on both sides (test_measure_texts below; the Rust backend has
+#   the same one in test mode): DPI 96, a code point >= U+1100 is one em wide
+#   (MulDiv(fontSize, 96, 72) px), any other half an em. WIME_TEST_GDI=1 keeps
+#   the real GDI measurement (still at DPI 96) to compare the GDI ports.
+import importlib            # noqa: E402
+import serviceManager       # noqa: E402
+import candidate_layout     # noqa: E402
+
+TEST_DPI = 96
+
+
+def test_measure_texts(fontName, fontSize, dpi, texts):
+    em = candidate_layout.mulDiv(fontSize, dpi, 72)
+    return {text: sum(em if ord(ch) >= 0x1100 else em // 2 for ch in text) for text in texts}
+
+
+candidate_layout.systemDpi = lambda: TEST_DPI
+if os.environ.get("WIME_TEST_GDI") != "1":
+    candidate_layout.measureTexts = test_measure_texts
+
+_patched_modules = set()
+
+
+def _patch_chewing(module_name):
+    if module_name in _patched_modules:
+        return
+    _patched_modules.add(module_name)
+    mod = importlib.import_module(module_name)
+    config_mod = importlib.import_module(module_name.rsplit(".", 1)[0] + ".chewing_config")
+    mod.time = clock
+    config_mod.time = clock
+    # the config was loaded at import time with the real clock
+    config_mod.chewingConfig._lastUpdateTime = clock.now
+    mod.ChewingTextService.getCapslockState = lambda *args: False
+    mod.ChewingTextService.isPressed = lambda *args: False
+
+
+_create_instance = serviceManager.TextServiceInfo.createInstance
+
+
+def createInstance(self, client):
+    if self.moduleName.endswith(".chewing_ime"):
+        _patch_chewing(self.moduleName)
+    return _create_instance(self, client)
+
+
+serviceManager.TextServiceInfo.createInstance = createInstance
+
 sounds = []
 
 
