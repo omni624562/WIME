@@ -27,6 +27,16 @@
 - **固定機器狀態**：Caps Lock 關、沒有實體按鍵被按住、Windows 用淺色主題。
 - **每次都用暫存的 APPDATA**：不會讀寫使用者真正的設定和詞頻。
 
+### 新酷音（chewing）另外固定的地方
+
+新酷音的前端 `input_methods/chewing/chewing_ime.py` 在第一個新酷音用戶端建立時才載入，基準後端在載入後立刻換掉：
+
+- **虛擬時鐘**：Shift 單按（< 0.5 秒）用的 `time.time()`、設定檔每 3 秒檢查一次用的 `time.monotonic()` 都改看虛擬時鐘。
+- **機器狀態**：Caps Lock 關（`getCapslockState`）、沒有實體按鍵按住（`isPressed`）、淺色主題。
+- **候選窗一列幾個字**（上下鍵的步幅）：`candidate_layout.py` 本來用 GDI 量字寬，結果隨字型和 DPI 而不同，golden 在別台電腦（CI 的英文 Windows）會對不上。測試時兩邊都改用同一個固定模型：DPI 96，碼位 ≥ U+1100 的字寬一個 em（`MulDiv(字級, 96, 72)` px），其他半個 em。設 `WIME_TEST_GDI=1` 則保留真的 GDI 量測（DPI 仍固定 96），用來比對兩邊的 GDI 實作。
+- **使用者詞庫**：每組情境一個新的暫存 APPDATA，所以 `chewing.dat` 一開始是空的；同一組情境裡學到的詞會留給後面的情境，這也是比對的一部分。
+- 情境檔可以用 `"files"` 預先放檔案到 `%APPDATA%\PIME\<ime>`（例如自訂的 `symbols.dat`、舊版的 `chewing.sqlite3`），測試設定檔整理和舊詞庫轉換。
+
 ## 其他後端要遵守的測試約定
 
 環境變數 `WIME_TEST_MODE=1` 時：
@@ -34,13 +44,14 @@
 1. 支援 `{"method": "__advanceClock", "seconds": s}` 請求，用虛擬時鐘取代真實時間。
 2. 不啟動程式，也不發出聲音。要啟動或發聲時，在該次回覆加上 `_testLaunches: [[種類, 檔名]]`（種類是 `ShellExecuteW` 或 `startfile`）或 `_testSounds`。
 3. 碼表在回覆第一個請求前就載入完成。
+4. 新酷音：GetKeyState／GetAsyncKeyState 一律當成沒按、主題是淺色，候選窗字寬用上面的固定模型（除非 `WIME_TEST_GDI=1`）。
 
 比對前，圖示路徑一律只比檔名，因為每套後端的安裝位置不同。
 
 ## 用法
 
 ```bash
-python tests/diffharness/driver.py gen out.json --seed 1 --count 50 --length 80   # 產生隨機情境
+python tests/diffharness/driver.py gen out.json --seed 1 --count 50 --length 80   # 產生隨機情境（--ime chewing：新酷音的按鍵）
 python tests/diffharness/driver.py record suite.json golden.jsonl                 # 錄下 Python 後端的回覆
 python tests/diffharness/driver.py compare suite.json golden.jsonl --backend "path\to\backend.exe"
 python tests/diffharness/driver.py diff suite.json --backend "path\to\backend.exe"  # 直接和 Python 後端並排比

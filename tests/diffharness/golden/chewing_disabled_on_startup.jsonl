@@ -1,0 +1,28 @@
+{"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "disabled", "step": "init"}
+{"method": "onActivate", "reply": {"addButton": [{"commandId": 4, "icon": "eng.ico", "id": "windows-mode-icon", "tooltip": "新酷音：已關閉（按一下或按 Ctrl+空白鍵開啟）"}], "addPreservedKey": [{"guid": "{f1dae0fb-8091-44a7-8a0c-3082a1515447}", "keyCode": 32, "modifiers": 4}], "customizeUI": {"candFontName": "Microsoft JhengHei", "candFontSize": 16, "candPerRow": 6, "candUseCursor": true, "candidateColors": {}, "candidateEdgeAvoidance": true, "candidateHeaderStyle": "accent", "candidateKeyStyle": "word-first", "candidateLayout": "horizontal", "candidateMaxWidth": 340, "candidateMessageStyle": "badge", "candidateMinWidth": 286, "candidateOpacity": 100, "candidatePerRow": 6, "candidatePositionMode": 0, "candidateStableWidth": true, "candidateStyle": {"borderRadius": 6, "contentMargin": 6, "textMargin": 4}, "candidateTheme": "Light", "candidateWrapToMaxWidth": true}, "openKeyboard": false, "seqNum": 2, "setSelKeys": "1234567890", "success": true}, "scenario": "disabled", "step": "activate"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 3, "success": true}, "scenario": "disabled", "step": "0:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 4, "showCandidates": true, "success": true}, "scenario": "disabled", "step": "0:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 5, "success": true}, "scenario": "disabled", "step": "0:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 6, "success": true}, "scenario": "disabled", "step": "1:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "​", "return": true, "seqNum": 7, "showCandidates": true, "success": true}, "scenario": "disabled", "step": "1:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 8, "success": true}, "scenario": "disabled", "step": "1:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "disabled", "step": "2:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 10, "showCandidates": false, "success": true}, "scenario": "disabled", "step": "2:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 11, "success": true}, "scenario": "disabled", "step": "2:3"}
+{"method": "onCommand", "reply": {"openKeyboard": true, "seqNum": 12, "success": true}, "scenario": "disabled", "step": "3:onCommand"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 13, "success": true}, "scenario": "disabled", "step": "4:s"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 14, "showCandidates": true, "success": true}, "scenario": "disabled", "step": "4:s"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 15, "success": true}, "scenario": "disabled", "step": "4:s"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 16, "success": true}, "scenario": "disabled", "step": "5:u"}
+{"method": "onKeyDown", "reply": {"candidateHeader": "新酷音 ㄋㄧ", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 1, "compositionString": "你", "return": true, "seqNum": 17, "showCandidates": true, "success": true}, "scenario": "disabled", "step": "5:u"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 18, "success": true}, "scenario": "disabled", "step": "5:u"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 19, "success": true}, "scenario": "disabled", "step": "6:3"}
+{"method": "onKeyDown", "reply": {"candidateList": [], "compositionCursor": 2, "compositionString": "你你", "return": true, "seqNum": 20, "showCandidates": false, "success": true}, "scenario": "disabled", "step": "6:3"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 21, "success": true}, "scenario": "disabled", "step": "6:3"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 22, "success": true}, "scenario": "disabled", "step": "7:ENTER"}
+{"method": "onKeyDown", "reply": {"commitString": "你你", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 23, "success": true}, "scenario": "disabled", "step": "7:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 24, "success": true}, "scenario": "disabled", "step": "7:ENTER"}
+{"method": "onKeyboardStatusChanged", "reply": {"changeButton": [{"enable": true, "icon": "eng.ico", "id": "windows-mode-icon", "tooltip": "新酷音：已關閉（按一下或按 Ctrl+空白鍵開啟）"}], "seqNum": 25, "success": true}, "scenario": "disabled", "step": "8:onKeyboardStatusChanged"}
+{"method": "onCommand", "reply": {"seqNum": 26, "success": true}, "scenario": "disabled", "step": "9:onCommand"}
+{"method": "onCommand", "reply": {"openKeyboard": true, "seqNum": 27, "success": true}, "scenario": "disabled", "step": "10:onCommand"}
+{"method": "onDeactivate", "reply": {"removeButton": ["windows-mode-icon"], "seqNum": 28, "success": true}, "scenario": "disabled", "step": "deactivate"}
