@@ -1,6 +1,8 @@
 """End-to-end tests for the two settings tools (cinbase/configtool.py for
 大易/酷倉 and input_methods/chewing/config_tool.py for 新酷音), which share
-python/config_server.py.
+python/config_server.py -- and for their Rust port, cinbase-rs's
+wime-config.exe: every test class runs once per implementation
+(config_tool_impls.py; the Rust classes are named Rust*).
 
 Each test class starts the real tool as a separate process (browser launch
 stubbed out, APPDATA redirected to a temp dir, idle timeout shortened) and
@@ -26,22 +28,9 @@ import unittest
 import urllib.error
 import urllib.request
 
+from config_tool_impls import DRIVER, PYTHON_DIR, ROOT, requires, start_tool  # noqa: F401 (DRIVER: older importers)
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
-PYTHON_DIR = os.path.join(ROOT, "python")
 IDLE_TIMEOUT = 3.0
-
-DRIVER = r"""
-import os, runpy, sys
-python_dir, script, idle = sys.argv[1], sys.argv[2], float(sys.argv[3])
-tool_args = sys.argv[4:]
-sys.path.insert(0, python_dir)
-import config_server
-config_server.SERVER_TIMEOUT = idle
-os.startfile = lambda url, *a, **k: print("URL " + url, flush=True)
-sys.argv = [script] + tool_args
-runpy.run_path(script, run_name="__main__")
-"""
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -66,8 +55,9 @@ def _get(opener, url, headers=None):
 
 
 class ConfigToolTestMixin:
-    SCRIPT = None      # path relative to python/
-    TOOL_ARGS = None   # argv after the script
+    IMPL = "python"    # or "rust" (config_tool_impls)
+    IME = None         # "chedayi", ... or "chewing"
+    TOOL = "config"
     MAIN_PAGE = None   # page the login redirects to (without .html)
     COOKIE_ID = None
 
@@ -79,15 +69,7 @@ class ConfigToolTestMixin:
         env["LOCALAPPDATA"] = os.path.join(cls.tempdir.name, "Local")
         os.makedirs(env["APPDATA"])
         os.makedirs(env["LOCALAPPDATA"])
-        cls.proc = subprocess.Popen(
-            [sys.executable, "-c", DRIVER, PYTHON_DIR,
-             os.path.join(PYTHON_DIR, *cls.SCRIPT.split("/")), str(IDLE_TIMEOUT)] + cls.TOOL_ARGS,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
-        line = cls.proc.stdout.readline()
-        if not line.startswith("URL "):
-            cls.proc.kill()
-            raise RuntimeError("tool did not start: %r %s" % (line, cls.proc.stderr.read()))
-        cls.login_url = line[4:].strip()
+        cls.proc, cls.login_url = start_tool(cls.IMPL, cls.IME, cls.TOOL, env, IDLE_TIMEOUT)
         match = re.match(r"(http://127\.0\.0\.1:\d+)/login/[^?]+\?token=([0-9a-f]+)$", cls.login_url)
         cls.base, cls.token = match.group(1), match.group(2)
 
@@ -204,8 +186,7 @@ class ConfigToolTestMixin:
 
 
 class CinbaseConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
-    SCRIPT = "cinbase/configtool.py"
-    TOOL_ARGS = ["config", "chedayi"]
+    IME = "chedayi"
     MAIN_PAGE = "config"
     COOKIE_ID = "cinbase_config_token"
 
@@ -256,10 +237,92 @@ class CinbaseConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
 
 
 class ChewingConfigToolTests(ConfigToolTestMixin, unittest.TestCase):
-    SCRIPT = "input_methods/chewing/config_tool.py"
-    TOOL_ARGS = ["config"]
+    IME = "chewing"
     MAIN_PAGE = "config_tool"
     COOKIE_ID = "chewing_config_token"
+
+
+@requires("rust")
+class RustCinbaseConfigToolTests(CinbaseConfigToolTests):
+    IMPL = "rust"
+
+
+@requires("rust")
+class RustChewingConfigToolTests(ChewingConfigToolTests):
+    IMPL = "rust"
+
+
+class LaunchFallbackMixin:
+    """When the login URL cannot be opened, the tool writes launch_<tool>.html,
+    a page that POSTs the token, opens it, and removes it when it exits."""
+    IMPL = "python"
+    IME = None
+    TOOL = "config"
+    LAUNCH_FILE = None  # relative to the temporary folder
+    PAGE = None
+
+    def test_login_page_posts_the_token_and_is_removed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            env = dict(os.environ)
+            env["APPDATA"] = os.path.join(temp, "Roaming")
+            env["LOCALAPPDATA"] = os.path.join(temp, "Local")
+            proc, path = start_tool(self.IMPL, self.IME, self.TOOL, env, IDLE_TIMEOUT,
+                                    extra_env={"WIME_CONFIG_TEST_LAUNCH": "fail-url"})
+            try:
+                self.assertEqual(os.path.normcase(path), os.path.normcase(os.path.join(temp, self.LAUNCH_FILE)))
+                with open(path, "rb") as f:
+                    html = f.read().decode("ascii")
+                match = re.search(r'action="(http://127\.0\.0\.1:\d+)/login/(\w+)" method="POST">\r\n'
+                                  r'        <input type="hidden" name="token" value="([0-9a-f]{32})">', html)
+                self.assertTrue(match, html)
+                base, page, token = match.groups()
+                self.assertEqual(page, self.PAGE)
+                expected = ('<html>\n    <form id="auth" action="%s/login/%s" method="POST">\n'
+                            '        <input type="hidden" name="token" value="%s">\n    </form>\n'
+                            '    <script type="text/javascript">\n        document.getElementById("auth").submit();\n'
+                            '    </script>\n    </html>' % (base, page, token)).replace("\n", "\r\n")
+                self.assertEqual(html, expected)
+                jar = http.cookiejar.CookieJar()
+                opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), _NoRedirect())
+                request = urllib.request.Request(base + "/login/" + page, data=("token=" + token).encode("ascii"),
+                                                 method="POST",
+                                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+                try:
+                    response = opener.open(request, timeout=10)
+                except urllib.error.HTTPError as error:
+                    response = error
+                with response:
+                    self.assertEqual(response.code, 302)
+                    self.assertTrue(response.headers["Location"].startswith("/%s.html" % page))
+                self.assertEqual(proc.wait(timeout=IDLE_TIMEOUT + 10), 0)
+                self.assertFalse(os.path.exists(path))  # removed when the tool exits
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                proc.communicate()
+
+
+class CinbaseLaunchFallbackTests(LaunchFallbackMixin, unittest.TestCase):
+    IME = "checj"
+    LAUNCH_FILE = os.path.join("Roaming", "PIME", "checj", "launch_config.html")
+    PAGE = "config"
+
+
+class ChewingLaunchFallbackTests(LaunchFallbackMixin, unittest.TestCase):
+    IME = "chewing"
+    TOOL = "user_phrase_editor"
+    LAUNCH_FILE = os.path.join("Local", "PIME", "chewing", "launch_user_phrase_editor.html")
+    PAGE = "user_phrase_editor"
+
+
+@requires("rust")
+class RustCinbaseLaunchFallbackTests(CinbaseLaunchFallbackTests):
+    IMPL = "rust"
+
+
+@requires("rust")
+class RustChewingLaunchFallbackTests(ChewingLaunchFallbackTests):
+    IMPL = "rust"
 
 
 if __name__ == "__main__":

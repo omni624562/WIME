@@ -21,6 +21,9 @@ a temporary directory, prepared with problem files before it starts.
   file, and 匯入詞庫 takes it as well as a chewing.sqlite3 exported by older
   versions (converted). The editor's changes reach the disk only when its
   libchewing context is freed, so the tool opens one per request.
+
+The tests run against the Python tool and its Rust port (wime-config.exe,
+class RustChewingConfigToolDataTests), see config_tool_impls.py.
 """
 
 import hashlib
@@ -30,7 +33,6 @@ import os
 import re
 import shutil
 import sqlite3
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -38,7 +40,8 @@ import urllib.error
 import urllib.request
 import uuid
 
-from test_config_server import DRIVER, PYTHON_DIR, _NoRedirect, _get
+from config_tool_impls import PYTHON_DIR, requires, start_tool
+from test_config_server import _NoRedirect, _get
 import chewing_harness
 
 sys.path.insert(0, PYTHON_DIR)
@@ -81,6 +84,8 @@ def _multipart(field, filename, data):
 
 
 class ChewingConfigToolDataTests(unittest.TestCase):
+    IMPL = "python"
+
     @classmethod
     def setUpClass(cls):
         cls.tempdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -107,15 +112,7 @@ class ChewingConfigToolDataTests(unittest.TestCase):
         with open(os.path.join(cls.dir, "swkb.dat"), "w", encoding="utf-8-sig") as f:
             f.write("A ★\n")
 
-        cls.proc = subprocess.Popen(
-            [sys.executable, "-c", DRIVER, PYTHON_DIR,
-             os.path.join(PYTHON_DIR, "input_methods", "chewing", "config_tool.py"), "60", "config"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
-        line = cls.proc.stdout.readline()
-        if not line.startswith("URL "):
-            cls.proc.kill()
-            raise RuntimeError("tool did not start: %r %s" % (line, cls.proc.stderr.read()))
-        login_url = line[4:].strip()
+        cls.proc, login_url = start_tool(cls.IMPL, "chewing", "config", env, 60)
         cls.base = re.match(r"(http://127\.0\.0\.1:\d+)/", login_url).group(1)
         jar = http.cookiejar.CookieJar()
         no_redirect = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), _NoRedirect())
@@ -278,6 +275,11 @@ class ChewingConfigToolDataTests(unittest.TestCase):
         with open(source, "rb") as f:
             self.import_file("chewing.sqlite3", f.read())
         self.assertEqual(sorted(self.phrases()), sorted(["新酷音", "王小明"]))
+
+
+@requires("rust")
+class RustChewingConfigToolDataTests(ChewingConfigToolDataTests):
+    IMPL = "rust"
 
 
 if __name__ == "__main__":
