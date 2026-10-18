@@ -189,4 +189,44 @@ mod tests {
         );
         assert_eq!(registry.resolve_guid("unknown"), None);
     }
+
+    /// The layout the WIME installer ships (installer/installer.nsi with
+    /// /DONLY_DAYI_CHEWING_CHECJ): backends-dayi-chewing-checj.json as backends.json
+    /// and cinbase-rs/input_methods/<ime>/ime.json under cinbase_rs. All three
+    /// input methods go to the Rust backend; there is no python backend any more.
+    #[test]
+    fn test_shipped_layout_routes_all_three_input_methods_to_cinbase_rs() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let dir = tempdir().unwrap();
+        let pime_root = dir.path();
+        fs::copy(
+            repo.join("installer").join("backends-dayi-chewing-checj.json"),
+            pime_root.join("backends.json"),
+        )
+        .unwrap();
+        for ime in ["chedayi", "checj", "chewing"] {
+            let target = pime_root.join("cinbase_rs").join("input_methods").join(ime);
+            fs::create_dir_all(&target).unwrap();
+            fs::copy(
+                repo.join("cinbase-rs").join("input_methods").join(ime).join("ime.json"),
+                target.join("ime.json"),
+            )
+            .unwrap();
+        }
+
+        let registry = BackendRegistry::load(pime_root);
+
+        assert_eq!(registry.backends.len(), 1);
+        let backend = registry.get_backend("cinbase_rs").unwrap();
+        assert_eq!(backend.command, "cinbase_rs\\wime-cinbase.exe");
+        assert_eq!(backend.working_dir, "cinbase_rs");
+        for guid in [
+            "{E6943374-70F5-4540-AA0F-3205C7DCCA84}", // 大易
+            "{F828D2DC-81BE-466E-9CFE-24BB03172693}", // 酷倉
+            "{F80736AA-28DB-423A-92C9-5540F501C939}", // 新酷音
+        ] {
+            assert_eq!(registry.resolve_guid(guid), Some(&"cinbase_rs".to_string()), "{}", guid);
+        }
+        assert_eq!(registry.guid_to_backend.len(), 3);
+    }
 }

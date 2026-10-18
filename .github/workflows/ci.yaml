@@ -34,8 +34,10 @@ jobs:
           cd PIMELauncher
           cargo test --verbose
 
-      # Use the embedded 32-bit Python that ships in the installer: it is what the
-      # backends actually run on, and the bundled chewing.dll needs it.
+      # The embedded 32-bit Python in python\python3 runs the Python reference
+      # implementation the tests compare the Rust backend and settings tool against
+      # (the installer itself ships no Python since 1.3.0-beta18), and
+      # python\libchewing\chewing.dll needs a 32-bit Python.
       # The CinBase keystroke/loading tests (tests/cinbase_harness.py) drive the
       # real 大易/酷倉 tables and are skipped without them; build.bat generates the
       # same files again later (it skips tables that are already up to date).
@@ -43,9 +45,9 @@ jobs:
         run: |
           .\python\python3\python.exe python\cinbase\tools\cintojson.py
 
-      # Rust 版大易後端：單元測試（含和 Python 逐項比對），並建出 release 版，
-      # 讓下面的 tests/test_diffharness.py 拿它和 golden 標準答案比對
-      - name: Build and test cinbase-rs (Rust 大易後端)
+      # Rust 版後端與設定工具（大易、酷倉、新酷音）：單元測試（含和 Python 逐項比對），
+      # 並建出 release 版，讓下面的 tests/test_diffharness.py 拿它和 golden 標準答案比對
+      - name: Build and test cinbase-rs (Rust 後端與設定工具)
         run: |
           cd cinbase-rs
           cargo test --release
@@ -104,6 +106,16 @@ jobs:
       - name: Build the installer (dayi/chewing/checj only)
         run: |
           cmd /C "C:\Program Files (x86)\NSIS\Bin\makensis.exe" "/DNO_SIMP_CHINESE" "/DONLY_DAYI_CHEWING_CHECJ" ".\installer\installer.nsi"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # 安裝檔裡沒有 Python：另外編譯一份到暫存檔（/V4 記錄每個打包的檔案），檢查清單裡
+      # 沒有 Python、ime.json／捷徑／backends.json 指到的檔案都在；再把清單複製到暫存資料夾，
+      # 從那裡實際執行設定工具與後端（tests/test_packaging.py）。建置產物缺了就算失敗
+      - name: Check the installer contents (no Python)
+        env:
+          WIME_REQUIRE_INSTALLER: "1"
+        run: |
+          .\python\python3\python.exe -m unittest discover -s tests -p "test_packaging.py" -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - uses: actions/upload-artifact@v7

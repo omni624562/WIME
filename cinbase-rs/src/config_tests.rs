@@ -80,7 +80,7 @@ fn run_case(input: &Map<String, Value>, root: &Path) -> Map<String, Value> {
         repo_python_dir()
     };
 
-    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: appdata.clone(), home: home.clone(), python_dir });
+    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: appdata.clone(), home: home.clone(), data_root: python_dir });
     cfg.ime_dir_name = ime.to_string();
     cfg.load();
     let mut out = Map::new();
@@ -188,7 +188,7 @@ fn int_parsing_like_python() {
 
 #[test]
 fn sel_keys_is_one_character() {
-    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: temp_root(), home: temp_root(), python_dir: repo_python_dir() });
+    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: temp_root(), home: temp_root(), data_root: repo_python_dir() });
     assert_eq!(cfg.get_sel_keys().unwrap(), "1");
     cfg.sel_key_type = -1;
     assert_eq!(cfg.get_sel_keys().unwrap(), "0");
@@ -199,7 +199,7 @@ fn sel_keys_is_one_character() {
 #[test]
 fn update_is_throttled() {
     let root = temp_root();
-    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: root.join("a"), home: root.join("h"), python_dir: repo_python_dir() });
+    let mut cfg = CinBaseConfig::with_paths(ConfigPaths { appdata: root.join("a"), home: root.join("h"), data_root: repo_python_dir() });
     cfg.ime_dir_name = "chedayi".into();
     cfg.load();
     assert_eq!(cfg.cand_per_page, 6);

@@ -8,7 +8,7 @@
     "win8_icon": "",
     "moduleName": "chedayi_ime",
     "serviceName": "CheDayiTextService",
-    "configTool": "..\\..\\..\\python\\python3\\pythonw.exe",
-    "configToolParams": "configtool.py config chedayi",
-    "configToolDir": "..\\..\\..\\python\\cinbase"
+    "configTool": "..\\..\\wime-config.exe",
+    "configToolParams": "config chedayi",
+    "configToolDir": "..\\.."
 }

@@ -126,8 +126,8 @@ pub fn shell_execute(file: &str, params: &str) {
 }
 
 /// ShellExecuteW(None, "open", file, params, directory, show_cmd), the call
-/// CinBase makes to start the settings tool (python.exe "<configtool.py>"
-/// config <ime>, SW_HIDE, in the cinbase directory).
+/// the backends make to start the settings tool (wime-config.exe `config <ime>`,
+/// SW_HIDE, see paths::config_tool_command; Python ran python.exe "<configtool.py>").
 pub fn shell_execute_in(file: &str, params: &str, directory: &str, show_cmd: i32) {
     if test_mode() {
         STATE.with(|s| s.borrow_mut().launches.push(("ShellExecuteW".into(), basename(file))));

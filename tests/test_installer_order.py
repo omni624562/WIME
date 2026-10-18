@@ -102,8 +102,12 @@ TEARDOWN_STEPS = {
         lambda line: line.startswith("DeleteRegValue") and "\\Run" in line,
     "delete Software\\PIME":
         lambda line: line.startswith("DeleteRegKey") and line.endswith('"Software\\PIME"'),
+    # the embedded Python of 1.3.0-beta17 and older (the limited build installs none)
     "delete the python tree":
         lambda line: line.startswith("RMDir /r") and "$INSTDIR\\python" in line,
+    "delete the backend and data folders":
+        lambda line: line.startswith("RMDir /r") and ("$INSTDIR\\cinbase_rs" in line
+                                                      or "$INSTDIR\\data" in line),
     "delete the Start-menu folder":
         lambda line: line.startswith("RMDir /r") and "$SMPROGRAMS" in line,
 }
@@ -180,6 +184,8 @@ class SectionOrderTests(unittest.TestCase):
 
     def test_ucrt_check_runs_before_anything_is_removed(self):
         # a missing runtime aborts the install; that must not happen after the removal
+        # (only the full build still checks: it ships the embedded Python, which needs
+        # the UCRT; WIME's own binaries link the C runtime statically)
         body = self.sections[self.first(is_teardown)][1]
         self.assertIn("Call ensureUCRT", body)
         self.assertLess(body.index("Call ensureUCRT"),

@@ -494,14 +494,12 @@ impl CbTs {
         self.shift_space_key_added = wanted;
     }
 
-    /// The settings tool launch of CB:2680-2685 / CB:2923-2928:
-    /// ShellExecuteW(None, "open", sys.executable, '"<configtool.py>" config <ime>', cinbasecurdir, SW_HIDE)
+    /// The settings tool launch of CB:2680-2685 / CB:2923-2928. Python ran
+    /// ShellExecuteW(None, "open", sys.executable, '"<configtool.py>" config <ime>', cinbasecurdir, SW_HIDE);
+    /// installed, it is wime-config.exe beside this backend: `config <ime>`.
     pub fn launch_config_tool(&self) {
-        let cinbasecurdir = paths::cinbase_dir();
-        let tool_name = "config";
-        let config_tool = format!("\"{}\" {} {}", paths::join_str(&cinbasecurdir, "configtool.py"), tool_name, self.ime_dir_name);
-        let python_exe = paths::join_str(&paths::python_dir().join("python3"), "python.exe");
-        env::shell_execute_in(&python_exe, &config_tool, &cinbasecurdir.to_string_lossy(), 0);
+        let (exe, params, dir) = paths::config_tool_command("config", &self.ime_dir_name);
+        env::shell_execute_in(&exe, &params, &dir, 0);
     }
 
     // CB:2664 onCommand

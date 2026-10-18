@@ -25,6 +25,7 @@
 
 !insertmacro LANG_STRING SECTION_MAIN "WIME input method platform"
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP "Input method modules with Python"
+!insertmacro LANG_STRING IME_SECTION_GROUP "Input method modules"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP "Traditional Chinese"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP "Simplified Chinese"
 
@@ -46,6 +47,7 @@
 
 !insertmacro LANG_STRING SecMain_DESC "Install the $(PRODUCT_NAME) main program to your computer."
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP_DESC "Input method modules with Python"
+!insertmacro LANG_STRING IME_SECTION_GROUP_DESC "Dayi, Cangjie and Chewing input method modules"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP_DESC "Traditional Chinese"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP_DESC "Simplified Chinese"
 !insertmacro LANG_STRING chewing_DESC "Install Chewing input method module."

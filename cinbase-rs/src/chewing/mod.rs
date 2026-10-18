@@ -180,7 +180,7 @@ fn cfg_c_int(key: &str) -> Result<i32, String> {
 
 /// CHEWING_DATA_DIR (python/libchewing/data)
 fn chewing_data_dir() -> PathBuf {
-    paths::python_dir().join("libchewing").join("data")
+    paths::chewing_data_dir()
 }
 
 /// libchewing.searchPath(*dirs): ";"-joined
@@ -218,7 +218,7 @@ impl ChewingService {
     /// CI:134 __init__
     pub fn new(client: ClientInfo) -> ChewingService {
         ensure_config();
-        let curdir = paths::python_dir().join("input_methods").join("chewing");
+        let curdir = paths::chewing_dir();
         ChewingService {
             ts: TextService::default(),
             client,
@@ -1175,10 +1175,12 @@ impl Service for ChewingService {
         } else if is(ID_SWITCH_SHAPE) && left_or_menu {
             self.toggle_shape_mode();
         } else if is(ID_SETTINGS) || is(ID_USER_PHRASE_EDITOR) {
-            let tool_name = if is(ID_USER_PHRASE_EDITOR) { "user_phrase_editor" } else { "config_tool" };
-            let config_tool = format!("\"{}\" {}", paths::join_str(&self.curdir, "config_tool.py"), tool_name);
-            let python_exe = paths::join_str(&paths::python_dir().join("python3"), "python.exe");
-            env::shell_execute_in(&python_exe, &config_tool, &self.curdir.to_string_lossy(), 0);
+            // CI:1085 ran python.exe "<config_tool.py>" <config_tool|user_phrase_editor>
+            // (SW_HIDE, in the chewing folder); installed, it is wime-config.exe
+            // beside this backend, with the Start-menu shortcuts' arguments
+            let tool = if is(ID_USER_PHRASE_EDITOR) { "user_phrase_editor" } else { "config" };
+            let (exe, params, dir) = paths::config_tool_command(tool, "chewing");
+            env::shell_execute_in(&exe, &params, &dir, 0);
         } else if is(ID_MODE_ICON) && py_eq_int(kind, COMMAND_LEFT_CLICK) {
             if !self.ts.keyboard_open {
                 self.ts.set_keyboard_open(true);

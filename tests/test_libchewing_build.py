@@ -1,5 +1,8 @@
-"""The bundled 新酷音 engine (python/libchewing): chewing.dll and its data are
-built from the libchewing submodule by tools/build_libchewing.ps1 and committed.
+"""The 新酷音 engine of the Python reference implementation (python/libchewing):
+chewing.dll and its data are built from the libchewing submodule by
+tools/build_libchewing.ps1 and committed. Since 1.3.0-beta18 the installer ships
+only the data files (as data\libchewing\data); wime-cinbase.exe links libchewing
+itself, so chewing.dll is not installed any more.
 
 - Up to 1.3.0-beta17 the DLL was a 2021 build of the old C libchewing (with
   access violations on some key sequences), while the submodule pointed at the

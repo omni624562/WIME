@@ -25,6 +25,7 @@
 
 !insertmacro LANG_STRING SECTION_MAIN "WIME 输入法平台"
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP "Python 输入法模块"
+!insertmacro LANG_STRING IME_SECTION_GROUP "输入法模块"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP "中文繁体"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP "中文简体"
 
@@ -46,6 +47,7 @@
 
 !insertmacro LANG_STRING SecMain_DESC "安装 $(PRODUCT_NAME) 主程序到你的电脑里。"
 !insertmacro LANG_STRING PYTHON_SECTION_GROUP_DESC "Python 输入法模块"
+!insertmacro LANG_STRING IME_SECTION_GROUP_DESC "大易、酷仓、新酷音输入法模块"
 !insertmacro LANG_STRING PYTHON_CHT_SECTION_GROUP_DESC "中文繁体"
 !insertmacro LANG_STRING PYTHON_CHS_SECTION_GROUP_DESC "中文简体"
 !insertmacro LANG_STRING chewing_DESC "安装新酷音输入法模块。"

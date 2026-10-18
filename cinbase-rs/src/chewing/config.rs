@@ -405,7 +405,7 @@ impl ChewingConfig {
     }
     /// CC:428 getDataDir(): the chewing module directory's data (not shipped)
     pub fn get_data_dir(&self) -> PathBuf {
-        paths::python_dir().join("input_methods").join("chewing").join("data")
+        paths::chewing_dir().join("data")
     }
 
     // -- load / save ------------------------------------------------------------------

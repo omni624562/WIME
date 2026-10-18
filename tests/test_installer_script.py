@@ -324,20 +324,25 @@ class MetadataTests(unittest.TestCase):
         for name in ("NoModify", "NoRepair"):
             self.assertEqual([(command, value) for index, command, value in writes.get(name, [])],
                              [("WriteRegDWORD", "1")], name)
-        # the size counts the .pyc files compileall writes
+        # the size counts the .pyc files compileall writes (only the full build still
+        # installs Python)
         [(size_at, command, value)] = writes.get("EstimatedSize", [(-1, None, None)])
         self.assertEqual(command, "WriteRegDWORD")
-        compiled = max(i for i, line in enumerate(register) if "compileall" in line)
-        self.assertGreater(size_at, compiled)
-        # every icon is a file the installer puts there
+        compiled = [i for i, line in enumerate(register) if "compileall" in line]
+        if compiled:
+            self.assertGreater(size_at, max(compiled))
+        # every icon is a file the installer puts there (tests/test_packaging.py checks
+        # the built installer's file list too)
         uninstaller = next(line.split('"')[1] for line in register
                            if line.startswith("WriteUninstaller"))
         icons = [value.strip('"') for index, command, value in writes["DisplayIcon"]]
         self.assertTrue(icons)
         for icon in icons:
             with self.subTest(icon=icon):
-                if icon.startswith("$INSTDIR\\python\\"):
-                    source = os.path.join(ROOT, *icon.split("\\")[1:])
+                profile = re.fullmatch(r"\$INSTDIR\\cinbase_rs\\input_methods\\(\w+)\\icon\.ico", icon)
+                if profile:
+                    # INSTALL_PROFILE copies python\input_methods\<ime>\icon.ico there
+                    source = os.path.join(ROOT, "python", "input_methods", profile.group(1), "icon.ico")
                     self.assertTrue(os.path.isfile(source), source)
                 else:
                     self.assertEqual(icon, uninstaller)

@@ -177,6 +177,24 @@
 - `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
 - 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
+## 2026-10-18 安裝後不再含 Python
+
+- **三個輸入法與設定工具全部改用 Rust 程式**：新酷音也改由 `cinbase_rs\wime-cinbase.exe` 處理（大易、酷倉之前就是），設定工具一律是 `cinbase_rs\wime-config.exe`。兩者和原本的 Python 版經測試逐項比對完全相同（新酷音 252 萬個隨機回覆 0 差異；設定工具每個網址的回應、寫出的設定檔逐位元組相同），所以打字行為、設定頁、使用者詞庫編輯器都和以前一樣。
+- **安裝檔不再附 Python**：拿掉內嵌的 Python 3.14、`python\` 底下的程式碼、新酷音的 `chewing.dll`（libchewing 已直接連進 `wime-cinbase.exe`）與安裝時的 `compileall` 步驟；Python 授權（PSF）頁面也不再出現。
+  - 安裝檔：約 10.4～10.9 MB → 6.5 MB。
+  - 安裝後佔用：約 45 MB → 約 28.5 MB。
+  - 開設定頁不再先啟動 Python（以前約 0.9 秒，現在不到 0.1 秒）。
+- **新的安裝目錄配置**（`C:\Program Files (x86)\PIME`）：
+  - `cinbase_rs\`：`wime-cinbase.exe`（輸入法後端）、`wime-config.exe`（設定工具），以及 `input_methods\<輸入法>\ime.json`、`icon.ico`（語言設定檔，啟動器與 TSF DLL 從這裡找到三個輸入法）。
+  - `data\`：碼表、預設資料檔、圖示、設定頁、新酷音詞庫（`data\libchewing\data`）。子目錄配置和原始碼的 `python\` 相同，只放資料、不放程式。
+  - 開始功能表的「設定大易輸入法」「設定酷倉輸入法」「設定新酷音輸入法」「編輯新酷音使用者辭庫」名稱不變，改為執行 `wime-config.exe`；語言列與按鍵選單的「設定」也是。「設定 › 應用程式」裡 WIME 的圖示改指向 `cinbase_rs\input_methods\chedayi\icon.ico`。
+  - 安裝程式元件頁的群組名稱從「Python 輸入法模組」改為「輸入法模組」，可勾選的輸入法不變（大易、酷倉、新酷音）。
+- **升級**：從 1.3.0-beta17 以前的版本升級時，安裝程式先結束從安裝目錄執行的程式（含舊的 `python.exe` 後端與設定工具），再刪掉整個 `python\` 資料夾。萬一有檔案刪不掉，也只是留著佔空間：新版不會讀它，解除安裝或下次升級會再刪。
+- **使用者資料不受影響**：`%APPDATA%\PIME` 裡的設定（`config.json`）、大易字頻（`cincount.json`）、新酷音詞庫（`chewing.dat`）與各種備份完全不動，檔案格式也沒變。
+- **解除安裝**：刪除 `cinbase_rs\`、`data\` 與舊版留下的 `python\`；`%APPDATA%\PIME` 照舊保留。
+- 原始碼裡的 Python 版仍保留，作為測試比對的基準；建置時照舊用原始碼附的 Python 從 `.cin` 產生碼表（`build.bat`），只是不再打包進安裝檔。不加 `/DONLY_DAYI_CHEWING_CHECJ` 的完整版（WIME 不發行）裡其他只有 Python 版的輸入法仍附 Python。
+- 測試：`tests/test_packaging.py` 實際編譯安裝檔、讀出裡面的每個檔案，確認沒有任何 Python 檔案，`backends.json`、`ime.json`、開始功能表捷徑與「應用程式」圖示指到的檔案都在；再把這份清單複製到暫存資料夾，從那裡啟動設定工具（大易、酷倉、新酷音、詞庫編輯器的頁面與所有引用的檔案都取得到）與後端（三個輸入法都能打出中文、設定選單會開 `wime-config.exe`）。CI 在建好安裝檔後跑這項檢查。
+
 ## 2026-10-17 候選窗無障礙：螢幕報讀、高對比、文字大小
 
 - **螢幕報讀軟體讀得到候選字**：候選窗照微軟對輸入法候選清單的無障礙規範（[IME requirements › IME accessibility](https://learn.microsoft.com/windows/apps/develop/input/input-method-editor-requirements#ime-accessibility)）提供 UI Automation：

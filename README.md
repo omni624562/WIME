@@ -6,7 +6,7 @@
 Implement input methods easily for Windows via Text Services Framework:
 *   LibIME contains a library which aims to be a simple wrapper for Windows Text Service Framework (TSF).
 *   PIMETextService contains an backbone implementation of Windows text service for using libIME.
-*   The python server part requires python 3.x and pywin32 package.
+*   The input methods (Dayi, New Cangjie and New Chewing) and their settings tools are Rust programs in `cinbase-rs` (`wime-cinbase.exe`, `wime-config.exe`); the installed WIME contains no Python. The Python sources under `python/` remain the reference implementation the tests compare against (they run on the embedded `python/python3`).
 
 All parts are licensed under GNU LGPL v2.1 license.
 
@@ -103,7 +103,7 @@ For a detailed Traditional Chinese summary of the changes made after the project
 # Install
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x86\.
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x64\.
-*   Copy the folder `python` to `C:\Program Files (X86)\PIME\`
+*   Use the installer (`installer/installer.nsi`). Its layout: `cinbase_rs\` holds `wime-cinbase.exe`, `wime-config.exe` and `input_methods\<ime>\ime.json`; `data\` holds the tables, data files, icons and settings pages (see `cinbase-rs/src/paths.rs`).
 *   Use `regsvr32` to register `PIMETextService.dll`. 64-bit system need to register both 32-bit and 64-bit `PIMETextService.dll`
 
         regsvr32 "C:\Program Files (X86)\PIME\x86\PIMETextService.dll" (run as administrator)

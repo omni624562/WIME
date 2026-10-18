@@ -378,51 +378,20 @@ try {
         -Destination (Join-Path $script:PimeRoot "x64\PIMETextService.dll") `
         -BackupRoot $BackupPath
 
-    $pythonFiles = @(
-        "server.py",
-        "textService.py",
-        "input_methods\chearray\chearray_ime.py",
-        "input_methods\checj\checj_ime.py",
-        "input_methods\chedayi\chedayi_ime.py",
-        "input_methods\cheez\cheez_ime.py",
-        "input_methods\cheliu\cheliu_ime.py",
-        "input_methods\chephonetic\chephonetic_ime.py",
-        "input_methods\chepinyin\chepinyin_ime.py",
-        "input_methods\chesimplex\chesimplex_ime.py",
-        "cinbase\__init__.py",
-        "cinbase\cin.py",
-        "cinbase\compositionbuffer.py",
-        "cinbase\menu.py",
-        "cinbase\pager.py",
-        "cinbase\selkeys.py",
-        "cinbase\config.py",
-        "cinbase\configtool.py",
-        "cinbase\data\excludephrase.dat",
-        "cinbase\config\config.htm",
-        "cinbase\config\css\config.css",
-        "cinbase\config\css\bootstrap.min.css",
-        "cinbase\config\js\config.js",
-        "cinbase\config\js\bootstrap.min.js",
-        "cinbase\config\js\jquery-3.7.1.min.js",
-        "input_methods\checj\config\config.html",
-        "input_methods\chedayi\config\config.html",
-        "input_methods\cheliu\config\config.html",
-        "input_methods\checj\config\config.json",
-        "input_methods\chedayi\config\config.json",
-        "input_methods\cheliu\config\config.json",
-        "input_methods\chewing\config_tool.py",
-        "input_methods\chewing\config_tool.html",
-        "input_methods\chewing\css\config.css",
-        "input_methods\chewing\chewing_config.py",
-        "input_methods\chewing\chewing_ime.py",
-        "input_methods\chewing\js\jquery-3.7.1.min.js",
-        "input_methods\chewing\js\config.js"
+    # The backend and settings tool (no Python is installed since 1.3.0-beta18), and
+    # the language profiles; the data files under data\ come from the installer.
+    $rustFiles = @(
+        @("cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe", "cinbase_rs\wime-cinbase.exe"),
+        @("cinbase-rs\target\i686-pc-windows-msvc\release\wime-config.exe", "cinbase_rs\wime-config.exe"),
+        @("cinbase-rs\input_methods\chedayi\ime.json", "cinbase_rs\input_methods\chedayi\ime.json"),
+        @("cinbase-rs\input_methods\checj\ime.json", "cinbase_rs\input_methods\checj\ime.json"),
+        @("cinbase-rs\input_methods\chewing\ime.json", "cinbase_rs\input_methods\chewing\ime.json")
     )
 
-    foreach ($file in $pythonFiles) {
+    foreach ($pair in $rustFiles) {
         Copy-WithBackup `
-            -Source (Join-Path $script:RepoRoot "python\$file") `
-            -Destination (Join-Path $script:PimeRoot "python\$file") `
+            -Source (Join-Path $script:RepoRoot $pair[0]) `
+            -Destination (Join-Path $script:PimeRoot $pair[1]) `
             -BackupRoot $BackupPath
     }
 
