@@ -163,7 +163,22 @@ class DiffTestBase(unittest.TestCase):
         self.assertEqual(replies["rust"], replies["python"], label)
         if check_files:
             self.assertFiles(label)
+        self.alignMtimes()
         return replies["python"]
+
+    def alignMtimes(self):
+        """The two tools get each request one after the other, so a file they both
+        save can end up with modification times in different seconds. A broken
+        config.json is backed up as config.json.broken-<mtime> on the next load:
+        without this the backup names differed by one second now and then."""
+        python, rust = self.tools["python"].tempdir.name, self.tools["rust"].tempdir.name
+        for root, _, names in os.walk(python):
+            for name in names:
+                source = os.path.join(root, name)
+                target = os.path.join(rust, os.path.relpath(source, python))
+                if os.path.isfile(target):
+                    st = os.stat(source)
+                    os.utime(target, ns=(st.st_atime_ns, st.st_mtime_ns))
 
     def assertFiles(self, label=""):
         files = {impl: tool.files() for impl, tool in self.tools.items()}
