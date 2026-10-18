@@ -48,7 +48,7 @@ windows-sys = { version = "0.61", features = [
 chewing_capi = { path = "../libchewing/capi", features = ["sqlite-bundled"] }
 # the rusqlite of libchewing's Cargo.lock: checking, copying and cleaning the old
 # user dictionary before the conversion (python/libchewing/userdict.py)
-rusqlite = { version = "=0.39.0", features = ["bundled", "backup"] }
+rusqlite = { version = "=0.40.2", features = ["bundled", "backup"] }
 
 [profile.release]
 opt-level = 3
