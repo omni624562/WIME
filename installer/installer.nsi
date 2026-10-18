@@ -60,7 +60,11 @@ VIFileVersion "${VI_VERSION}"
 Name "$(PRODUCT_NAME)"
 BrandingText "$(PRODUCT_NAME)"
 
-!ifdef ONLY_DAYI_CHEWING_CHECJ
+!ifdef OUTFILE
+; makensis /DOUTFILE=path: a test build (tests\installer_layout.py) that must not
+; overwrite the release installer of the same version (in the installer folder)
+OutFile "${OUTFILE}"
+!else ifdef ONLY_DAYI_CHEWING_CHECJ
 OutFile "WIME-${PRODUCT_VERSION}-dayi-chewing-checj-setup.exe" ; Limited installer for Dayi, Chewing, and New Cangjie
 !else
 OutFile "WIME-${PRODUCT_VERSION}-setup.exe" ; The generated installer file name
@@ -76,7 +80,11 @@ RequestExecutionLevel admin
 ;Pages
 ; license page
 !insertmacro MUI_PAGE_LICENSE "..\LGPL-2.0.txt" ; for PIME
-!insertmacro MUI_PAGE_LICENSE "..\PSF.txt" ; for python
+!ifndef ONLY_DAYI_CHEWING_CHECJ
+; for python: only the full build still ships the embedded Python (for its
+; Python-only input methods); WIME's own installer contains no Python at all
+!insertmacro MUI_PAGE_LICENSE "..\PSF.txt"
+!endif
 
 ; !insertmacro MUI_PAGE_COMPONENTS
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -137,11 +145,12 @@ var UPDATEARM64DLL
 ; "True" once the user agreed to replace the installed version (see askRemoveOldVersion)
 var REMOVE_OLD_VERSION
 
+!ifndef ONLY_DAYI_CHEWING_CHECJ
+; the full build's Python-only input methods (大易/酷倉/新酷音 never need Python)
 var INST_PYTHON
 var INST_CINBASE
 
 ; The table file of Liu input method
-!ifndef ONLY_DAYI_CHEWING_CHECJ
 var LIU_UNI_TAB_FILE
 !endif
 
@@ -183,11 +192,12 @@ FunctionEnd
 !insertmacro DEFINE_MOVE_ASIDE_IF_LOCKED "un."
 
 ; Force-terminate anything still running from the install dir after the graceful
-; "PIMELauncher.exe /quit": the launcher's worker kill does not reach its python
-; backends, and settings-tool servers (configtool.py) could outlive their idle timeout
-; in older versions. Any of them keeps python\python3\*.dll mapped, which blocks
-; removing the old python tree. (The uninstaller itself runs from a %TEMP% copy, so
-; it is never matched.)
+; "PIMELauncher.exe /quit": the launcher's worker kill does not reach its backends
+; (wime-cinbase.exe; python.exe in versions up to 1.3.0-beta17), and settings-tool
+; servers (wime-config.exe; configtool.py before) can still be running. Any of them
+; keeps its files mapped - in an upgrade from a version with Python, python\python3\*.dll
+; - which blocks removing the old tree. (The uninstaller itself runs from a %TEMP%
+; copy, so it is never matched.)
 !macro DEFINE_KILL_PROCESSES_IN_INSTDIR UN
 Function ${UN}killProcessesInInstDir
 	Push $0
@@ -349,9 +359,9 @@ Function removeOldVersion
 		; Otherwise we cannot replace it.
 		ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
 		Sleep 1000
-		; /quit does not reach the python backends (or leftover settings-tool
-		; servers); kill whatever still runs from the install dir so the old
-		; files below can really be deleted instead of scheduled for reboot.
+		; /quit does not reach the backends (or leftover settings-tool servers);
+		; kill whatever still runs from the install dir so the old files below can
+		; really be deleted instead of scheduled for reboot.
 		Call killProcessesInInstDir
 		Push "$INSTDIR\PIMELauncher.exe"
 		Call moveAsideIfLocked
@@ -359,8 +369,14 @@ Function removeOldVersion
 		Delete "$INSTDIR\backends.json"
 		; No /REBOOTOK on anything we are about to reinstall: a boot-time delete
 		; would wipe the new files, and the reboot flag aborts the upgrade.
+		; python\ is the embedded Python of 1.3.0-beta17 and older: the limited build
+		; no longer installs it, so upgrading removes it for good (the processes
+		; running from it were killed above). A file that still cannot be deleted
+		; just stays behind: nothing reads python\ any more, and the uninstaller or
+		; the next upgrade removes it.
 		RMDir /r "$INSTDIR\python"
 		RMDir /r "$INSTDIR\cinbase_rs"
+		RMDir /r "$INSTDIR\data"
 		RMDir /r "$INSTDIR\node" ; node backend is no longer shipped; clean up old installs
 
 		; Only exist in earlier versions, but need to delete it.
@@ -377,8 +393,8 @@ Function removeOldVersion
 	ClearErrors
 	; Ensure that old files are all deleted
 	; Also covers installs without an uninstall key: nothing may still be running
-	; from the install dir, or overwriting python\python3\*.dll fails and, with
-	; AllowSkipFiles off, aborts the whole install.
+	; from the install dir, or overwriting cinbase_rs\*.exe (python\python3\*.dll in
+	; the full build) fails and, with AllowSkipFiles off, aborts the whole install.
 	${If} ${FileExists} "$INSTDIR\PIMELauncher.exe"
 		ExecWait '"$INSTDIR\PIMELauncher.exe" /quit'
 		Sleep 1000
@@ -478,11 +494,11 @@ Function .onInit
 			Abort
 	${EndIf}
 
-	; Windows 10 or later: PIMELauncher.exe and the Rust 大易 backend
-	; (cinbase_rs\wime-cinbase.exe) are built with Rust, whose Windows targets need
-	; Windows 10 since Rust 1.78 (they import ProcessPrng and other Windows 10 APIs);
-	; on 8.1 setup would finish and then the launcher failed to load at every logon,
-	; so no keyboard ever worked. (The embedded Python 3.14 needs Windows 10 too.)
+	; Windows 10 or later: PIMELauncher.exe, the backend (cinbase_rs\wime-cinbase.exe)
+	; and the settings tool (cinbase_rs\wime-config.exe) are built with Rust, whose
+	; Windows targets need Windows 10 since Rust 1.78 (they import ProcessPrng and
+	; other Windows 10 APIs); on 8.1 setup would finish and then the launcher failed
+	; to load at every logon, so no keyboard ever worked.
 	; (The version is reported correctly because NSIS manifests the installer for
 	; Windows 8.1/10.)
 	${IfNot} ${AtLeastWin10}
@@ -510,13 +526,15 @@ Function .onInit
 		StrCpy $UPDATEARM64DLL "True"
 	!endif
 
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	StrCpy $INST_PYTHON "False"
 	StrCpy $INST_CINBASE "False"
+!endif
 
 !ifdef ONLY_DAYI_CHEWING_CHECJ
 	; The component page is skipped during /S installs, so explicitly select the
-	; three modules included in this limited installer. Without this, uninstall
-	; cleanup can remove python and the backend sections never run.
+	; three modules included in this limited installer. Without this, the upgrade
+	; removes the old version and the input method sections never run.
 	${If} ${Silent}
 		Call selectLimitedSilentSections
 	${EndIf}
@@ -543,20 +561,23 @@ Function .onInstFailed
 	${EndIf}
 FunctionEnd
 
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 Function ensureUCRT
-	; PIMELauncher.exe and PIMETextService.dll link the C runtime statically and
-	; python3\ carries its own vcruntime140.dll, so no VC++ redistributable is needed
-	; (the old check downloaded one, and on 64-bit Windows only the x64 package, which
-	; did not help the 32-bit launcher). The embedded Python still needs the Universal
-	; C Runtime, built into Windows 10 (the oldest version .onInit lets through); the
-	; check stays as a guard against damaged systems. $SYSDIR is SysWOW64 for this
-	; 32-bit installer, i.e. the 32-bit UCRT Python uses.
+	; PIMELauncher.exe, PIMETextService.dll and cinbase_rs\*.exe link the C runtime
+	; statically (the Universal C Runtime included), so no VC++ redistributable is
+	; needed (the old check downloaded one, and on 64-bit Windows only the x64 package,
+	; which did not help the 32-bit launcher). Only the embedded Python of the full
+	; build still needs the Universal C Runtime, built into Windows 10 (the oldest
+	; version .onInit lets through); the check stays as a guard against damaged
+	; systems. $SYSDIR is SysWOW64 for this 32-bit installer, i.e. the 32-bit UCRT
+	; Python uses.
 	${IfNot} ${FileExists} "$SYSDIR\ucrtbase.dll"
 		MessageBox MB_ICONSTOP|MB_OK $(UCRT_MISSING_MESSAGE)
 		ExecShell "open" "https://support.microsoft.com/kb/2999226"
 		Abort
 	${EndIf}
 FunctionEnd
+!endif
 
 ;Installer Type
 InstType "$(INST_TYPE_STD)"
@@ -567,9 +588,11 @@ InstType "$(INST_TYPE_FULL)"
 ; the user has clicked Install (right away in silent installs).
 Section "-Prepare"
 	SectionIn 1 2 RO
+!ifndef ONLY_DAYI_CHEWING_CHECJ
 	; Ensure that the Universal C Runtime the embedded python needs is present,
 	; before anything of the old version is removed
 	Call ensureUCRT
+!endif
 	Call removeOldVersion
 SectionEnd
 
@@ -596,37 +619,75 @@ Section $(SECTION_MAIN) SecMain
 
 	; Install the launcher responsible to launch the backends
 	File "..\build\PIMELauncher\PIMELauncher.exe"
+
+	; 大易、酷倉、新酷音的後端與設定工具（Rust，不需要 Python）。backends.json 一律指向
+	; cinbase_rs\wime-cinbase.exe，所以它和 backends.json 一起裝
+	SetOutPath "$INSTDIR\cinbase_rs"
+	File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
+	File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-config.exe"
 SectionEnd
 
+; 大易、酷倉、新酷音的檔案（安裝後的配置見 cinbase-rs/src/paths.rs）：
+;   cinbase_rs\input_methods\<ime>\ime.json、icon.ico   語言設定檔（啟動器與 TSF DLL 掃描這裡）
+;   data\   資料根目錄：和 repo 的 python\ 同樣的子目錄配置，但只放資料檔、不放程式碼
+;           （碼表、資料檔、圖示、設定頁），所以 repo 的 python\ 本身就是開發用的資料根目錄
+; 碼表 JSON 在建置時用 repo 的 Python 從 .cin 產生（build.bat），安裝檔本身不含 Python。
+
+; the language profile: ime.json (configTool: ..\..\wime-config.exe) and its icon
+!macro INSTALL_PROFILE IME
+	SetOutPath "$INSTDIR\cinbase_rs\input_methods\${IME}"
+	File "..\cinbase-rs\input_methods\${IME}\ime.json"
+	File "..\python\input_methods\${IME}\icon.ico"
+!macroend
+
+; 大易 / 酷倉: the profile, the IME's shipped config.json and settings page, and the
+; icon the settings page shows (/icon.ico). The shared cinbase data is installed by
+; the Register section once for both.
+!macro INSTALL_CINBASE_IME IME
+	!insertmacro INSTALL_PROFILE ${IME}
+	SetOutPath "$INSTDIR\data\input_methods\${IME}"
+	File "..\python\input_methods\${IME}\icon.ico"
+	File /r "..\python\input_methods\${IME}\config"
+!macroend
+
+; 新酷音: the profile, the settings pages and the language-bar icons, and the
+; libchewing dictionaries (the engine itself is linked into wime-cinbase.exe; the old
+; python\libchewing\chewing.dll is not needed any more)
+!macro INSTALL_CHEWING
+	!insertmacro INSTALL_PROFILE chewing
+	SetOutPath "$INSTDIR\data\input_methods\chewing"
+	File "..\python\input_methods\chewing\config_tool.html"
+	File "..\python\input_methods\chewing\user_phrase_editor.html"
+	; 不打包設定頁沒用到的檔案：原始碼對照 (*.map)、沒引用的圖片，以及 jquery-ui 完整
+	; 下載包裡頁面沒載入的檔案（只用 *.min.js / *.min.css）
+	File /r /x "simC.ico" /x "*.map" /x "keyborad_layouts_json" /x "logo.ico" \
+		/x "jquery-ui.js" /x "jquery-ui.css" /x "jquery-ui.structure.css" /x "jquery-ui.structure.min.css" \
+		/x "jquery-ui.theme.css" /x "external" /x "index.html" /x "package.json" /x "AUTHORS.txt" \
+		"..\python\input_methods\chewing\css" "..\python\input_methods\chewing\icons" \
+		"..\python\input_methods\chewing\images" "..\python\input_methods\chewing\js"
+	SetOutPath "$INSTDIR\data\libchewing\data"
+	File "..\python\libchewing\data\tsi.dat"
+	File "..\python\libchewing\data\word.dat"
+	File "..\python\libchewing\data\symbols.dat"
+	File "..\python\libchewing\data\swkb.dat"
+!macroend
+
 !ifdef ONLY_DAYI_CHEWING_CHECJ
-SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
-	SectionGroup /e $(PYTHON_CHT_SECTION_GROUP) python_cht_section_group
+SectionGroup /e $(IME_SECTION_GROUP) ime_section_group
+	SectionGroup /e $(PYTHON_CHT_SECTION_GROUP) ime_cht_section_group
 		Section $(CHEWING) chewing
 			SectionIn 1 2
-			SetOutPath "$INSTDIR\python\input_methods\chewing"
-			; 不打包設定頁沒用到的檔案：原始碼對照 (*.map)、靜態預覽用的 debug\、沒引用的圖片，
-			; 以及 jquery-ui 完整下載包裡頁面沒載入的檔案（只用 *.min.js / *.min.css）
-			File /r /x "__pycache__" /x "simC.ico" /x "*.map" /x "debug" /x "keyborad_layouts_json" /x "logo.ico" \
-				/x "jquery-ui.js" /x "jquery-ui.css" /x "jquery-ui.structure.css" /x "jquery-ui.structure.min.css" \
-				/x "jquery-ui.theme.css" /x "external" /x "index.html" /x "package.json" /x "AUTHORS.txt" \
-				"..\python\input_methods\chewing\*.*"
-			StrCpy $INST_PYTHON "True"
+			!insertmacro INSTALL_CHEWING
 		SectionEnd
 
 		Section $(CHECJ) checj
 			SectionIn 1 2
-			SetOutPath "$INSTDIR\python\input_methods\checj"
-			File /r /x "__pycache__" "..\python\input_methods\checj\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
+			!insertmacro INSTALL_CINBASE_IME checj
 		SectionEnd
 
 		Section $(CHEDAYI) chedayi
 			SectionIn 1 2
-			SetOutPath "$INSTDIR\python\input_methods\chedayi"
-			File /r /x "__pycache__" "..\python\input_methods\chedayi\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
+			!insertmacro INSTALL_CINBASE_IME chedayi
 		SectionEnd
 	SectionGroupEnd
 SectionGroupEnd
@@ -635,17 +696,12 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 	SectionGroup /e $(PYTHON_CHT_SECTION_GROUP) python_cht_section_group
 		Section $(CHEWING) chewing
 			SectionIn 1 2
-			SetOutPath "$INSTDIR\python\input_methods\chewing"
-			File /r "..\python\input_methods\chewing\*.*"
-			StrCpy $INST_PYTHON "True"
+			!insertmacro INSTALL_CHEWING
 		SectionEnd
 
 		Section $(CHECJ) checj
 			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\checj"
-			File /r "..\python\input_methods\checj\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
+			!insertmacro INSTALL_CINBASE_IME checj
 		SectionEnd
 
 		Section $(CHELIU) cheliu
@@ -677,10 +733,7 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 		; 大易列入標準安裝（SectionIn 1），其他 CIN 輸入法僅 full install（SectionIn 2）
 		Section $(CHEDAYI) chedayi
 			SectionIn 1 2
-			SetOutPath "$INSTDIR\python\input_methods\chedayi"
-			File /r "..\python\input_methods\chedayi\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
+			!insertmacro INSTALL_CINBASE_IME chedayi
 		SectionEnd
 
 		Section $(CHEPINYIN) chepinyin
@@ -770,48 +823,44 @@ FunctionEnd
 
 Section "" Register
 	SectionIn 1 2
-	; Install the python backend and input method modules along with an embedable version of python 3.
+!ifndef ONLY_DAYI_CHEWING_CHECJ
+	; The full build's Python-only input methods: the python backend and its modules
+	; along with an embedable version of python 3. (大易、酷倉、新酷音 never need it.)
 	${If} $INST_PYTHON == "True"
-		; 新酷音改用 libchewing 0.13（Rust 版），資料檔換成 tsi.dat、word.dat。有解除安裝
-		; 資訊的升級會先整個刪掉 python\；沒有的舊安裝不會，舊 C 版的資料檔在這裡清掉
-		; （新版不會讀，只是佔空間）
-		Delete "$INSTDIR\python\libchewing\data\dictionary.dat"
-		Delete "$INSTDIR\python\libchewing\data\index_tree.dat"
-		Delete "$INSTDIR\python\libchewing\data\pinyin.tab"
 		SetOutPath "$INSTDIR\python"
-!ifdef ONLY_DAYI_CHEWING_CHECJ
-		; .pytest_cache：在 python\ 下跑過 pytest 就會出現，不入 git 但會被 /r 一起打包
-		; python3\ 裡從不會被載入的檔案：沒用到的擴充模組、python3.dll（沒有程式匯入）、
-		; 簽章目錄 python.cat、不會被讀取的 PIME.pth。（tornado 與 OpenSSL 已從 python3\ 移除：
-		; 設定工具改用標準函式庫的 http.server，沒有任何程式需要 ssl）
-		; 標準函式庫 zip 改用 build\ 裡精簡過的版本（build.bat 執行 installer\trim_python_zip.py 產生）
-		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x "opencc" /x ".git" /x ".idea" \
-			/x "python314.zip" /x "python3.dll" /x "python.cat" /x "PIME.pth" \
-			/x "_decimal.pyd" /x "_elementtree.pyd" /x "_multiprocessing.pyd" /x "_zoneinfo.pyd" /x "pyexpat.pyd" \
-			"..\python\*.*"
-		SetOutPath "$INSTDIR\python\python3"
-		File "..\build\python314.zip"
-		SetOutPath "$INSTDIR\python"
-!else
 		File /r /x "__pycache__" /x ".pytest_cache" /x "input_methods" /x "cinbase" /x ".git" /x ".idea" "..\python\*.*"
-!endif
 		SetOutPath "$INSTDIR\python\input_methods"
 		File "..\python\input_methods\__init__.py"
 	${EndIf}
 
-	; Install the CinBase Class for all cin-based input method modules.
+	; Install the CinBase Class for the full build's cin-based Python input methods.
 	${If} $INST_CINBASE == "True"
 		SetOutPath "$INSTDIR\python"
-!ifdef ONLY_DAYI_CHEWING_CHECJ
-		; 不打包：建置用的工具 tools\（與只在原始碼開啟 DEBUG_MODE 才用到、需要 tools 的
-		; debug.py）、圖示原始檔 *.pdn、設定頁沒載入的字型與舊版 / 未壓縮的 css、js、
-		; 只有注音（chephonetic）才用的 kblayout.htm，以及說明文件（授權檔照常打包）
-		File /r /x "__pycache__" /x "cin" /x "json" /x "sim_*.ico" /x "tools" /x "debug.py" /x "*.pdn" \
-			/x "fonts" /x "kblayout.htm" /x "bootstrap-theme.min.css" /x "jquery.bootstrap-touchspin.css" \
+		File /r /x "__pycache__" /x "cin" "..\python\cinbase"
+        ${If} ${SectionIsSelected} ${cheliu}
+            ; Convert the tab file to *.cin format first.
+            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\liu_unitab2cin.py" "$LIU_UNI_TAB_FILE" "$INSTDIR\python\cinbase\cin\liu.cin"'
+            ; Convert the liu.cin file to json format used by cinbase.
+            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\cintojson.py" "liu.cin"'
+        ${EndIf}
+	${EndIf}
+!endif
+
+	; 大易與酷倉共用的 cinbase 資料（Rust 後端 wime-cinbase.exe 與設定工具 wime-config.exe 讀）：
+	; 碼表、預設資料檔、語言列圖示、設定頁。和 repo 的 python\cinbase 同樣的配置，只是不放 *.py
+	${If} ${SectionIsSelected} ${chedayi}
+	${OrIf} ${SectionIsSelected} ${checj}
+		SetOutPath "$INSTDIR\data\cinbase"
+		File /r "..\python\cinbase\data"
+		; 不打包：圖示原始檔 *.pdn、簡體模式圖示（只有簡體版用）
+		File /r /x "sim_*.ico" /x "*.pdn" "..\python\cinbase\icons"
+		; 不打包：設定頁沒載入的字型與舊版 / 未壓縮的 css、js、只有注音（chephonetic）才用的
+		; kblayout.htm，以及說明文件（授權檔照常打包）
+		File /r /x "fonts" /x "kblayout.htm" /x "bootstrap-theme.min.css" /x "jquery.bootstrap-touchspin.css" \
 			/x "jquery.bootstrap-touchspin.js" /x "jAlert-ie8.min.js" /x "jAlert-functions.min.js" \
 			/x "README.md" /x "readme.md" /x "AUTHORS.txt" \
-			"..\python\cinbase"
-		SetOutPath "$INSTDIR\python\cinbase\json"
+			"..\python\cinbase\config"
+		SetOutPath "$INSTDIR\data\cinbase\json"
 		File "..\python\cinbase\json\checj.json"
 		File "..\python\cinbase\json\mscj3.json"
 		File "..\python\cinbase\json\mscj3-ext.json"
@@ -831,37 +880,6 @@ Section "" Register
 		File "..\python\cinbase\json\thphonetic.json"
 		File "..\python\cinbase\json\CnsPhonetic.json"
 		File "..\python\cinbase\json\bpmf.json"
-!else
-		File /r /x "__pycache__" /x "cin" "..\python\cinbase"
-        ${If} ${SectionIsSelected} ${cheliu}
-            ; Convert the tab file to *.cin format first.
-            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\liu_unitab2cin.py" "$LIU_UNI_TAB_FILE" "$INSTDIR\python\cinbase\cin\liu.cin"'
-            ; Convert the liu.cin file to json format used by cinbase.
-            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\cintojson.py" "liu.cin"'
-        ${EndIf}
-!endif
-	${EndIf}
-
-	; 大易與酷倉由 Rust 後端（cinbase_rs\wime-cinbase.exe）處理：backends.json 的 cinbase_rs
-	; 資料夾放它們的 ime.json，那兩個 GUID 就由它接手。同一個 GUID 只能有一個後端：拿掉 Python
-	; 那份 ime.json（設定頁與 config\ 照舊在 python 下，Rust 後端也讀同一份設定、碼表與資料檔）。
-	; 它和 Python 後端的回覆完全相同（tests/diffharness），一律使用；新酷音仍由 Python 處理
-	${If} ${SectionIsSelected} ${chedayi}
-	${OrIf} ${SectionIsSelected} ${checj}
-		SetOutPath "$INSTDIR\cinbase_rs"
-		File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
-	${EndIf}
-	${If} ${SectionIsSelected} ${chedayi}
-		SetOutPath "$INSTDIR\cinbase_rs\input_methods\chedayi"
-		File "..\cinbase-rs\input_methods\chedayi\ime.json"
-		File "..\python\input_methods\chedayi\icon.ico"
-		Delete "$INSTDIR\python\input_methods\chedayi\ime.json"
-	${EndIf}
-	${If} ${SectionIsSelected} ${checj}
-		SetOutPath "$INSTDIR\cinbase_rs\input_methods\checj"
-		File "..\cinbase-rs\input_methods\checj\ime.json"
-		File "..\python\input_methods\checj\icon.ico"
-		Delete "$INSTDIR\python\input_methods\checj\ime.json"
 	${EndIf}
 
 	; Install the text service dlls
@@ -892,7 +910,7 @@ Section "" Register
 	; Register COM objects (NSIS RegDLL command is broken and cannot be used)
 	ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\x86\PIMETextService.dll"'
 
-	; Launch the python server on startup
+	; Launch the launcher (and through it the backends) on startup
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher" "$INSTDIR\PIMELauncher.exe"
 
 	;Store installation folder in the registry
@@ -904,7 +922,7 @@ Section "" Register
 	; The icon Settings > Apps shows. PIMETextService.dll has no icon resource, so use
 	; the 大易 one when 大易 is installed, else the uninstaller's.
 	${If} ${SectionIsSelected} ${chedayi}
-		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\python\input_methods\chedayi\icon.ico"
+		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\cinbase_rs\input_methods\chedayi\icon.ico"
 	${Else}
 		WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Uninstall.exe"
 	${EndIf}
@@ -916,19 +934,22 @@ Section "" Register
 	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoRepair" 1
 	WriteUninstaller "$INSTDIR\Uninstall.exe" ;Create uninstaller
 
-	; Compile all installed python modules to *.pyc files
+!ifndef ONLY_DAYI_CHEWING_CHECJ
+	; Compile all installed python modules to *.pyc files (the full build's Python-only
+	; input methods)
 	${If} $INST_PYTHON == "True"
 		; -o 0：設定工具 (不加 -O) 用的 .pyc；-o 1：後端 (python.exe -O server.py) 用的 .opt-1.pyc。
 		; 以前只產生前者，一般使用者又無權寫入 Program Files，後端每次啟動都重新編譯全部程式碼
 		nsExec::ExecToLog  '"$INSTDIR\python\python3\python.exe" -m compileall -o 0 -o 1 "$INSTDIR\python"'
 	${EndIf}
+!endif
 
-	; The size Settings > Apps shows (in KB), measured once everything, the .pyc files
-	; above included, is in place
+	; The size Settings > Apps shows (in KB), measured once everything (in the full
+	; build the .pyc files above included) is in place
 	${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
 	WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "EstimatedSize" $0
 
-	; Launch the python server as current user (non-elevated process)
+	; Launch the launcher as current user (non-elevated process)
 	${StdUtils.ExecShellAsUser} $0 "$INSTDIR\PIMELauncher.exe" "open" ""
 
 	; Create shortcuts. Clear out the old folders first also when removeOldVersion did not
@@ -937,13 +958,16 @@ Section "" Register
 	Call removeStartMenuFolders
 	SetShellVarContext all
 	CreateDirectory "$SMPROGRAMS\${START_MENU_FOLDER}"
+	; 大易、酷倉、新酷音的設定工具都是 cinbase_rs\wime-config.exe（參數和 ime.json 的
+	; configToolParams 相同）；捷徑名稱與圖示照舊。SetOutPath 決定捷徑的「開始位置」
+	SetOutPath "$INSTDIR\cinbase_rs"
 	${If} ${SectionIsSelected} ${chewing}
-		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" config' "$INSTDIR\python\input_methods\chewing\images\setting.ico" 0
-		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\input_methods\chewing\config_tool.py" user_phrase_editor' "$INSTDIR\python\input_methods\chewing\images\phrase_editor.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "config chewing" "$INSTDIR\data\input_methods\chewing\images\setting.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEWING_PHRASES).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "user_phrase_editor chewing" "$INSTDIR\data\input_methods\chewing\images\phrase_editor.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${checj}
-		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHECJ).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "config checj" "$INSTDIR\cinbase_rs\input_methods\checj\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
@@ -957,7 +981,7 @@ Section "" Register
 !endif
 
 	${If} ${SectionIsSelected} ${chedayi}
-		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEDAYI).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "config chedayi" "$INSTDIR\cinbase_rs\input_methods\chedayi\icon.ico" 0
 	${EndIf}
 
 !ifndef ONLY_DAYI_CHEWING_CHECJ
@@ -984,13 +1008,15 @@ SectionEnd
 ;Assign language strings to sections
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(SecMain_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${python_section_group} $(PYTHON_SECTION_GROUP_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${python_cht_section_group} $(PYTHON_CHT_SECTION_GROUP_DESC)
 !ifdef ONLY_DAYI_CHEWING_CHECJ
+	!insertmacro MUI_DESCRIPTION_TEXT ${ime_section_group} $(IME_SECTION_GROUP_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${ime_cht_section_group} $(PYTHON_CHT_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
 !else
+	!insertmacro MUI_DESCRIPTION_TEXT ${python_section_group} $(PYTHON_SECTION_GROUP_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${python_cht_section_group} $(PYTHON_CHT_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_chs_section_group} $(PYTHON_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
@@ -1055,8 +1081,11 @@ Section "Uninstall"
 	Push "$INSTDIR\x86\PIMETextService.dll"
 	Call un.moveAsideIfLocked
 	RMDir /REBOOTOK /r "$INSTDIR\x86"
-	RMDir /REBOOTOK /r "$INSTDIR\python"
 	RMDir /REBOOTOK /r "$INSTDIR\cinbase_rs"
+	RMDir /REBOOTOK /r "$INSTDIR\data"
+	; python\: installed by the full build, and by every version up to 1.3.0-beta17
+	; (an upgrade removes it; only a file that could not be deleted then is left)
+	RMDir /REBOOTOK /r "$INSTDIR\python"
 	RMDir /REBOOTOK /r "$INSTDIR\node" ; only present in old installs (node backend removed)
     Delete "$INSTDIR\backends.json"
 
