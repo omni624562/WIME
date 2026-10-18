@@ -69,9 +69,11 @@ TextService::TextService(ImeModule* module):
 	candidateWrapToMaxWidth_(false),
 	candidateMaxWidth_(0),
 	candWindowDpi_(0),
+	candTextScale_(100),
 	cachedSelRect_{},
 	cachedSelRectValid_(false) {
 
+	updateCandidateTextScale();
 	// font for candidate and mesasge windows
 	font_ = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 	LOGFONT lf;
@@ -315,6 +317,8 @@ void TextService::onLangProfileDeactivated(REFIID lang) {
 
 void TextService::createCandidateWindow(Ime::EditSession* session) {
 	if (!candidateWindow_) {
+		// 每次組字開窗時讀一次「文字大小」（一個登錄值），不在每個按鍵讀
+		updateCandidateTextScale();
 		candidateWindow_ = new Ime::CandidateWindow(this, session); // assigning to smart ptr also inrease ref count
 		candidateWindow_->Release();  // decrease ref count caused by new
 
@@ -380,12 +384,22 @@ void TextService::updateCandidates(Ime::EditSession* session) {
 
 	moveCandidateWindow(session);
 
+	notifyCandidateListChanged();
+}
+
+void TextService::notifyCandidateListChanged() {
+	if (!candidateWindow_)
+		return;
 	if (validCandidateListElementId_) {
 		auto elementMgr = Ime::ComPtr<ITfUIElementMgr>::queryFrom(threadMgr());
 		if (elementMgr) {
 			elementMgr->UpdateUIElement(candidateListElementId_);
 		}
 	}
+	// GetUpdatedFlags() 回報的是「上次 UpdateUIElement 之後」改了什麼
+	candidateWindow_->resetUpdatedFlags();
+	// 只在有 UIA 用戶端（Narrator 等）在聽時才送事件，平常只比對幾個短字串
+	candidateWindow_->syncAccessibility();
 }
 
 void TextService::updateCandidatesWindow(Ime::EditSession* session) {
@@ -467,7 +481,8 @@ void TextService::applyCandidateWindowOpacity() {
 	if (!hwnd)
 		return;
 	LONG_PTR exStyle = ::GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-	if (candidateOpacity_ >= 100) {
+	// 高對比佈景主題下不做半透明：背後的內容透出來會降低對比
+	if (candidateOpacity_ >= 100 || candidateWindow_->highContrast()) {
 		// 拿掉 layered 屬性，避免不透明時仍多付一層合成成本
 		if (exStyle & WS_EX_LAYERED)
 			::SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_LAYERED);
@@ -550,12 +565,7 @@ void TextService::moveCandidateWindow(Ime::EditSession* session) {
 }
 
 void TextService::refreshCandidates() {
-	if (validCandidateListElementId_) {
-		auto elementMgr = Ime::ComPtr<ITfUIElementMgr>::queryFrom(threadMgr());
-		if (elementMgr) {
-			elementMgr->UpdateUIElement(candidateListElementId_);
-		}
-	}
+	notifyCandidateListChanged();
 }
 
 // show candidate list window
@@ -627,7 +637,30 @@ static UINT dpiForWindow(HWND hwnd) {
 
 int TextService::candFontHeight() {
 	UINT dpi = candWindowDpi_ ? candWindowDpi_ : dpiForWindow(NULL);
-	return -MulDiv(candFontSize_, dpi, 72);
+	// 點數 × DPI / 72，再乘上「設定 > 協助工具 > 文字大小」的比例
+	return -MulDiv(candFontSize_, MulDiv(dpi, candTextScale_, 100), 72);
+}
+
+// 「設定 > 協助工具 > 文字大小」（100%–225%）。Win32 沒有查詢 API（WinRT 的
+// UISettings.TextScaleFactor 讀的是同一個值），直接讀登錄；讀不到（例如某些
+// AppContainer）就當 100%。
+static int readTextScalePercent() {
+	DWORD value = 0;
+	DWORD size = sizeof(value);
+	if (::RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Accessibility", L"TextScaleFactor",
+			RRF_RT_REG_DWORD, NULL, &value, &size) == ERROR_SUCCESS &&
+		value >= 100 && value <= 225) {
+		return static_cast<int>(value);
+	}
+	return 100;
+}
+
+void TextService::updateCandidateTextScale() {
+	int scale = readTextScalePercent();
+	if (scale == candTextScale_)
+		return;
+	candTextScale_ = scale;
+	updateFont_ = true; // 下次 updateCandidates() 以新比例重建字型
 }
 
 int TextService::scaleForCandDpi(int value) const {

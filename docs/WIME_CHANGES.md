@@ -177,6 +177,20 @@
 - `cincount.json` 改為先序列化、寫暫存檔再 `os.replace()` 原子取代，中途中斷不再留下半寫入的計數檔。
 - 已量測並結案：每鍵的候選分頁 `list(chunks(...))` 實測僅 0.9–3.2µs/次，不值得為 20 個呼叫點引入快取複雜度。
 
+## 2026-10-17 候選窗無障礙：螢幕報讀、高對比、文字大小
+
+- **螢幕報讀軟體讀得到候選字**：候選窗照微軟對輸入法候選清單的無障礙規範（[IME requirements › IME accessibility](https://learn.microsoft.com/windows/apps/develop/input/input-method-editor-requirements#ime-accessibility)）提供 UI Automation：
+  - 整個候選窗是一個清單（AutomationId `IME_Candidate_Window`，名稱是 header 的「大易 字根」或提示訊息），每個候選字是一個清單項目，名稱就是候選字，選字鍵放在「快速鍵」（AccessKey），並帶「第幾個／共幾個」。
+  - 候選窗出現時送 MenuOpened、關閉時送 MenuClosed；游標移動、換頁或換一批候選字時，對被選的候選字送 ElementSelected。Narrator 依此唸出目前的候選字。沒有顯示游標時（大易「游標選字」關閉、新酷音左右／上下鍵不移動游標）唸第一個候選字，也就是第一個選字鍵選到的字。
+  - 同一批候選字重送（大易放開按鍵時會重送以更新 header）不會重唸。
+  - 另外依微軟的規範送出 `EVENT_OBJECT_IME_SHOW`／`HIDE`／`CHANGE`。
+- **TSF 的候選清單（ITfCandidateListUIElement）修正**：候選數不再限制 10 個；沒有游標時 `GetSelection` 照規範回 `S_FALSE`；`GetUpdatedFlags` 改成回報上次 `UpdateUIElement` 之後真正改變的項目；`SetPageIndex` 只接受唯一的一頁。自己畫候選字的程式（UI-less，例如部分遊戲）讀到的內容因此正確。
+- **高對比佈景主題**：Windows 開啟高對比時，候選窗不用 WIME 的配色，改用系統的「視窗背景／視窗文字／醒目提示／醒目提示文字」四色（`COLOR_WINDOW`、`COLOR_WINDOWTEXT`、`COLOR_HIGHLIGHT`、`COLOR_HIGHLIGHTTEXT`），所有選字符、header 標籤與提示訊息樣式都只用這四色，不做混色；也不套用半透明。切換高對比時開著的候選窗會跟著換，關掉高對比後回到原本的配色。
+- **文字大小**：候選字型跟著「設定 › 協助工具 › 文字大小」（100%～225%）放大；每次開候選窗時讀一次。螢幕 DPI 縮放（含每台螢幕不同 DPI）原本就有。
+- 效能：沒有螢幕報讀軟體時，不會載入 `UIAutomationCore.dll`、不建立 UI Automation 物件、不送事件；每次更新候選窗只多比對幾個短字串。UI Automation 物件在報讀軟體第一次向候選窗要資料（`WM_GETOBJECT`）時才建立，事件只在 `UiaClientsAreListening()` 時送出。`PIMETextService.dll` 沒有新增匯入的 DLL。
+- 已知限制：NVDA 目前沒有讀取第三方 TSF 輸入法候選窗的通用機制（它的候選字報讀只支援 IMM32 輸入法和微軟自己的輸入法介面），所以 NVDA 不會自動唸出候選字；可以用 NVDA 的物件導覽讀候選清單。Narrator 會自動唸。
+- 測試：libIME2 新增 `CandidateAccessibility_test`（清單結構、名稱、選取、換頁後舊項目失效、各種情況送出的事件、沒有用戶端時不送事件，以及透過真正的 UI Automation 用戶端端對端讀取）；`CandidateWindow_test` 新增高對比的離線繪製測試（13 種選字符 × 6 種 header 標籤、3 種訊息樣式都只出現系統四色）。
+
 ## 2026-10-16 新酷音引擎換成 libchewing 0.13.1（Rust 版）
 
 - 新酷音內附的 `chewing.dll` 從 2021 年的 C 版 libchewing 換成上游的 Rust 版 libchewing 0.13.1（`libchewing` 子模組改指向 Codeberg 的 v0.13.1；`tools\build_libchewing.ps1` 從子模組重建 DLL 與詞庫，32 位元、靜態連結 C 執行階段）。新酷音的設定、按鍵處理與設定工具仍是 Python。
