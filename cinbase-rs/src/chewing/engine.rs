@@ -350,6 +350,19 @@ impl ChewingContext {
         }
     }
 
+    /// chewing_userphrase_add(ctx, bytes, bytes) as ctypes calls it: the strings
+    /// end at their first NUL. The C API's return value (<= 0: failed).
+    pub fn userphrase_add_bytes(&mut self, phrase: &[u8], bopomofo: &[u8]) -> c_int {
+        let (p, b) = (c_string_until_nul(phrase), c_string_until_nul(bopomofo));
+        unsafe { chewing_userphrase_add(self.p(), p.as_ptr(), b.as_ptr()) }
+    }
+
+    /// chewing_userphrase_remove, like userphrase_add_bytes
+    pub fn userphrase_remove_bytes(&mut self, phrase: &[u8], bopomofo: &[u8]) -> c_int {
+        let (p, b) = (c_string_until_nul(phrase), c_string_until_nul(bopomofo));
+        unsafe { chewing_userphrase_remove(self.p(), p.as_ptr(), b.as_ptr()) }
+    }
+
     pub fn userphrase_remove(&mut self, phrase: &str, bopomofo: &str) {
         if let (Ok(p), Ok(b)) = (CString::new(phrase), CString::new(bopomofo)) {
             unsafe { chewing_userphrase_remove(self.p(), p.as_ptr(), b.as_ptr()) };
@@ -365,6 +378,12 @@ impl Drop for ChewingContext {
             self.ctx = std::ptr::null_mut();
         }
     }
+}
+
+/// a C string of bytes up to the first NUL (what C sees of a Python bytes argument)
+fn c_string_until_nul(bytes: &[u8]) -> CString {
+    let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+    CString::new(&bytes[..end]).unwrap_or_default()
 }
 
 /// libchewing.version()

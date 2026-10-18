@@ -655,6 +655,11 @@ process.stdout.write(JSON.stringify(input.runs.map(run => {
     def test_the_text_tabs_are_the_ones_the_server_saves_and_the_page_shows(self):
         with open(os.path.join(PYTHON_DIR, "cinbase", "configtool.py"), encoding="utf-8-sig") as f:
             posted = set(re.findall(r'data\.get\("(\w+)", None\)', f.read()))
+        # the Rust port of the settings tool (wime-config.exe) saves the same ones
+        with open(os.path.join(PYTHON_DIR, os.pardir, "cinbase-rs", "src", "configtool", "cinbase_tool.rs"),
+                  encoding="utf-8") as f:
+            rust_posted = set(re.findall(r'\("(\w+)", "\w+\.dat"\)', f.read()))
+        self.assertEqual(rust_posted, posted - {"config"})
         shells = sorted(glob.glob(os.path.join(PYTHON_DIR, "input_methods", "*", "config", "config.html")))
         for name, key, _, _ in self.TEXT_TABS:
             with self.subTest(textarea=name):

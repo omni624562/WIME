@@ -268,3 +268,73 @@ pub fn prepare_user_dictionary(config_dir: &Path, syspath: &str) -> Result<PathB
     let _ = fs::remove_dir_all(&work_dir);
     result.map(|_| dat)
 }
+
+/// UD:62 touchChangeStamp: tell the IME the user dictionary was changed by the
+/// settings tool (libchewing 0.13 keeps it in memory)
+pub fn touch_change_stamp(config_dir: &Path) {
+    let path = config_dir.join(CHANGE_STAMP_NAME);
+    if let Ok(f) = fs::OpenOptions::new().append(true).create(true).open(&path) {
+        let _ = f.set_modified(std::time::SystemTime::now());
+    }
+}
+
+/// os.replace(src, dst): MoveFileExW(MOVEFILE_REPLACE_EXISTING)
+pub fn replace_file(src: &Path, dst: &Path) -> std::io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::{MoveFileExW, MOVEFILE_REPLACE_EXISTING};
+    let w = |p: &Path| -> Vec<u16> {
+        use std::os::windows::ffi::OsStrExt;
+        p.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
+    };
+    let (s, d) = (w(src), w(dst));
+    if unsafe { MoveFileExW(s.as_ptr(), d.as_ptr(), MOVEFILE_REPLACE_EXISTING) } == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+pub const SQLITE_MAGIC: &[u8] = b"SQLite format 3\x00";
+
+/// UD:230 _looksLikeTrieDictionary: DER, SEQUENCE { UTF8String "CHEW", ... }
+pub fn looks_like_trie_dictionary(data: &[u8]) -> bool {
+    if data.len() < 8 || data[0] != 0x30 {
+        return false;
+    }
+    let length_byte = data[1];
+    let offset = if length_byte < 0x80 { 2 } else { 2 + (length_byte & 0x7F) as usize };
+    data.get(offset..offset + 6) == Some(&b"\x0c\x04CHEW"[..])
+}
+
+/// UD:239 importUserDictionary: replace the user dictionary with an uploaded
+/// file (a chewing.dat, or an old chewing.sqlite3, converted). The old
+/// chewing.dat is copied to chewing.dat.bak first. Err: not a usable
+/// dictionary -- the current one is left alone. Ok: the number of phrases.
+pub fn import_user_dictionary(data: &[u8], config_dir: &Path, syspath: &str) -> Result<usize, DictError> {
+    fs::create_dir_all(config_dir).map_err(|e| e.to_string())?;
+    let work_dir = make_work_dir(config_dir, "import_").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<usize, DictError> {
+        let converted = if data.starts_with(SQLITE_MAGIC) {
+            let upload = work_dir.join("upload.sqlite3");
+            fs::write(&upload, data).map_err(|e| e.to_string())?;
+            let convert_dir = work_dir.join("convert");
+            fs::create_dir(&convert_dir).map_err(|e| e.to_string())?;
+            convert_sqlite(&upload, &convert_dir, syspath)?
+        } else if looks_like_trie_dictionary(data) {
+            let converted = work_dir.join(USER_DICT_NAME);
+            fs::write(&converted, data).map_err(|e| e.to_string())?;
+            converted
+        } else {
+            return Err("not a libchewing user phrase dictionary".into());
+        };
+        let count = count_phrases(&converted, syspath)?; // only what libchewing can read
+        let dat = user_dict_path(config_dir);
+        if dat.exists() {
+            let _ = crate::config::copy2(&dat, &with_suffix(&dat, ".bak"));
+        }
+        // the IME may read the file any time: replace it whole, never half-written
+        replace_file(&converted, &dat).map_err(|e| e.to_string())?;
+        touch_change_stamp(config_dir);
+        Ok(count)
+    })();
+    let _ = fs::remove_dir_all(&work_dir);
+    result
+}

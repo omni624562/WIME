@@ -518,6 +518,7 @@ dependencies = [
  "chewing_capi",
  "indexmap",
  "rusqlite",
+ "serde",
  "serde_json",
  "windows-sys",
 ]
