@@ -158,11 +158,21 @@ class Backend:
         self._tmp.cleanup()
 
 
+# The program the backends start for the settings menu items: the Python backends
+# run python.exe "<configtool.py>" ..., the Rust one wime-config.exe beside itself.
+SETTINGS_TOOL_PROGRAMS = {"python.exe", "pythonw.exe", "wime-config.exe"}
+SETTINGS_TOOL = "<settings tool>"
+
+
 def normalize(value):
     """Make a reply comparable across implementations and machines: icon paths
-    become their file names (each backend installs its icons elsewhere)."""
+    become their file names (each backend installs its icons elsewhere), and a
+    launch of the settings tool names it SETTINGS_TOOL."""
     if isinstance(value, dict):
         return {k: normalize(v) for k, v in value.items()}
+    if (isinstance(value, list) and len(value) == 2 and value[0] == "ShellExecuteW"
+            and isinstance(value[1], str) and value[1].lower() in SETTINGS_TOOL_PROGRAMS):
+        return [value[0], SETTINGS_TOOL]
     if isinstance(value, list):
         return [normalize(v) for v in value]
     if isinstance(value, str) and value.lower().endswith(".ico") and ("\\" in value or "/" in value):

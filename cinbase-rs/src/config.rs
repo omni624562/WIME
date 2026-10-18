@@ -245,8 +245,8 @@ pub struct ConfigPaths {
     pub appdata: PathBuf,
     /// os.path.expanduser("~")
     pub home: PathBuf,
-    /// the PIME `python` directory (shipped configs, cinbase data)
-    pub python_dir: PathBuf,
+    /// the data root (paths.rs: `<PIME>\data`, or the repo's `python` folder)
+    pub data_root: PathBuf,
 }
 
 impl ConfigPaths {
@@ -261,7 +261,7 @@ impl ConfigPaths {
                 None => PathBuf::from("~"),
             },
         };
-        ConfigPaths { appdata, home, python_dir: crate::paths::python_dir().clone() }
+        ConfigPaths { appdata, home, data_root: crate::paths::data_root().clone() }
     }
 }
 
@@ -672,19 +672,19 @@ impl CinBaseConfig {
     }
 
     pub fn get_data_dir(&self) -> PathBuf {
-        self.paths.python_dir.join("cinbase").join("data")
+        crate::paths::data_dir_in(&self.paths.data_root)
     }
 
     pub fn get_cin_dir(&self) -> PathBuf {
-        self.paths.python_dir.join("cinbase").join("cin")
+        crate::paths::cin_dir_in(&self.paths.data_root)
     }
 
     pub fn get_json_dir(&self) -> PathBuf {
-        self.paths.python_dir.join("cinbase").join("json")
+        crate::paths::json_dir_in(&self.paths.data_root)
     }
 
     pub fn get_default_config_dir(&self) -> PathBuf {
-        self.paths.python_dir.join("input_methods").join(&self.ime_dir_name).join("config")
+        crate::paths::default_config_dir_in(&self.paths.data_root, &self.ime_dir_name)
     }
 
     /// findFile(dirs, name): the first dirs[i]\name that exists
