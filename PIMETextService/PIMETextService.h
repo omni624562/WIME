@@ -267,6 +267,9 @@ private:
 	int candFontHeight();
 	int scaleForCandDpi(int value) const;
 	void updateCandidateWindowDpi();
+	void updateCandidateTextScale();
+	// 候選窗改變後通知 TSF UIElement（UI-less 程式）與 UI Automation（螢幕報讀軟體）
+	void notifyCandidateListChanged();
 
 	void closeClient();
 
@@ -315,6 +318,7 @@ private:
 	bool candidateWrapToMaxWidth_;
 	int candidateMaxWidth_;
 	int candWindowDpi_; // DPI of the monitor hosting the candidate window (96 = 100%)
+	int candTextScale_; // Windows「文字大小」設定（100 = 100%），候選字型跟著放大
 
 	// Per-updateStatus-pass cache: avoids repeated cross-process GetTextExt calls.
 	RECT cachedSelRect_;
