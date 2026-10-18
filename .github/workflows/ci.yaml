@@ -52,7 +52,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo build --release
 
+      # wime-config.exe（Rust 版設定工具）由上面的 cinbase-rs 步驟建出；設定工具的
+      # 端對端與差異測試同時跑 Python 版與 Rust 版，執行檔缺了就算失敗
       - name: Run Python backend tests
+        env:
+          WIME_REQUIRE_RUST_CONFIG: "1"
         run: |
           .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v
 
