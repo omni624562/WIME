@@ -305,3 +305,37 @@ async fn test_fragmented_messages() -> TestResult {
     assert_eq!(reply, "REPLY: Next Message");
     Ok(())
 }
+
+/// A backend reply longer than the line limit (the backend echoes what the
+/// request carried, e.g. its seqNum) must cost only that reply: the launcher
+/// used to stop reading the backend's output altogether, so every client of
+/// that backend (大易, 酷倉 and 新酷音 share one) stopped getting replies.
+#[tokio::test]
+async fn test_oversized_reply_does_not_stop_other_clients() -> TestResult {
+    let _ = tracing_subscriber::fmt::try_init();
+
+    let pipe_name = format!(r#"\\.\pipe\pime_long_{}"#, uuid::Uuid::new_v4());
+    let (_manager, _pime_root) = setup_test_environment(&pipe_name).await;
+    let handshake = format!(r#"{{"method": "init", "id": "{}"}}"#, GUID_TEST_ECHO);
+
+    let mut clients = Vec::new();
+    for _ in 0..2 {
+        let client = connect_with_retry(&pipe_name).await;
+        let (reader, mut writer) = tokio::io::split(client);
+        let mut lines = BufReader::new(reader).lines();
+        send_msg(&mut writer, &handshake).await?;
+        read_line(&mut lines).await?;
+        clients.push((lines, writer));
+    }
+    let (mut lines_b, mut writer_b) = clients.pop().unwrap();
+    let (_lines_a, mut writer_a) = clients.pop().unwrap();
+
+    // within the client line limit; the echoed reply is not
+    let long = "x".repeat(pimelauncher::protocol::MAX_MESSAGE_LINE_LENGTH - 16);
+    send_msg(&mut writer_a, &long).await?;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    send_msg(&mut writer_b, "still there?").await?;
+    assert_eq!(read_line(&mut lines_b).await?, "REPLY: still there?");
+    Ok(())
+}
