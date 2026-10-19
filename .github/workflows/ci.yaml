@@ -24,10 +24,11 @@ jobs:
         with:
           submodules: 'true'
 
+      # aarch64：build.bat 另外編 ARM64 原生版的啟動器、後端與設定工具給安裝檔
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: i686-pc-windows-msvc
+          targets: i686-pc-windows-msvc, aarch64-pc-windows-msvc
 
       - name: Run Rust tests (PIMELauncher)
         run: |
@@ -68,7 +69,8 @@ jobs:
           nsis-version: 3.08
 
       # Builds x86 (everything, incl. PIMELauncher and the C++ tests), plus the
-      # x64 and ARM64 PIMETextService.dll. Stops at the first failing step.
+      # x64 and ARM64 PIMETextService.dll and the ARM64 PIMELauncher.exe,
+      # wime-cinbase.exe and wime-config.exe. Stops at the first failing step.
       # (No Rust_COMPILER override: `${{ env.CARGO_HOME }}` only sees workflow-level
       # env, so it expanded to "\bin\rustc.exe". Corrosion finds rustc on PATH.)
       # On failure, the error lines and log tail are also emitted as annotations so
@@ -122,3 +124,47 @@ jobs:
         with:
           name: Installer
           path: installer/*.exe
+
+  # ARM64 原生版（安裝檔在 ARM64 Windows 裝的那一份）在真的 ARM64 Windows 上測：Rust
+  # 單元測試，以及整套 Python 測試改拿 ARM64 版的後端與設定工具，和 Python 參考實作
+  # 逐位元組比對（golden、隨機情境、設定工具）。內嵌的 32 位元 Python 在這裡靠模擬執行。
+  arm64:
+    runs-on: windows-11-arm
+    env:
+      WIME_CINBASE_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-cinbase.exe
+      WIME_CONFIG_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-config.exe
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+
+      - name: Run Rust tests (PIMELauncher, ARM64)
+        run: |
+          cd PIMELauncher
+          cargo test --release --target aarch64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Generate CinBase tables
+        run: |
+          .\python\python3\python.exe python\cinbase\tools\cintojson.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build and test cinbase-rs (ARM64)
+        run: |
+          cd cinbase-rs
+          cargo test --release --target aarch64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --release --target aarch64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Python tests against the ARM64 backend and settings tool
+        env:
+          WIME_REQUIRE_RUST_CONFIG: "1"
+        run: |
+          .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

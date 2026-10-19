@@ -8,7 +8,8 @@ Paths are relative to $INSTDIR, with backslashes, e.g. "cinbase_rs\\wime-config.
 Files under $PLUGINSDIR (the installer's own temporary copies) are left out.
 
 The build needs the outputs of build.bat (the DLLs, PIMELauncher.exe,
-cinbase-rs's wime-cinbase.exe and wime-config.exe, python/cinbase/json/*.json).
+cinbase-rs's wime-cinbase.exe and wime-config.exe, both the 32-bit x86 and the
+ARM64 builds of those three, python/cinbase/json/*.json).
 missing_outputs() lists the ones that are not there.
 
 Run as a script to print the installer's size and file list:
@@ -27,6 +28,13 @@ INSTALLER_DIR = os.path.join(ROOT, "installer")
 SCRIPT = os.path.join(INSTALLER_DIR, "installer.nsi")
 DEFINES = ("/DNO_SIMP_CHINESE", "/DONLY_DAYI_CHEWING_CHECJ")
 RUST_TARGET = os.path.join(ROOT, "cinbase-rs", "target", "i686-pc-windows-msvc", "release")
+# the native ARM64 builds the installer puts in the same places on ARM64 Windows
+# (source_of() and stage() give the 32-bit x86 ones, which run on any test machine)
+ARM64_PROGRAMS = {
+    "PIMELauncher.exe": os.path.join(ROOT, "PIMELauncher", "target", "aarch64-pc-windows-msvc", "release", "PIMELauncher.exe"),
+    r"cinbase_rs\wime-cinbase.exe": os.path.join(ROOT, "cinbase-rs", "target", "aarch64-pc-windows-msvc", "release", "wime-cinbase.exe"),
+    r"cinbase_rs\wime-config.exe": os.path.join(ROOT, "cinbase-rs", "target", "aarch64-pc-windows-msvc", "release", "wime-config.exe"),
+}
 
 _PROGRAM_FILES = (os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
                   os.environ.get("ProgramFiles", r"C:\Program Files"))
@@ -41,6 +49,9 @@ BUILD_OUTPUTS = (
     r"build\PIMELauncher\PIMELauncher.exe",
     r"cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe",
     r"cinbase-rs\target\i686-pc-windows-msvc\release\wime-config.exe",
+    r"PIMELauncher\target\aarch64-pc-windows-msvc\release\PIMELauncher.exe",
+    r"cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-cinbase.exe",
+    r"cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-config.exe",
     r"python\cinbase\json\dayi3.json",
 )
 

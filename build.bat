@@ -25,6 +25,16 @@ cmake --build build64 --config Release --target PIMETextService || exit /b 1
 cmake . -Bbuild_arm64 -A ARM64 || exit /b 1
 cmake --build build_arm64 --config Release --target PIMETextService || exit /b 1
 
+REM Native ARM64 builds of the launcher, the backend and the settings tool (the
+REM installer uses them on ARM64 Windows instead of the 32-bit x86 ones, which would
+REM run emulated): <crate>\target\aarch64-pc-windows-msvc\release\*.exe
+pushd PIMELauncher
+cargo build --release --target aarch64-pc-windows-msvc || (popd & exit /b 1)
+popd
+pushd cinbase-rs
+cargo build --release --target aarch64-pc-windows-msvc || (popd & exit /b 1)
+popd
+
 REM WIME only maintains Dayi / Cangjie / Chewing (Rust, cinbase-rs; the python
 REM sources stay as the tests' reference). The node (McBopomofo, emojime) and
 REM go-backend sources were removed; see git history.

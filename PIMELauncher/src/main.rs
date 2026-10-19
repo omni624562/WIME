@@ -221,13 +221,11 @@ fn create_single_instance_mutex(
     unsafe {
         match CreateMutexW(None, false, PCWSTR(name_utf16.as_ptr())) {
             Ok(handle) => {
-                if let Err(e) = GetLastError() {
-                    if e.code() == windows::core::HRESULT::from_win32(ERROR_ALREADY_EXISTS.0) {
-                        let _ = CloseHandle(handle);
-                        return Err(std::io::Error::from_raw_os_error(
-                            ERROR_ALREADY_EXISTS.0 as i32,
-                        ));
-                    }
+                if GetLastError() == ERROR_ALREADY_EXISTS {
+                    let _ = CloseHandle(handle);
+                    return Err(std::io::Error::from_raw_os_error(
+                        ERROR_ALREADY_EXISTS.0 as i32,
+                    ));
                 }
                 Ok(handle)
             }

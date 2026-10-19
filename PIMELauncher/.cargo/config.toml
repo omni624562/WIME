@@ -8,3 +8,7 @@ target = "i686-pc-windows-msvc"
 # not help this 32-bit executable.
 [target.i686-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# ARM64 Windows gets a native build (build.bat: cargo build --target aarch64-pc-windows-msvc)
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

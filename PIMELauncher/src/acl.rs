@@ -40,7 +40,7 @@ impl Drop for PipeSecurityAttributes {
     fn drop(&mut self) {
         if !self.sd.0.is_null() {
             unsafe {
-                let _ = LocalFree(HLOCAL(self.sd.0));
+                let _ = LocalFree(Some(HLOCAL(self.sd.0)));
             }
         }
     }
@@ -82,7 +82,7 @@ impl PipeSecurityAttributes {
             ConvertSidToStringSidW(token_user.User.Sid, &mut sid_str_ptr).ok()?;
 
             let sid = sid_str_ptr.to_string().ok()?;
-            let _ = LocalFree(HLOCAL(sid_str_ptr.0 as _));
+            let _ = LocalFree(Some(HLOCAL(sid_str_ptr.0 as _)));
             sid
         };
 
