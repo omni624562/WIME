@@ -1,0 +1,10 @@
+POST /user_phrases HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+Content-Type: application/json
+Content-Length: 128
+
+{"add": [{"phrase": "測試", "bopomofo": "ㄘㄜˋ ㄕˋ"}], "remove": [{"phrase": "你好", "bopomofo": "ㄋㄧˇ ㄏㄠˇ"}]}GET /user_phrases HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+

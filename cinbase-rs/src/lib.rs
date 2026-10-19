@@ -8,6 +8,7 @@
 
 #![allow(dead_code)] // the port is filled in module by module
 
+pub mod backend;
 pub mod candidate_theme;
 pub mod chewing;
 pub mod cin;
@@ -16,6 +17,8 @@ pub mod config;
 pub mod configtool;
 pub mod data;
 pub mod env;
+#[doc(hidden)]
+pub mod fuzz;
 pub mod hcin;
 pub mod keycodes;
 pub mod pager;

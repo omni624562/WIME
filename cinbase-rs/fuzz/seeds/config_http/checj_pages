@@ -1,0 +1,20 @@
+GET /config.html HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+
+GET /config.js HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+
+GET /css/../../../version.txt HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+
+GET /data/emoji.json HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+
+GET //config.htm HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+

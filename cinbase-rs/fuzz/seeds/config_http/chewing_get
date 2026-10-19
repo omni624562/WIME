@@ -1,0 +1,16 @@
+GET /config HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+
+GET /user_phrases HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+
+GET /user_phrase_file HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+
+GET /version.txt HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+

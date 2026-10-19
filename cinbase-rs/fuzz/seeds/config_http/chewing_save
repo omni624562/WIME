@@ -1,0 +1,7 @@
+POST /config HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+Content-Type: application/json
+Content-Length: 98
+
+{"config": {"candPerPage": 9, "keyboardLayout": 0}, "symbols": "測試=★☆\n", "swkb": "a b\n"}

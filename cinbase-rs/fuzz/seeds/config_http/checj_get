@@ -1,0 +1,8 @@
+GET /config HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+
+GET /keep_alive HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: cinbase_config_token=0123456789abcdef0123456789abcdef
+

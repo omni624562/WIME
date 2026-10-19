@@ -1,0 +1,14 @@
+POST /config HTTP/1.1
+Host: localhost
+Transfer-Encoding: chunked
+
+0
+
+POST /config HTTP/1.1
+Host: 127.0.0.1:12345
+Cookie: chewing_config_token=0123456789abcdef0123456789abcdef
+Content-Type: application/json
+Content-Length: 2
+Expect: 100-continue
+
+{}

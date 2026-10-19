@@ -20,7 +20,7 @@
 
 use super::pyjson;
 use serde_json::Value;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -663,7 +663,7 @@ fn status_line(code: u16, reason: Option<&str>) -> String {
 }
 
 /// BaseHTTPRequestHandler.send_error (protocol errors before dispatch)
-fn send_error(stream: &mut TcpStream, code: u16, message: Option<&str>, http09: bool) {
+fn send_error(stream: &mut impl Write, code: u16, message: Option<&str>, http09: bool) {
     let (short, long) = http_reason(code);
     let message = message.unwrap_or(short);
     let escape = |s: &str| s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
@@ -737,6 +737,12 @@ impl App {
             timeout: idle_timeout(),
             launch_file: Mutex::new(None),
         }
+    }
+
+    /// An app with a known access token: the fuzz targets (src/fuzz.rs) log in with it.
+    #[doc(hidden)]
+    pub fn with_token(tool: Box<dyn Tool>, token: &str) -> App {
+        App { access_token: token.to_string(), ..App::new(tool) }
     }
 
     fn reset_timeout(&self, start: bool) {
@@ -846,7 +852,7 @@ impl App {
         }
     }
 
-    fn respond(stream: &mut TcpStream, response: &Response, http09: bool) -> std::io::Result<()> {
+    fn respond(stream: &mut impl Write, response: &Response, http09: bool) -> std::io::Result<()> {
         let mut out = Vec::new();
         if !http09 {
             out.extend_from_slice(status_line(response.status, response.reason.as_deref()).as_bytes());
@@ -882,7 +888,7 @@ impl App {
     }
 
     /// handle_one_request: Ok(true) to keep the connection open
-    fn handle_one_request(&self, reader: &mut BufReader<TcpStream>, stream: &mut TcpStream) -> std::io::Result<bool> {
+    pub fn handle_one_request(&self, reader: &mut impl BufRead, stream: &mut impl Write) -> std::io::Result<bool> {
         let raw = read_line(reader, MAX_LINE + 1)?;
         if raw.is_empty() {
             return Ok(false);
@@ -1097,7 +1103,7 @@ fn py_repr(s: &str) -> String {
 }
 
 /// rfile.readline(limit): up to and including "\n", at most `limit` bytes
-fn read_line(reader: &mut BufReader<TcpStream>, limit: usize) -> std::io::Result<Vec<u8>> {
+fn read_line(reader: &mut impl BufRead, limit: usize) -> std::io::Result<Vec<u8>> {
     let mut line = Vec::new();
     loop {
         let available = match reader.fill_buf() {
