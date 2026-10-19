@@ -617,14 +617,23 @@ Section $(SECTION_MAIN) SecMain
     File "..\backends.json"
 !endif
 
-	; Install the launcher responsible to launch the backends
-	File "..\build\PIMELauncher\PIMELauncher.exe"
-
-	; 大易、酷倉、新酷音的後端與設定工具（Rust，不需要 Python）。backends.json 一律指向
-	; cinbase_rs\wime-cinbase.exe，所以它和 backends.json 一起裝
-	SetOutPath "$INSTDIR\cinbase_rs"
-	File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
-	File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-config.exe"
+	; The launcher responsible to launch the backends, and 大易、酷倉、新酷音的後端與設定工具
+	; （Rust，不需要 Python）。backends.json 一律指向 cinbase_rs\wime-cinbase.exe，所以它和
+	; backends.json 一起裝。ARM64 Windows 裝原生 ARM64 版（32 位元 x86 版在那裡要靠模擬執行），
+	; 其他 Windows 裝 32 位元版；兩者裝在同一個位置、檔名相同，升級與移除不必分開處理。
+	${If} ${IsNativeARM64}
+		SetOutPath "$INSTDIR"
+		File "..\PIMELauncher\target\aarch64-pc-windows-msvc\release\PIMELauncher.exe"
+		SetOutPath "$INSTDIR\cinbase_rs"
+		File "..\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-cinbase.exe"
+		File "..\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-config.exe"
+	${Else}
+		SetOutPath "$INSTDIR"
+		File "..\build\PIMELauncher\PIMELauncher.exe"
+		SetOutPath "$INSTDIR\cinbase_rs"
+		File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-cinbase.exe"
+		File "..\cinbase-rs\target\i686-pc-windows-msvc\release\wime-config.exe"
+	${EndIf}
 SectionEnd
 
 ; 大易、酷倉、新酷音的檔案（安裝後的配置見 cinbase-rs/src/paths.rs）：

@@ -1,8 +1,12 @@
 [build]
-# Same as PIMELauncher: a 32-bit executable runs on every Windows the installer
-# supports (x64 and ARM64 included), next to the 32-bit launcher.
+# Same as PIMELauncher: the 32-bit build runs on x86 and x64 Windows; ARM64 Windows
+# gets the native aarch64 build below (the installer picks one).
 target = "i686-pc-windows-msvc"
 
 # Link the C runtime statically: no Visual C++ redistributable needed.
 [target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# ARM64 Windows gets a native build (build.bat: cargo build --target aarch64-pc-windows-msvc)
+[target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]

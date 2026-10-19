@@ -57,6 +57,46 @@ PYTHON_NAME = re.compile(r"(^|\\)(python[^\\]*\.(exe|dll|zip|cat)|pythonw\.exe|v
                          r"chewing\.dll|[^\\]*\.(py|pyc|pyd|pyo|pth)|__pycache__)$", re.I)
 
 
+IMAGE_FILE_MACHINE_I386 = 0x014C
+IMAGE_FILE_MACHINE_ARM64 = 0xAA64
+# the DLLs a program linked with the dynamic C runtime imports
+CRT_DLL = re.compile(r"(vcruntime\d+|msvcp\d+|ucrtbase|api-ms-win-crt-.*)\.dll$", re.I)
+
+
+def pe_machine_and_imports(path):
+    """(Machine, [imported DLL names]) of a PE file."""
+    import struct
+    with open(path, "rb") as f:
+        data = f.read()
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    assert data[pe:pe + 4] == b"PE\0\0", path
+    machine, sections = struct.unpack_from("<HH", data, pe + 4)
+    optional_size = struct.unpack_from("<H", data, pe + 20)[0]
+    opt = pe + 24
+    pe32plus = struct.unpack_from("<H", data, opt)[0] == 0x20B
+    directories = opt + (112 if pe32plus else 96)
+    import_rva = struct.unpack_from("<I", data, directories + 8)[0]   # IMAGE_DIRECTORY_ENTRY_IMPORT
+
+    def offset(rva):
+        for i in range(sections):
+            vsize, vaddr, rawsize, rawptr = struct.unpack_from("<IIII", data, opt + optional_size + 40 * i + 8)
+            if vaddr <= rva < vaddr + max(vsize, rawsize):
+                return rawptr + rva - vaddr
+        raise AssertionError("RVA %#x outside the sections of %s" % (rva, path))
+
+    names = []
+    if import_rva:
+        at = offset(import_rva)
+        while True:
+            name_rva = struct.unpack_from("<I", data, at + 12)[0]   # IMAGE_IMPORT_DESCRIPTOR.Name
+            if not name_rva:
+                break
+            start = offset(name_rva)
+            names.append(data[start:data.index(b"\0", start)].decode("ascii"))
+            at += 20
+    return machine, names
+
+
 def limited_lines():
     """installer.nsi's lines that the limited build compiles: comment lines dropped,
     continuation lines joined, !ifdef/!ifndef/!else/!endif resolved for
@@ -116,6 +156,28 @@ class ScriptTests(unittest.TestCase):
         text = "\n".join(self.lines)
         for word in ("python314.zip", "compileall", "INST_PYTHON", "INST_CINBASE", "ensureUCRT", "PSF.txt"):
             self.assertNotIn(word, text)
+
+    def test_arm64_windows_gets_the_native_programs(self):
+        # ${If} ${IsNativeARM64} <ARM64 builds> ${Else} <32-bit x86 builds> ${EndIf}:
+        # the same three programs, to the same places
+        start = next(i for i, line in enumerate(self.lines)
+                     if line == "${If} ${IsNativeARM64}" and "aarch64" in " ".join(self.lines[i + 1:i + 3]))
+        end = self.lines.index("${EndIf}", start)
+        block = self.lines[start + 1:end]
+        middle = block.index("${Else}")
+
+        def files(lines):
+            return [(line, ntpath.basename(line.split('"')[1])) for line in lines if line.startswith("File ")]
+
+        arm64, x86 = files(block[:middle]), files(block[middle + 1:])
+        self.assertEqual([name for _, name in arm64], ["PIMELauncher.exe", "wime-cinbase.exe", "wime-config.exe"])
+        self.assertEqual([name for _, name in arm64], [name for _, name in x86])
+        for line, _ in arm64:
+            self.assertIn("\\target\\aarch64-pc-windows-msvc\\release\\", line)
+        for line, _ in x86:
+            self.assertNotIn("aarch64", line)
+        self.assertEqual([line for line in block[:middle] if not line.startswith("File ")],
+                         [line for line in block[middle + 1:] if not line.startswith("File ")])
 
     def test_settings_entry_points_are_wime_config(self):
         links = [line for line in self.lines if line.startswith("CreateShortCut")]
@@ -184,6 +246,25 @@ class BuiltInstallerTests(unittest.TestCase):
             self.assertInstalled(r"data\input_methods\chewing\%s" % name)
         for name in ("tsi.dat", "word.dat", "symbols.dat", "swkb.dat"):
             self.assertInstalled(r"data\libchewing\data\%s" % name)
+
+    def test_both_builds_of_the_programs_are_inside(self):
+        # the 32-bit x86 and the ARM64 build (the installer picks one at run time)
+        for path in installer_layout.ARM64_PROGRAMS:
+            self.assertEqual(self.layout.files.count(path), 2, path)
+
+    def test_programs_are_native_and_need_no_vc_runtime(self):
+        # PE machine type, and no Visual C++ runtime DLL among the imports (the C
+        # runtime is linked statically: see the crates' .cargo/config.toml)
+        programs = [(dest, self.layout.source_of(dest), IMAGE_FILE_MACHINE_I386)
+                    for dest in installer_layout.ARM64_PROGRAMS]
+        programs += [(dest, path, IMAGE_FILE_MACHINE_ARM64)
+                     for dest, path in installer_layout.ARM64_PROGRAMS.items()]
+        for dest, path, machine in programs:
+            with self.subTest(program=path):
+                found, imports = pe_machine_and_imports(path)
+                self.assertEqual(found, machine)
+                self.assertTrue(imports)
+                self.assertEqual([name for name in imports if CRT_DLL.match(name)], [])
 
     def test_data_mirrors_the_repo_python_folder(self):
         # the data root has the repo python folder's sub-layout (paths.rs): each
