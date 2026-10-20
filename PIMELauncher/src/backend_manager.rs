@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, error, info, warn};
 
 use crate::backend_registry::{BackendConfig, BackendRegistry};
-use crate::protocol;
+use crate::protocol::{self, LossyLinesCodec};
 use futures::{SinkExt, StreamExt};
 use tokio_util::codec::{FramedRead, FramedWrite, LinesCodec};
 
@@ -194,10 +194,13 @@ impl BackendManager {
 
     /// Background task that reads backend stderr and logs it.
     async fn log_backend_stderr(stderr: tokio::process::ChildStderr, backend_name: String) {
-        let mut stderr_reader = FramedRead::new(stderr, LinesCodec::new_with_max_length(1048576));
+        // lossy: a long line must not end the reading (the backend would block
+        // on a full stderr pipe); see protocol::LossyLinesCodec
+        let mut stderr_reader = FramedRead::new(stderr, LossyLinesCodec::new_with_max_length(1048576));
         while let Some(result) = stderr_reader.next().await {
             match result {
-                Ok(line) => error!("[{} stderr] {}", backend_name, line),
+                Ok(Some(line)) => error!("[{} stderr] {}", backend_name, line),
+                Ok(None) => error!("[{} stderr] (a line longer than 1 MB, dropped)", backend_name),
                 Err(e) => {
                     error!("[{} stderr] Error reading stream: {}", backend_name, e);
                     break;
@@ -252,11 +255,19 @@ impl BackendManager {
     ) {
         // TODO: Need to detect if the backend process hangs and is not responsive.
         // When a backend process hangs, reading from its stdout may blocks forever.
-        let mut stdout_reader = FramedRead::new(stdout, LinesCodec::new_with_max_length(1048576));
+        let mut stdout_reader = FramedRead::new(stdout, LossyLinesCodec::new_with_max_length(1048576));
         while let Some(result) = stdout_reader.next().await {
             last_output_time.store(Self::current_ms(), Ordering::SeqCst);
             let line = match result {
-                Ok(l) => l,
+                Ok(Some(l)) => l,
+                // One reply too long (the backend echoes what a request carried, so
+                // any client can cause one): drop it and go on. Reading stopped here
+                // before, cutting every client of this backend off for good -- the
+                // backend kept running and its replies went nowhere.
+                Ok(None) => {
+                    error!("Dropped a backend reply longer than 1 MB");
+                    continue;
+                }
                 Err(e) => {
                     error!("Error reading from backend stdout: {}", e);
                     break;

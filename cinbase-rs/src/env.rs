@@ -36,7 +36,8 @@ pub fn test_mode() -> bool {
     STATE.with(|s| s.borrow().test_mode)
 }
 
-#[cfg(test)]
+/// Unit tests and the fuzz targets (src/fuzz.rs) turn it on in-process.
+#[doc(hidden)]
 pub fn set_test_mode(on: bool) {
     STATE.with(|s| s.borrow_mut().test_mode = on);
 }

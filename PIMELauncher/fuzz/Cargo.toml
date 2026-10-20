@@ -1,0 +1,27 @@
+[package]
+name = "pimelauncher-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+pimelauncher = { path = ".." }
+
+# a workspace of its own: the fuzz build (nightly, sanitizer flags) never touches
+# the crate's Cargo.lock or target folder
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "lines"
+path = "fuzz_targets/lines.rs"
+test = false
+doc = false
+bench = false

@@ -1,0 +1,10 @@
+chedayi|{"method":"init","id":"{e6943374-70f5-4540-aa0f-3205c7dcca84}","isWindows8Above":true,"isMetroApp":false,"isUiLess":false,"isConsole":false,"seqNum":1}
+chedayi|{"method":"onActivate","isKeyboardOpen":true,"seqNum":2}
+chedayi|{"method":"filterKeyDown","keyCode":65,"charCode":97,"repeatCount":1,"scanCode":30,"isExtended":false,"keyStates":{"65":128},"seqNum":3}
+chedayi|{"method":"onKeyDown","keyCode":65,"charCode":97,"repeatCount":1,"scanCode":30,"isExtended":false,"keyStates":[0,0,128],"seqNum":4}
+chedayi|{"method":"onCommand","id":3,"type":0,"seqNum":5}
+chewing|{"method":"init","id":"{f80736aa-28db-423a-92c9-5540f501c939}","isWindows8Above":true,"isMetroApp":false,"isUiLess":false,"isConsole":false,"seqNum":1}
+chewing|{"method":"onActivate","isKeyboardOpen":true,"seqNum":2}
+chewing|{"method":"filterKeyDown","keyCode":65,"charCode":97,"repeatCount":1,"scanCode":30,"isExtended":false,"keyStates":{"65":128},"seqNum":3}
+chewing|{"method":"onKeyDown","keyCode":65,"charCode":97,"repeatCount":1,"scanCode":30,"isExtended":false,"keyStates":[0,0,128],"seqNum":4}
+chewing|{"method":"onCommand","id":3,"type":0,"seqNum":5}

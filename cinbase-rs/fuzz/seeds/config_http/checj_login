@@ -1,0 +1,9 @@
+GET /login/config?token=0123456789abcdef0123456789abcdef HTTP/1.1
+Host: 127.0.0.1:12345
+
+POST /login/user_phrase_editor HTTP/1.1
+Host: 127.0.0.1:12345
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 38
+
+token=0123456789abcdef0123456789abcdef

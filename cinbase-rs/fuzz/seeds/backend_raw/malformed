@@ -1,0 +1,6 @@
+x|not json
+x|[1,2]
+x|{"method":"onKeyDown"}
+nobar
+|{}
+x|{"method":"init","id":5,"isWindows8Above":"","isMetroApp":null,"isUiLess":[],"isConsole":{}}

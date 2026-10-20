@@ -8,6 +8,8 @@ pub mod acl;
 pub mod backend_manager;
 pub mod backend_registry;
 pub mod client_session;
+#[doc(hidden)]
+pub mod fuzz;
 pub mod pipe_server;
 pub mod protocol;
 pub mod testing;

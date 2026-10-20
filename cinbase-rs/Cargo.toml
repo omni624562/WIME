@@ -23,7 +23,10 @@ path = "src/bin/wime-config.rs"
 [dependencies]
 # preserve_order: table JSON object order is significant (candidate order,
 # reverse index order), exactly like Python dicts
-serde_json = { version = "1", features = ["preserve_order"] }
+# float_roundtrip: numbers parse to the nearest double like Python's json (the
+# default parser can be one bit off: 1e-42 came back as 9.999999999999999e-43,
+# so saving the settings changed them; found by fuzz/fuzz_targets/json_body.rs)
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 indexmap = "2"
 # the settings tool reads only "cincount" of a multi-MB table JSON (serde::de::IgnoredAny)
 serde = "1"

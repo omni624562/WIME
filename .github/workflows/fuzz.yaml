@@ -1,0 +1,95 @@
+name: Fuzz
+
+# 模糊測試（cinbase-rs/fuzz/README.md）：每週跑一次，也可以從 Actions 頁手動執行並指定
+# 每個目標跑幾分鐘。一般 CI（ci.yaml）只用 cargo test 重播存下來的種子與回歸輸入；
+# 這裡用 cargo-fuzz（nightly、libFuzzer、ASan）實際產生新輸入。語料庫存在 Actions
+# cache 裡，一次比一次累積；找到問題時把輸入上傳成 artifact，並讓這次執行失敗。
+on:
+  schedule:
+    - cron: "17 3 * * 1" # 每週一 03:17 UTC
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 每個目標跑幾分鐘
+        default: "5"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      MINUTES_PER_TARGET: ${{ github.event.inputs.minutes || '5' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+
+      - name: Install Rust nightly and cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo install cargo-fuzz --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # the ASan runtime DLL of the fuzz builds (clang_rt.asan_dynamic-x86_64.dll)
+      - name: Put the MSVC ASan runtime on PATH
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $msvc = Get-ChildItem "$vs\VC\Tools\MSVC" | Sort-Object Name | Select-Object -Last 1
+          $bin = Join-Path $msvc.FullName "bin\Hostx64\x64"
+          if (-not (Test-Path (Join-Path $bin "clang_rt.asan_dynamic-x86_64.dll"))) { throw "no ASan runtime in $bin" }
+          Add-Content $env:GITHUB_PATH $bin
+
+      # 大易、酷倉的碼表（backend 目標用 repo 的 python\ 當資料根目錄）
+      - name: Generate CinBase tables
+        run: |
+          .\python\python3\python.exe python\cinbase\tools\cintojson.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            cinbase-rs/fuzz/corpus
+            PIMELauncher/fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
+
+      - name: Fuzz
+        run: |
+          $seconds = [int]$env:MINUTES_PER_TARGET * 60
+          $failed = @()
+          $targets = @(
+            @{ crate = "cinbase-rs"; names = @("backend", "backend_raw", "config_http", "multipart", "http_fields", "json_body", "user_dictionary") },
+            @{ crate = "PIMELauncher"; names = @("lines") }
+          )
+          # backend starts a new client for every input (~10 inputs/s under ASan): more time
+          $weight = @{ backend = 3 }
+          foreach ($group in $targets) {
+            Push-Location $group.crate
+            foreach ($name in $group.names) {
+              New-Item -ItemType Directory -Force "fuzz/corpus/$name" | Out-Null
+              $time = $seconds * $(if ($weight.ContainsKey($name)) { $weight[$name] } else { 1 })
+              Write-Output "::group::$($group.crate) $name ($time s)"
+              cargo +nightly fuzz run -O $name "fuzz/corpus/$name" "fuzz/seeds/$name" -- "-max_total_time=$time" -print_final_stats=1
+              $code = $LASTEXITCODE
+              Write-Output "::endgroup::"
+              if ($code -ne 0) {
+                Write-Output "::error title=fuzz $($group.crate) $name::exit code $code (input in fuzz/artifacts/$name)"
+                $failed += "$($group.crate)/$name"
+              }
+            }
+            Pop-Location
+          }
+          if ($failed.Count -gt 0) { throw "crashes: $($failed -join ', ')" }
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: fuzz-crashes
+          path: |
+            cinbase-rs/fuzz/artifacts
+            PIMELauncher/fuzz/artifacts
+          if-no-files-found: ignore
