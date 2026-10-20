@@ -91,7 +91,8 @@ jobs:
       - name: Fuzz the candidate window (libIME2)
         if: success() || failure()
         run: |
-          cmake -S libIME2 -B build_fuzz -A x64 -DLIBIME2_FUZZ=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          # quoted: PowerShell splits an unquoted -DX=3.5 into "-DX=3" and ".5"
+          cmake -S libIME2 -B build_fuzz -A x64 "-DLIBIME2_FUZZ=ON" "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build_fuzz --config Release --target CandidateWindow_fuzz
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
