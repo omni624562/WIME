@@ -305,7 +305,7 @@ $(function () {
             var themeName = candidateThemeNames[i];
             var card = $("<button>").attr("type", "button").addClass("candidate-theme-card").data("theme", themeName);
             var header = $("<div>").addClass("candidate-theme-card-header");
-            header.append($("<span>").addClass("candidate-theme-card-name").text(themeName));
+            header.append($("<span>").addClass("candidate-theme-card-name").text(candidateThemeLabel(themeName)));
             header.append($("<span>").addClass("candidate-theme-card-state"));
             card.append(header);
             card.append(createCandidatePreview(sample));
@@ -636,7 +636,7 @@ $(function () {
             upDownAction: ["移動游標選字", "在選字時翻頁"],
             leftRightAction: ["移動游標選字（循環）", "在選字時翻頁"],
             spaceKeyAction: {
-                1: "叫出選字視窗",
+                1: "叫出候選窗",
                 0: "輸出空格"
             },
             spaceKeyCandidatesAction: {
@@ -799,7 +799,7 @@ $(function () {
     }
 
     function initializeCandidateWindowSettings() {
-        appendOptions($("#candidateTheme"), candidateThemeNames, chewingConfig.candidateTheme || "System");
+        appendOptions($("#candidateTheme"), candidateThemeLabels, chewingConfig.candidateTheme || "System");
         $("#candidateKeyStyle").val(chewingConfig.candidateKeyStyle || "word-first");
         $("#candidateMessageStyle").val(chewingConfig.candidateMessageStyle || "badge");
 
@@ -874,4 +874,13 @@ $(function () {
     bindTabsFallback();
 
     return false;
+});
+
+// 有尚未儲存的變更時，關閉或重新整理分頁前先讓瀏覽器問一聲（以前直接關掉就沒了）
+// (the tests run this file in node, whose window stub has no addEventListener)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("beforeunload", function (event) {
+    if ($("#unsavedHint").is(":visible")) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
 });

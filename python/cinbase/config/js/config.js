@@ -554,7 +554,7 @@ function renderCandidateThemeGallery() {
         var themeName = candidateThemeNames[i];
         var card = $("<button>").attr("type", "button").addClass("candidate-theme-card").data("theme", themeName);
         var header = $("<div>").addClass("candidate-theme-card-header");
-        header.append($("<span>").addClass("candidate-theme-card-name").text(themeName));
+        header.append($("<span>").addClass("candidate-theme-card-name").text(candidateThemeLabel(themeName)));
         header.append($("<span>").addClass("candidate-theme-card-state"));
         card.append(header);
         card.append(createCandidatePreview(sample));
@@ -1214,7 +1214,7 @@ function pageReady() {
     var candidateTheme = $("#candidateTheme");
     for(var i = 0; i < candidateThemeNames.length; ++i) {
         var themeName = candidateThemeNames[i];
-        var item = '<option value="' + themeName + '">' + themeName + '</option>';
+        var item = '<option value="' + themeName + '">' + candidateThemeLabel(themeName) + '</option>';
         candidateTheme.append(item);
     }
     candidateTheme.val(checjConfig.candidateTheme || "System");
@@ -1625,3 +1625,12 @@ function pageReady() {
     // 初始化完成，之後使用者的變更才會觸發「尚未儲存」提示
     configReady = true;
 }
+
+// 有尚未儲存的變更時，關閉或重新整理分頁前先讓瀏覽器問一聲（以前直接關掉就沒了）
+// (the tests run this file in node, whose window stub has no addEventListener)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("beforeunload", function (event) {
+    if ($("#unsavedHint").is(":visible")) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
+});

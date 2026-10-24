@@ -13,7 +13,7 @@
 !insertmacro LANG_VERSION_KEY ProductName "WIME 輸入法"
 !insertmacro LANG_VERSION_KEY CompanyName "WIME 開發團隊"
 !insertmacro LANG_VERSION_KEY FileDescription "WIME 輸入法安裝程式"
-!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME)已安裝完成。$\r$\n$\r$\n按 Win+空白鍵，切換到名稱有「(WIME)」的輸入法，例如「大易輸入法 (WIME)」。$\r$\n$\r$\n清單裡沒有的話，到 Windows「設定 > 時間與語言 > 語言」（Windows 11 是「語言與地區」）新增「中文 (台灣)」語言，或在它的語言選項裡新增鍵盤。$\r$\n$\r$\n設定工具在開始功能表的「${START_MENU_FOLDER}」資料夾裡。"
+!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME)已安裝完成。$\r$\n$\r$\n按 Win+空白鍵，切換到名稱有「(WIME)」的輸入法，例如「大易輸入法 (WIME)」。$\r$\n$\r$\n清單裡沒有的話，到 Windows「設定 > 時間與語言 > 語言」（Windows 11 是「語言與地區」）新增「中文 (台灣)」語言，或在它的語言選項裡新增鍵盤。$\r$\n$\r$\n設定工具在開始功能表的「${START_MENU_FOLDER}」資料夾裡。$\r$\n$\r$\n更新時：已經開著的程式要重新開啟（或登出再登入）才會用到新版。"
 
 !insertmacro LANG_STRING AtLeastWin10_MESSAGE "抱歉，本程式需要 Windows 10 以上版本"
 !insertmacro LANG_STRING REBOOT_QUESTION "安裝發生錯誤，無法完成。$\r$\n有時是有檔案正在使用中，暫時無法刪除或覆寫。$\n$\n建議重新開機後，再次執行安裝程式。$\r$\n你要立即重新開機嗎？ (若你想要在稍後才重新開機請選擇「否」)"
@@ -77,3 +77,5 @@
 !insertmacro LANG_STRING SET_BRAILLE_CHEWING "設定點字酷音輸入法"
 
 !insertmacro LANG_STRING UNINSTALL_PIME "解除安裝 WIME"
+!insertmacro LANG_STRING REPORT_ISSUE "回報問題"
+!insertmacro LANG_STRING UNINSTALL_KEEPS_DATA "解除安裝不會刪除您的設定與學過的詞，它們保留在 %APPDATA%\PIME，重新安裝後會沿用。要完全清除，解除安裝後再自行刪除那個資料夾。"

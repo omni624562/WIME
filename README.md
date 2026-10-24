@@ -3,6 +3,26 @@
 [![Build](https://github.com/omni624562/WIME/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/omni624562/WIME/actions/workflows/ci.yaml?query=branch%3Amaster)
 [![Latest tag](https://img.shields.io/github/v/tag/omni624562/WIME?sort=date&label=latest)](https://github.com/omni624562/WIME/tags)
 
+## 使用者看這裡
+
+WIME 是 Windows 10／11 的繁體中文輸入法，包含**大易**、**新酷音**（注音）、**酷倉**（倉頡）。
+
+**安裝**
+1. 到 [Releases](https://github.com/omni624562/WIME/releases) 下載最新的 `WIME-…-dayi-chewing-checj-setup.exe` 並執行（需要系統管理員權限）。已安裝舊版時直接執行即可升級。
+2. 安裝檔沒有數位簽章，Windows 可能顯示「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」。
+3. 裝好後按 <kbd>Win</kbd>+<kbd>空白鍵</kbd>，切換到名稱有「(WIME)」的輸入法，例如「大易輸入法 (WIME)」。清單裡沒有的話，到「設定 → 時間與語言 → 語言與地區 → 中文（台灣）→ 語言選項 → 新增鍵盤」加入。
+
+**設定與資料**
+- 各輸入法的設定在開始功能表的「WIME」資料夾裡，也可以從工作列的輸入法圖示打開。
+- 設定與學過的詞存在 `%APPDATA%\PIME`。要搬到另一台電腦，在沒有使用輸入法時把整個資料夾複製過去即可。解除安裝不會刪除它。
+- 升級後，已經開著的程式要重新開啟（或登出再登入）才會用到新版。
+
+**遇到問題**
+
+請到 [Issues](https://github.com/omni624562/WIME/issues) 回報，寫下 WIME 版本（設定頁上可看到，或在「設定 → 應用程式」的 WIME 項目裡）、Windows 版本、使用的輸入法，以及在哪個程式、按了哪些鍵。
+
+以下是給開發者的說明（英文）。
+
 Implement input methods easily for Windows via Text Services Framework:
 *   LibIME contains a library which aims to be a simple wrapper for Windows Text Service Framework (TSF).
 *   PIMETextService contains an backbone implementation of Windows text service for using libIME.
@@ -101,6 +121,7 @@ For a detailed Traditional Chinese summary of the changes made after the project
 *   [Creating a DACL](http://msdn.microsoft.com/en-us/library/windows/apps/ms717798.aspx)
 
 # Install
+*   (For development only: users install with the setup program from the Releases page.)
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x86\.
 *   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x64\.
 *   Use the installer (`installer/installer.nsi`). Its layout: `cinbase_rs\` holds `wime-cinbase.exe`, `wime-config.exe` and `input_methods\<ime>\ime.json`; `data\` holds the tables, data files, icons and settings pages (see `cinbase-rs/src/paths.rs`).

@@ -90,6 +90,21 @@ var candidateThemeNames = [
     "High Contrast"
 ];
 
+// 顯示用的名稱（存進 config.json 的仍是上面的名稱，舊設定照樣讀得懂）
+var candidateThemeLabels = {
+    "System": "跟隨系統",
+    "Graphite": "石墨灰（深色）",
+    "Sepia Dim": "暗褐（深色）",
+    "Plum": "梅紫（深色）",
+    "Light": "淺色",
+    "Pure Black": "純黑（深色）",
+    "High Contrast": "高對比（深色）"
+};
+
+function candidateThemeLabel(name) {
+    return candidateThemeLabels[name] || name;
+}
+
 var candidateThemePalette = {
     "Graphite": ["#12141a", "#444a57", "#292e38", "#f3f5fa", "#aeb5c4", "#8fb3ff", "#4169d7", "#6f92eb", "#edf3ff", "#9eb0d5"],
     "Sepia Dim": ["#28251f", "#5d564a", "#403a31", "#ebe2d3", "#b9ad9a", "#dfc58e", "#6d6547", "#958a63", "#f8efd9", "#c7b79e"],

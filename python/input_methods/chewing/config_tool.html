@@ -87,7 +87,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#ui_tab" aria-controls="ui_tab" role="tab" data-toggle="tab"
-                                onclick="return switchChewingConfigTab(this, event)">🏘️ 選字視窗外觀</a>
+                                onclick="return switchChewingConfigTab(this, event)">🏘️ 候選窗外觀</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#keyboard_tab" aria-controls="keyboard_tab" role="tab" data-toggle="tab"
@@ -212,7 +212,7 @@
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="phraseChoiceRearward" name="phraseChoiceRearward">
                                 <label class="custom-control-label" for="phraseChoiceRearward">啟用向後詞彙選詞模式</label>
-                                <div class="setting-hint">類似自然輸入法,在詞彙的最後一字按下選字鍵會叫出選字視窗。</div>
+                                <div class="setting-hint">類似自然輸入法，在詞彙的最後一字按下選字鍵會叫出候選窗。</div>
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="escCleanAllBuf" name="escCleanAllBuf">
@@ -232,7 +232,7 @@
                             <select name="addPhraseForward" id="addPhraseForward"></select>
                         </div>
                         <div class="config_section">
-                            <h1>叫出選字視窗時設定</h1>
+                            <h1>叫出候選窗時設定</h1>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="advanceAfterSelection" name="advanceAfterSelection">
                                 <label class="custom-control-label" for="advanceAfterSelection">選字完畢自動跳到下一個字</label>
@@ -278,7 +278,7 @@
                         <!-- 舊版候選窗的「每列顯示候選字個數」(candPerRow) 與「選字範例」已移除：
                              新版候選窗每列的字數只看下方的「每列候選字數」(candidatePerRow) -->
                         <div class="form-group row">
-                            <label for="selKeyType">選字視窗選字鍵：</label>
+                            <label for="selKeyType">候選窗選字鍵：</label>
                             <select name="selKeyType" id="selKeyType"></select>
                         </div>
                         <div class="config_section candidate_window_settings candidate-window-settings">
