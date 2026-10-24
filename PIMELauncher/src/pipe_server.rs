@@ -27,6 +27,8 @@ impl PipeServer {
     pub async fn run(&self) {
         let sa = PipeSecurityAttributes::new().expect("Failed to create PipeSecurityAttributes");
         let mut is_first_instance = true;
+        // e.g. the name is taken by another process: retry, but not every second forever
+        let mut backoff = crate::backoff::Backoff::for_restarts();
 
         loop {
             let mut options = ServerOptions::new();
@@ -43,8 +45,9 @@ impl PipeServer {
             } {
                 Ok(server) => server,
                 Err(e) => {
-                    error!("Failed to create named pipe server: {}", e);
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    let delay = backoff.next_delay(std::time::Duration::ZERO);
+                    error!("Failed to create named pipe server {}: {}. Retrying in {:?}", self.pipe_name, e, delay);
+                    tokio::time::sleep(delay).await;
                     continue;
                 }
             };
@@ -56,6 +59,7 @@ impl PipeServer {
                         is_first_instance
                     );
                     is_first_instance = false;
+                    backoff = crate::backoff::Backoff::for_restarts();
                     let manager = self.manager.clone();
                     tokio::spawn(async move {
                         let (reader, writer) = tokio::io::split(server);

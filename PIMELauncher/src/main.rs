@@ -20,6 +20,7 @@ async fn run_watchdog(original_args: &[String]) {
 
     const CREATE_NEW_CONSOLE: u32 = 0x00000010;
 
+    let mut backoff = pimelauncher::backoff::Backoff::for_restarts();
     loop {
         info!("Spawning worker process...");
         let mut command = tokio::process::Command::new(&exe);
@@ -39,16 +40,19 @@ async fn run_watchdog(original_args: &[String]) {
         let mut child = match command.spawn() {
             Ok(c) => c,
             Err(e) => {
-                error!("Failed to spawn worker process: {}. Retrying in 5s...", e);
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                let delay = backoff.next_delay(std::time::Duration::ZERO);
+                error!("Failed to spawn worker process: {}. Retrying in {:?}...", e, delay);
+                tokio::time::sleep(delay).await;
                 continue;
             }
         };
+        let started = std::time::Instant::now();
 
         tokio::select! {
             status = child.wait() => {
-                warn!("Worker process exited with status: {:?}. Restarting in 1s...", status);
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                let delay = backoff.next_delay(started.elapsed());
+                warn!("Worker process exited with status: {:?}. Restarting in {:?}...", status, delay);
+                tokio::time::sleep(delay).await;
             }
             _ = wait_for_quit_event() => {
                 info!("Quit event received. Terminating worker and watchdog...");
@@ -161,10 +165,10 @@ fn setup_error_mode() {
 
 /// Core logic for the PIME Worker process.
 async fn run_worker() {
-    let username = std::env::var("USERNAME").expect("USERNAME environment variable must be set");
-    let pipe_name = format!(r"\\.\pipe\{}\PIME\Launcher", username);
+    let pipe_name = pimelauncher::acl::launcher_pipe_name().expect("cannot determine the user SID and session");
+    let legacy_pipe_name = pimelauncher::acl::legacy_launcher_pipe_name();
 
-    info!("Starting PIMELauncher2 Worker on pipe: {}", pipe_name);
+    info!("Starting PIMELauncher2 Worker on pipe: {} (and {:?})", pipe_name, legacy_pipe_name);
 
     let pime_root = resolve_pime_root_dir();
     info!("Using PIME root directory: {:?}", pime_root);
@@ -173,6 +177,12 @@ async fn run_worker() {
     print_diagnostics(&registry);
 
     let backend_manager = BackendManager::new(registry);
+    // apps that loaded PIMETextService.dll before an upgrade still use the old
+    // name (acl::legacy_launcher_pipe_name)
+    if let Some(legacy) = legacy_pipe_name {
+        let legacy_server = pipe_server::PipeServer::new(legacy, backend_manager.clone());
+        tokio::spawn(async move { legacy_server.run().await });
+    }
     let server = pipe_server::PipeServer::new(pipe_name, backend_manager);
     server.run().await;
 }

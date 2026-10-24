@@ -11,7 +11,7 @@ PIMELauncher is a high-performance, Rust-based background service for **PIME** (
 ## Architecture
 
 PIMELauncher is designed with modularity in mind:
-- **Pipe Server:** Handles incoming client connections via named pipes (`\\.\pipe\<user>\PIME\Launcher`).
+- **Pipe Server:** Handles incoming client connections via named pipes (`\\.\pipe\PIME\<user SID>\<session id>\Launcher`).
 - **Backend Manager:** Manages the lifecycle of backend processes (Python, Node.js, etc.) and routes messages.
 - **Registry:** Dynamically loads backend configurations from `backends.json` and maps TSF GUIDs via `ime.json` discovery.
 - **Protocol:** Uses a line-based UTF-8 JSON protocol for easy integration and debugging.
@@ -63,7 +63,10 @@ PIMELauncher is typically started automatically by the PIME Text Service. Howeve
 ```
 
 ### Named Pipe
-The service listens on: `\\.\pipe\<CURRENT_USER_NAME>\PIME\Launcher`
+The service listens on: `\\.\pipe\PIME\<user SID>\<session id>\Launcher`, owned by the
+user (PIMETextService accepts only a pipe of its own account and session). It also
+still serves the name of 1.3.0-beta19 and older, `\\.\pipe\<user name>\PIME\Launcher`,
+for apps that loaded the old PIMETextService.dll before an upgrade.
 
 ## Testing
 
