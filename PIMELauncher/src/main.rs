@@ -183,6 +183,8 @@ async fn run_worker() {
         let legacy_server = pipe_server::PipeServer::new(legacy, backend_manager.clone());
         tokio::spawn(async move { legacy_server.run().await });
     }
+    // start the backends now, not when the first key is typed
+    backend_manager.prewarm().await;
     let server = pipe_server::PipeServer::new(pipe_name, backend_manager);
     server.run().await;
 }

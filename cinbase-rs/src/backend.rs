@@ -100,3 +100,30 @@ pub fn handle_line(clients: &mut Clients, client_id: &str, msg_text: &str) -> Re
     }
     Ok(Some(reply))
 }
+
+/// wime-cinbase.exe --preload (backends.json): before the first request, load
+/// the tables 大易 and 酷倉 will use, the way a client's init and activation
+/// does, with the user's own settings. The tables are shared by every client
+/// of the process (cinbase::shared_tables), so the first key typed after
+/// logon no longer waits for them (30-90 ms, more on a cold disk). 新酷音 is
+/// left out: it shows some notices once per process, which a hidden client
+/// would use up.
+pub fn preload(clients: &mut Clients) {
+    const CLIENT: &str = "\u{1}preload";
+    // only an input method this user has typed with (its %APPDATA%\PIME folder
+    // exists): 酷倉's table alone is some 17 MB that someone who never uses it
+    // should not pay for
+    let appdata = std::env::var_os("APPDATA").map(std::path::PathBuf::from);
+    let used = |ime_dir: &str| appdata.as_ref().is_some_and(|dir| dir.join("PIME").join(ime_dir).is_dir());
+    for (guid, ime_dir) in [(cinbase::CHEDAYI_GUID, "chedayi"), (cinbase::CHECJ_GUID, "checj")] {
+        if !used(ime_dir) {
+            continue;
+        }
+        let init = json!({"method": "init", "id": guid, "isWindows8Above": true, "isMetroApp": false,
+                          "isUiLess": false, "isConsole": false, "seqNum": 0});
+        for request in [init, json!({"method": "onActivate", "isKeyboardOpen": true, "seqNum": 0}),
+                        json!({"method": "onDeactivate", "seqNum": 0}), json!({"method": "close"})] {
+            let _ = handle_line(clients, CLIENT, &request.to_string());
+        }
+    }
+}
