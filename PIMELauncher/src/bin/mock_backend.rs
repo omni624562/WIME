@@ -31,6 +31,18 @@ fn main() {
                     stdout.flush().unwrap();
                 }
             }
+            // like wime-cinbase.exe: "close" gets no reply; the PID shows restarts
+            "quiet" => {
+                if let Some(pos) = line.find('|') {
+                    let client_id = &line[..pos];
+                    let message = &line[pos + 1..];
+                    if message.contains(r#""method":"close""#) {
+                        continue;
+                    }
+                    println!("PIME_MSG|{}|PID {} REPLY: {}", client_id, std::process::id(), message);
+                    stdout.flush().unwrap();
+                }
+            }
             "crash" => {
                 if line.contains("CRASH_NOW") {
                     std::process::exit(1);

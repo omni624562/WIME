@@ -331,7 +331,10 @@ impl BackendManager {
                         return true;
                     };
                     let now = Self::current_ms();
-                    last_request_time = Some(now);
+                    // only a request the backend answers can be waiting for output
+                    if protocol::backend_input_expects_reply(&data) {
+                        last_request_time = Some(now);
+                    }
                     info!("Backend {} received request from channel. Data len: {}. req_t={}", backend_name, data.len(), now);
                     
                     // LinesCodec expects data without the newline, it will add it for us.
