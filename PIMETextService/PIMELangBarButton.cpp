@@ -19,6 +19,7 @@
 
 #include "PIMELangBarButton.h"
 #include "PIMETextService.h"
+#include "PIMEImeModule.h"
 #include "libIME2/src/Utils.h"
 #include <mutex>
 #include <string>
@@ -31,6 +32,8 @@ static const GUID _GUID_LBI_INPUTMODE =
 static const char WINDOWS_MODE_ICON_ID[] = "windows-mode-icon";
 
 using json = nlohmann::json;
+
+extern PIME::ImeModule* g_imeModule; // DllEntry.cpp
 
 namespace PIME {
 
@@ -73,6 +76,24 @@ LangBarButton* LangBarButton::fromJson(TextService* service, json& info) {
 	return nullptr;
 }
 
+// Only icon files of this installation are loaded. The path comes from the
+// backend, and LoadImageW(LR_LOADFROMFILE) on a UNC (server share) path would make
+// every app with a text box (elevated ones too) connect out -- and send the
+// user's NTLM credentials along.
+static bool isInstalledIconPath(const std::wstring& path) {
+	// a drive path ("C:" and a separator): no UNC or device prefix, nothing relative
+	if (path.size() < 3 || !iswalpha(path[0]) || path[1] != L':' || (path[2] != L'\\' && path[2] != L'/'))
+		return false;
+	if (g_imeModule == nullptr || g_imeModule->programDir().empty())
+		return false;
+	wchar_t full[MAX_PATH];
+	DWORD length = ::GetFullPathNameW(path.c_str(), MAX_PATH, full, NULL);
+	if (length == 0 || length >= MAX_PATH)
+		return false;
+	std::wstring dir = g_imeModule->programDir() + L"\\";
+	return _wcsnicmp(full, dir.c_str(), dir.size()) == 0;
+}
+
 void LangBarButton::setIconFile(std::wstring filePath) {
 	if (filePath != iconFile_) {
 		iconFile_ = std::move(filePath);
@@ -84,7 +105,7 @@ void LangBarButton::setIconFile(std::wstring filePath) {
 			if (icon_it != iconCache_.end()) {
 				icon = icon_it->second;
 			}
-			else {
+			else if (isInstalledIconPath(iconFile_)) {
 				icon = (HICON)LoadImageW(NULL, iconFile_.c_str(), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE);
 				iconCache_[iconFile_] = icon;
 			}
