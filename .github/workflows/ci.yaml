@@ -16,24 +16,29 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# the workflow only reads the repository (artifacts use their own token)
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: 'true'
 
       # aarch64：build.bat 另外編 ARM64 原生版的啟動器、後端與設定工具給安裝檔
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           targets: i686-pc-windows-msvc, aarch64-pc-windows-msvc
 
       - name: Run Rust tests (PIMELauncher)
         run: |
           cd PIMELauncher
-          cargo test --verbose
+          cargo test --locked --verbose
 
       # The embedded 32-bit Python in python\python3 runs the Python reference
       # implementation the tests compare the Rust backend and settings tool against
@@ -51,9 +56,9 @@ jobs:
       - name: Build and test cinbase-rs (Rust 後端與設定工具)
         run: |
           cd cinbase-rs
-          cargo test --release
+          cargo test --locked --release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo build --release
+          cargo build --locked --release
 
       # wime-config.exe（Rust 版設定工具）由上面的 cinbase-rs 步驟建出；設定工具的
       # 端對端與差異測試同時跑 Python 版與 Rust 版，執行檔缺了就算失敗
@@ -64,7 +69,7 @@ jobs:
           .\python\python3\python.exe -m unittest discover -s tests -p "*.py" -v
 
       - name: Install NSIS
-        uses: repolevedavaj/install-nsis@v1.3.0
+        uses: repolevedavaj/install-nsis@65a75ea79c3d1ddde868e98b7f9447e2e623401c # v1.3.0
         with:
           # 3.09+: CVE-2023-37378 (the uninstaller's temp folder ACL); same as the local release builds
           nsis-version: 3.12
@@ -121,7 +126,7 @@ jobs:
           .\python\python3\python.exe -m unittest discover -s tests -p "test_packaging.py" -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: Installer
           path: installer/*.exe
@@ -135,19 +140,20 @@ jobs:
       WIME_CINBASE_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-cinbase.exe
       WIME_CONFIG_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-config.exe
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: 'true'
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           targets: aarch64-pc-windows-msvc
 
       - name: Run Rust tests (PIMELauncher, ARM64)
         run: |
           cd PIMELauncher
-          cargo test --release --target aarch64-pc-windows-msvc
+          cargo test --locked --release --target aarch64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Generate CinBase tables
@@ -158,9 +164,9 @@ jobs:
       - name: Build and test cinbase-rs (ARM64)
         run: |
           cd cinbase-rs
-          cargo test --release --target aarch64-pc-windows-msvc
+          cargo test --locked --release --target aarch64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo build --release --target aarch64-pc-windows-msvc
+          cargo build --locked --release --target aarch64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Python tests against the ARM64 backend and settings tool
