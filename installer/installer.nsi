@@ -103,6 +103,8 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_FINISH
 
 ; uninstallation pages
+; the user's data in %APPDATA%\PIME stays: say so before uninstalling
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "$(UNINSTALL_KEEPS_DATA)"
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 ;--------------------------------
@@ -1012,6 +1014,8 @@ Section "" Register
 	${EndIf}
 !endif
 
+	; how to report a problem (an internet shortcut to the issue tracker)
+	WriteINIStr "$SMPROGRAMS\${START_MENU_FOLDER}\$(REPORT_ISSUE).url" "InternetShortcut" "URL" "${HOMEPAGE_URL}/issues"
 	CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 

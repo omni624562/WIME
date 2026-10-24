@@ -13,7 +13,7 @@
 !insertmacro LANG_VERSION_KEY ProductName "WIME Input Methods"
 !insertmacro LANG_VERSION_KEY CompanyName "WIME development team"
 !insertmacro LANG_VERSION_KEY FileDescription "WIME Input Methods Setup"
-!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME) has been installed.$\r$\n$\r$\nPress Win+Space to switch to an input method marked $\"(WIME)$\", such as $\"大易輸入法 (WIME)$\" (Dayi).$\r$\n$\r$\nIf none is listed, add the Chinese (Traditional, Taiwan) language, or add the keyboard in that language's options, under Settings > Time && language > Language (Language && region on Windows 11).$\r$\n$\r$\nThe settings tools of the input methods are in the $\"${START_MENU_FOLDER}$\" folder of the Start menu."
+!insertmacro LANG_STRING FINISH_TEXT "$(PRODUCT_NAME) has been installed.$\r$\n$\r$\nPress Win+Space to switch to an input method marked $\"(WIME)$\", such as $\"大易輸入法 (WIME)$\" (Dayi).$\r$\n$\r$\nIf none is listed, add the Chinese (Traditional, Taiwan) language, or add the keyboard in that language's options, under Settings > Time && language > Language (Language && region on Windows 11).$\r$\n$\r$\nThe settings tools of the input methods are in the $\"${START_MENU_FOLDER}$\" folder of the Start menu.$\r$\n$\r$\nWhen updating: programs that are already open use the new version after they are restarted (or after signing out and in)."
 
 !insertmacro LANG_STRING AtLeastWin10_MESSAGE "Sorry, this program requires Windows 10 or later"
 !insertmacro LANG_STRING REBOOT_QUESTION "The installation failed and could no be completed.$\r$\nA file may be in use, that prevents it from being deleted or overwritten.$\n$\nIt is recommended that you reboot the system and run the installer again.$\r$\nDo you want to reboot now? (Select $\"No$\" if you want to reboot at a later time)"
@@ -77,3 +77,5 @@
 !insertmacro LANG_STRING SET_BRAILLE_CHEWING "Setup Braille Chewing input method"
 
 !insertmacro LANG_STRING UNINSTALL_PIME "Uninstall WIME"
+!insertmacro LANG_STRING REPORT_ISSUE "Report a problem"
+!insertmacro LANG_STRING UNINSTALL_KEEPS_DATA "Uninstalling keeps your settings and learned words in %APPDATA%\PIME; a new installation uses them again. To remove them too, delete that folder after uninstalling."
