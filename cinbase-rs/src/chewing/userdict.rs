@@ -278,18 +278,44 @@ pub fn touch_change_stamp(config_dir: &Path) {
     }
 }
 
-/// os.replace(src, dst): MoveFileExW(MOVEFILE_REPLACE_EXISTING)
+/// os.replace(src, dst): MoveFileExW(MOVEFILE_REPLACE_EXISTING). A target held
+/// open for a moment by an antivirus scanner, OneDrive or the indexer fails with
+/// a sharing violation: retried a few times (about 0.6 s in all) before giving up,
+/// where it used to fail at once and the settings were silently not saved.
 pub fn replace_file(src: &Path, dst: &Path) -> std::io::Result<()> {
     use windows_sys::Win32::Storage::FileSystem::{MoveFileExW, MOVEFILE_REPLACE_EXISTING};
+    const ERROR_ACCESS_DENIED: i32 = 5;
+    const ERROR_SHARING_VIOLATION: i32 = 32;
+    const ERROR_LOCK_VIOLATION: i32 = 33;
     let w = |p: &Path| -> Vec<u16> {
         use std::os::windows::ffi::OsStrExt;
         p.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
     };
     let (s, d) = (w(src), w(dst));
-    if unsafe { MoveFileExW(s.as_ptr(), d.as_ptr(), MOVEFILE_REPLACE_EXISTING) } == 0 {
-        return Err(std::io::Error::last_os_error());
+    let mut wait_ms = 20;
+    loop {
+        if unsafe { MoveFileExW(s.as_ptr(), d.as_ptr(), MOVEFILE_REPLACE_EXISTING) } != 0 {
+            return Ok(());
+        }
+        let error = std::io::Error::last_os_error();
+        let transient = matches!(error.raw_os_error(), Some(ERROR_ACCESS_DENIED | ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION));
+        if !transient || wait_ms > 320 {
+            return Err(error);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(wait_ms));
+        wait_ms *= 2;
     }
-    Ok(())
+}
+
+/// A temporary file next to `target` to write it through: <target>.<pid>-<n>.tmp.
+/// The backend and the settings tool both save config.json; with one fixed
+/// name (config.json.tmp) one could truncate the other's half-written file.
+pub fn temp_path_for(target: &Path) -> PathBuf {
+    static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut name = target.as_os_str().to_owned();
+    name.push(format!(".{}-{}.tmp", std::process::id(), n));
+    PathBuf::from(name)
 }
 
 pub const SQLITE_MAGIC: &[u8] = b"SQLite format 3\x00";
@@ -337,4 +363,45 @@ pub fn import_user_dictionary(data: &[u8], config_dir: &Path, syspath: &str) -> 
     })();
     let _ = fs::remove_dir_all(&work_dir);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("wime-userdict-{}-{}", name, std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn replace_waits_for_a_reader_holding_the_target() {
+        let dir = temp_dir("replace");
+        let (src, dst) = (dir.join("new.json"), dir.join("config.json"));
+        fs::write(&src, b"new").unwrap();
+        fs::write(&dst, b"old").unwrap();
+        // like a virus scanner: open without FILE_SHARE_DELETE for a moment
+        let held = fs::OpenOptions::new().read(true).share_mode(1).open(&dst).unwrap();
+        let holder = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            drop(held);
+        });
+        replace_file(&src, &dst).unwrap();
+        holder.join().unwrap();
+        assert_eq!(fs::read(&dst).unwrap(), b"new");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn temp_paths_are_unique_next_to_the_target() {
+        let target = Path::new(r"C:\x\config.json");
+        let (a, b) = (temp_path_for(target), temp_path_for(target));
+        assert_ne!(a, b);
+        assert_eq!(a.parent(), target.parent());
+        assert!(a.to_string_lossy().starts_with(r"C:\x\config.json."));
+        assert!(a.to_string_lossy().ends_with(".tmp"));
+    }
 }

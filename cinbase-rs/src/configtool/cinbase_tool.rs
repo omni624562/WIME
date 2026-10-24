@@ -182,7 +182,7 @@ impl CinbaseTool {
                     map.shift_remove(*key);
                 }
             }
-            save_text_file(&self.config_dir.join("config.json"), &pyjson::dumps_indent(&config, 4, true), false).map_err(Ok)?;
+            save_text_file(&self.config_dir.join("config.json"), &pyjson::dumps_indent(&config, 4, true), true).map_err(Ok)?;
         }
         for (key, file) in [
             ("symbols", "symbols.dat"),
@@ -195,7 +195,7 @@ impl CinbaseTool {
         ] {
             match data.get(key) {
                 None | Some(Value::Null) => {}
-                Some(Value::String(text)) => save_text_file(&self.config_dir.join(file), text, false).map_err(Ok)?,
+                Some(Value::String(text)) => save_text_file(&self.config_dir.join(file), text, true).map_err(Ok)?,
                 // f.write(<not a str>): TypeError (the temporary file is removed)
                 Some(_) => return Err(Err(format!("TypeError: write() argument must be str ({})", key))),
             }

@@ -25,9 +25,7 @@ use std::path::Path;
 /// "\r\n", UTF-8), optionally fsynced, then os.replace() it over the target.
 /// On failure the temporary file is removed and the error returned.
 pub fn save_text_file(target: &Path, text: &str, fsync: bool) -> std::io::Result<()> {
-    let mut tmp = target.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = std::path::PathBuf::from(tmp);
+    let tmp = crate::chewing::userdict::temp_path_for(target);
     let result = (|| -> std::io::Result<()> {
         let mut f = std::fs::File::create(&tmp)?;
         f.write_all(text.replace('\n', "\r\n").as_bytes())?;

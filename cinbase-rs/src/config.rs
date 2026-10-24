@@ -942,9 +942,7 @@ impl CinBaseConfig {
     pub fn save(&mut self) {
         self.store_fields();
         let filename = self.get_config_file("config.json");
-        let mut tmp = filename.clone().into_os_string();
-        tmp.push(".tmp");
-        let tmp = PathBuf::from(tmp);
+        let tmp = crate::chewing::userdict::temp_path_for(&filename);
         let text = py_json_dumps_sorted(&Value::Object(self.to_json())).replace('\n', "\r\n");
         let result = (|| -> std::io::Result<()> {
             let mut f = fs::File::create(&tmp)?;
@@ -952,7 +950,7 @@ impl CinBaseConfig {
             f.flush()?;
             f.sync_all()?;
             drop(f);
-            fs::rename(&tmp, &filename)
+            crate::chewing::userdict::replace_file(&tmp, &filename)
         })();
         match result {
             Ok(()) => self.update(),
