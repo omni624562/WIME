@@ -27,7 +27,9 @@ RUST_BACKEND = {
     "name": "cinbase_rs",
     "command": "cinbase_rs\\wime-cinbase.exe",
     "workingDir": "cinbase_rs",
-    "params": "",
+    # load the tables of the input methods this user has used before the first
+    # key (backend.rs preload); the launcher starts the backend at logon
+    "params": "--preload",
 }
 
 

@@ -21,6 +21,11 @@ fn main() {
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut clients = Clients::new();
+    if std::env::args().any(|arg| arg == "--preload") {
+        // a failure here only means the first real client loads the tables itself
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| wime::backend::preload(&mut clients)));
+        clients.clear();
+    }
     for line in stdin.lock().lines() {
         let Ok(line) = line else { break };
         let line = line.trim();

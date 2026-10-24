@@ -94,6 +94,25 @@ impl BackendManager {
         Some(stdin_tx)
     }
 
+    /// Starts every backend whose program is installed before any client asks for
+    /// it (the worker calls this at logon). The first key typed used to wait for the
+    /// backend process to start and, with wime-cinbase.exe --preload, for its tables
+    /// to load. A backend listed but not installed (the full build's backends.json
+    /// names the old Python one) is left alone: it would only fail and retry.
+    pub async fn prewarm(&self) {
+        let installed: Vec<String> = self
+            .registry
+            .backends
+            .iter()
+            .filter(|(_, config)| self.registry.top_dir.join(&config.command).is_file())
+            .map(|(name, _)| name.clone())
+            .collect();
+        for name in installed {
+            info!("Starting backend {} ahead of its first client", name);
+            let _ = self.get_backend_input(&name).await;
+        }
+    }
+
     /// Sends a message to a specific backend, spawning it if necessary.
     ///
     /// The message is prefixed with the client ID to allow the backend to identify the sender.
@@ -421,7 +440,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_first_requests_spawn_one_backend() {
-        // A missing executable parks every supervisor in its 5 s retry sleep without
+        // A missing executable parks every supervisor in its retry sleep without
         // starting anything, so a duplicate supervisor is still alive when counted.
         let dir = tempfile::tempdir().unwrap();
         let (manager, _) = single_backend_manager(dir.path(), "missing_backend.exe", "");
@@ -454,6 +473,26 @@ mod tests {
             1,
             "duplicate backend supervisors were spawned"
         );
+    }
+
+    #[tokio::test]
+    async fn test_prewarm_starts_installed_backends_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let (missing, _) = single_backend_manager(dir.path(), "missing_backend.exe", "");
+        missing.prewarm().await;
+        assert!(missing.state.lock().await.backends.is_empty());
+
+        // cmd.exe stands in for a backend: one line per start, then it waits on stdin
+        let cmd =
+            std::env::var("ComSpec").unwrap_or_else(|_| r"C:\Windows\System32\cmd.exe".to_string());
+        let (manager, _) = single_backend_manager(dir.path(), &cmd, "/d /q /k echo.>>starts.txt");
+        manager.prewarm().await;
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while std::fs::read_to_string(dir.path().join("starts.txt")).map(|s| s.lines().count()).unwrap_or(0) == 0 {
+            assert!(Instant::now() < deadline, "the backend was not started");
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert_eq!(manager.state.lock().await.backends.len(), 1);
     }
 
     #[tokio::test]
