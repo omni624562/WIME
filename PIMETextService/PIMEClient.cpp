@@ -368,7 +368,8 @@ bool Client::handleRpcResponse(json& msg, Ime::EditSession* session) {
 	// TSF COM boundary and terminate the host process, so guard it here.
 	if (!msg.is_object())
 		return false;
-	bool success = msg.value("success", false);
+	// value() throws when "success" is there but not a bool, outside the catch below
+	bool success = isTrueMember(msg, "success");
 	if (success) {
 		try {
 			updateStatus(msg, session);
@@ -581,9 +582,17 @@ void Client::updateLanguageButtons(json& msg) {
 	auto& addButtonVal = msg["addButton"];
 	if (addButtonVal.is_array()) {
 		for (auto& btn : addButtonVal) {
-			// FIXME: when to clear the id <=> button map??
+			// the map is cleared when the connection is lost (resetTextServiceState)
 			auto langBtn = Ime::ComPtr<PIME::LangBarButton>::takeover(PIME::LangBarButton::fromJson(textService_, btn));
 			if (langBtn != nullptr) {
+				// a button added again replaces the old one: emplace() kept the old
+				// map entry while the new button was still added to the language
+				// bar, which then showed it twice and could never remove the copy
+				auto existing = buttons_.find(langBtn->id());
+				if (existing != buttons_.end()) {
+					textService_->removeButton(existing->second);
+					buttons_.erase(existing);
+				}
 				buttons_.emplace(langBtn->id(), langBtn); // insert into the map
 				textService_->addButton(langBtn);
 			}
@@ -608,7 +617,8 @@ void Client::updateLanguageButtons(json& msg) {
 	if (changeButtonVal.is_array()) {
 		// FIXME: handle windows-mode-icon
 		for (auto& btn : changeButtonVal) {
-			if (btn.is_object()) {
+			// get<string>() on a missing id threw, and the rest of the reply was lost
+			if (btn.is_object() && btn["id"].is_string()) {
 				string id = btn["id"].get<string>();
 				auto map_it = buttons_.find(id);
 				if (map_it != buttons_.end()) {
@@ -965,7 +975,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 	json ret;
 	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
-		bool eaten = ret.value("return", false);
+		bool eaten = isTrueMember(ret, "return");
 		// The key goes to the app (Esc, Enter, Backspace, arrows, a Shift tap
 		// switching to English...): a message window left up while nothing is
 		// composed has served its purpose. Done here for every IME rather than
@@ -985,7 +995,7 @@ bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	json ret;
 	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret, session)) {
-		return ret.value("return", false);
+		return isTrueMember(ret, "return");
 	}
 	return shouldHoldKeyWhenBackendUnavailable(keyEvent);
 }
@@ -997,7 +1007,7 @@ bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {
 	json ret;
 	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
-		return ret.value("return", false);
+		return isTrueMember(ret, "return");
 	}
 	return false;
 }
@@ -1009,7 +1019,7 @@ bool Client::onKeyUp(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	json ret;
 	callKeyRpcMethod(req, ret);
 	if (handleRpcResponse(ret, session)) {
-		return ret.value("return", false);
+		return isTrueMember(ret, "return");
 	}
 	return false;
 }
@@ -1023,7 +1033,7 @@ bool Client::onPreservedKey(const GUID& guid) {
 		json ret;
 		callRpcMethod(req, ret);
 		if (handleRpcResponse(ret)) {
-			return ret.value("return", false);
+			return isTrueMember(ret, "return");
 		}
 	}
 	return false;
@@ -1037,7 +1047,7 @@ bool Client::onCommand(UINT id, Ime::TextService::CommandType type) {
 	json ret;
 	callRpcMethod(req, ret);
 	if (handleRpcResponse(ret)) {
-		return ret.value("return", false);
+		return isTrueMember(ret, "return");
 	}
 	return false;
 }

@@ -536,9 +536,9 @@ impl ChewingConfig {
     /// CC:408 save(): json.dump(indent=4, ensure_ascii=False) + "\n", text mode
     pub fn save(&mut self) -> bool {
         let filename = self.get_config_file("config.json");
-        let tmp_filename = with_suffix(&filename, ".tmp");
+        let tmp_filename = super::userdict::temp_path_for(&filename);
         let text = (json_dump_unsorted(&Value::Object(self.to_json())) + "\n").replace('\n', "\r\n");
-        match write_synced(&tmp_filename, text.as_bytes()).and_then(|_| fs::rename(&tmp_filename, &filename)) {
+        match write_synced(&tmp_filename, text.as_bytes()).and_then(|_| super::userdict::replace_file(&tmp_filename, &filename)) {
             Ok(()) => true,
             Err(err) => {
                 eprintln!("chewing: cannot save {}: {}", filename.display(), err);

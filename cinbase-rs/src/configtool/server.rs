@@ -30,6 +30,11 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 pub const SERVER_TIMEOUT: f64 = 120.0;
 /// MAX_BODY_SIZE: the biggest body is an imported 新酷音 user dictionary
 pub const MAX_BODY_SIZE: u64 = 64 * 1024 * 1024;
+/// MAX_SMALL_BODY_SIZE: every other request; only a logged-in upload to
+/// LARGE_BODY_PATH may be MAX_BODY_SIZE (any local program could otherwise make
+/// the tool allocate 64 MB per connection before the login was even checked)
+pub const MAX_SMALL_BODY_SIZE: u64 = 4 * 1024 * 1024;
+const LARGE_BODY_PATH: &str = "/user_phrase_file";
 /// http.server: request line / header line limit (_MAXLINE) and header count
 const MAX_LINE: usize = 65536;
 const MAX_HEADERS: usize = 100;
@@ -760,6 +765,21 @@ impl App {
         }
     }
 
+    /// config_server.ConfigServerApp._body_limit: what a body may be, before it is read
+    fn body_limit(&self, target: &str, headers: &[(String, String)]) -> u64 {
+        let (path, _) = split_target(target);
+        let cookie = headers.iter().find(|(k, _)| k.eq_ignore_ascii_case("Cookie")).map(|(_, v)| v.as_str()).unwrap_or("");
+        let logged_in = match get_cookie(cookie, self.cookie_id) {
+            Some(token) if !token.is_empty() => compare_token(&token, &self.access_token).unwrap_or(false),
+            _ => false,
+        };
+        if path == LARGE_BODY_PATH && logged_in {
+            MAX_BODY_SIZE
+        } else {
+            MAX_SMALL_BODY_SIZE
+        }
+    }
+
     fn authenticated(&self, request: &Request) -> Result<(), HttpError> {
         if self.current_user(request)? {
             Ok(())
@@ -824,6 +844,9 @@ impl App {
             Target::Login => self.login(request, &groups[0]),
             Target::Api(name) => {
                 self.authenticated(request)?;
+                if method == "POST" {
+                    check_same_origin(request)?;
+                }
                 tool.handle(name, method, request)
             }
         }
@@ -992,7 +1015,7 @@ impl App {
                 None => None,
                 Some(s) => match crate::config::py_int_from_str(&s) {
                     Some(n) if n < 0 => Some(400),
-                    Some(n) if n as u64 > MAX_BODY_SIZE => Some(413),
+                    Some(n) if n as u64 > self.body_limit(&target, &headers) => Some(413),
                     Some(_) => None,
                     // beyond i64 but a number: too large
                     None if s.trim().trim_start_matches('+').chars().all(|c| c.is_ascii_digit() || c == '_') && !s.trim().is_empty() => Some(413),
@@ -1085,17 +1108,52 @@ impl App {
                 }
             });
         }
+        // A thread per connection, but not without limit: the page needs a few at
+        // a time, and any local program can open connections.
+        const MAX_CONNECTIONS: usize = 16;
+        let open = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
+                    if open.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= MAX_CONNECTIONS {
+                        open.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                        let _ = stream.shutdown(std::net::Shutdown::Both);
+                        continue;
+                    }
                     let app = Arc::clone(&app);
-                    std::thread::spawn(move || app.serve_connection(stream));
+                    let open = Arc::clone(&open);
+                    std::thread::spawn(move || {
+                        app.serve_connection(stream);
+                        open.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    });
                 }
                 Err(e) => log(&format!("ERROR: accept: {}", e)),
             }
         }
         app.exit()
     }
+}
+
+/// RequestHandler.check_same_origin: a POST that changes something must come
+/// from the tool's own page. SameSite=Strict does not tell ports apart, so a
+/// page any local program serves on http://127.0.0.1:<another port> could send
+/// the login cookie along. Browsers say where a request comes from (Origin,
+/// Sec-Fetch-Site); a request without those (not from a browser) is judged by
+/// the cookie.
+fn check_same_origin(request: &Request) -> Result<(), HttpError> {
+    if let Some(site) = request.header("Sec-Fetch-Site").filter(|s| !s.is_empty()) {
+        let site = site.to_lowercase();
+        if site != "same-origin" && site != "none" {
+            return Err(HttpError::status(403));
+        }
+    }
+    if let Some(origin) = request.header("Origin") {
+        let expected = format!("http://{}", request.header("Host").unwrap_or(""));
+        if origin.to_lowercase() != expected.to_lowercase() {
+            return Err(HttpError::status(403));
+        }
+    }
+    Ok(())
 }
 
 fn py_repr(s: &str) -> String {
