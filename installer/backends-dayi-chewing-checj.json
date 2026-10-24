@@ -3,6 +3,6 @@
         "name": "cinbase_rs",
         "command": "cinbase_rs\\wime-cinbase.exe",
         "workingDir": "cinbase_rs",
-        "params": ""
+        "params": "--preload"
     }
 ]
