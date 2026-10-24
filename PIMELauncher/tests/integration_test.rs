@@ -62,6 +62,12 @@ async fn setup_test_environment(pipe_name: &str) -> (BackendManager, PathBuf) {
             params: "--scenario hang".to_string(),
         },
         BackendConfig {
+            name: "quiet".to_string(),
+            command: "mock_backend.exe".to_string(),
+            working_dir: "".to_string(),
+            params: "--scenario quiet".to_string(),
+        },
+        BackendConfig {
             name: "fail".to_string(),
             command: "non_existent.exe".to_string(),
             working_dir: "".to_string(),
@@ -74,6 +80,7 @@ async fn setup_test_environment(pipe_name: &str) -> (BackendManager, PathBuf) {
     guid_to_backend.insert(GUID_TEST_CRASH.to_string(), "crash".to_string());
     guid_to_backend.insert(GUID_TEST_HANG.to_string(), "hang".to_string());
     guid_to_backend.insert(GUID_TEST_FAIL.to_string(), "fail".to_string());
+    guid_to_backend.insert(GUID_TEST_QUIET.to_string(), "quiet".to_string());
 
     let registry = BackendRegistry::with_configs(configs, guid_to_backend, &pime_root);
     let manager = BackendManager::new(registry);
@@ -337,5 +344,44 @@ async fn test_oversized_reply_does_not_stop_other_clients() -> TestResult {
 
     send_msg(&mut writer_b, "still there?").await?;
     assert_eq!(read_line(&mut lines_b).await?, "REPLY: still there?");
+    Ok(())
+}
+
+/// A client leaving sends the backend "close", which it does not answer. The
+/// watchdog took that for a request still waiting and, 15 s later with no other
+/// reply, killed the healthy backend: all three input methods lost what was
+/// being typed whenever an app was closed and nobody typed for 15 s.
+#[tokio::test]
+async fn test_backend_survives_idle_after_a_client_leaves() -> TestResult {
+    let _ = tracing_subscriber::fmt::try_init();
+
+    let pipe_name = format!(r#"\\.\pipe\pime_quiet_{}"#, uuid::Uuid::new_v4());
+    let (_manager, _pime_root) = setup_test_environment(&pipe_name).await;
+    let handshake = format!(r#"{{"method": "init", "id": "{}"}}"#, GUID_TEST_QUIET);
+    let pid_of = |reply: &str| reply.split_whitespace().nth(1).unwrap_or_default().to_string();
+
+    let client = connect_with_retry(&pipe_name).await;
+    let (reader, mut writer) = tokio::io::split(client);
+    let mut lines = BufReader::new(reader).lines();
+    send_msg(&mut writer, &handshake).await?;
+    let pid = pid_of(&read_line(&mut lines).await?);
+
+    // another app connects and goes away: the launcher sends "close"
+    {
+        let other = connect_with_retry(&pipe_name).await;
+        let (other_reader, mut other_writer) = tokio::io::split(other);
+        let mut other_lines = BufReader::new(other_reader).lines();
+        send_msg(&mut other_writer, &handshake).await?;
+        read_line(&mut other_lines).await?;
+        // apps close a while after their last reply (the watchdog only counts a
+        // request newer than the last output)
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    tokio::time::sleep(Duration::from_secs(17)).await;
+    send_msg(&mut writer, "still the same backend?").await?;
+    let reply = read_line(&mut lines).await?;
+    assert!(reply.ends_with("REPLY: still the same backend?"), "{}", reply);
+    assert_eq!(pid_of(&reply), pid, "the backend was restarted");
     Ok(())
 }

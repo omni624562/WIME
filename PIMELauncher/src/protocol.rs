@@ -75,6 +75,20 @@ pub fn parse_backend_output(line: &str) -> Option<(String, String)> {
     Some((rest[..sep].to_string(), rest[sep + 1..].to_string()))
 }
 
+/// Whether the backend answers a line sent to it (`<client_id>|<request>`):
+/// every request but "close", which only drops the client (server.py did not
+/// answer it either). The hang watchdog waits only for lines that get an
+/// answer; it used to count "close" and killed the idle, healthy backend 15 s
+/// after an app went away. Parsed rather than matched as text, so "close"
+/// spelled any other way (spaces, escapes) is recognised too.
+pub fn backend_input_expects_reply(line: &str) -> bool {
+    let request = line.split_once('|').map_or(line, |(_, request)| request);
+    let method = serde_json::from_str::<Value>(request.trim())
+        .ok()
+        .and_then(|v| v.get("method").and_then(|m| m.as_str()).map(str::to_owned));
+    method.as_deref() != Some("close")
+}
+
 /// Formats a message to be sent to a backend process.
 ///
 /// Format: <client_id>|<payload>
@@ -128,6 +142,18 @@ mod tests {
             lines.push(item);
         }
         assert_eq!(lines, vec![Some("short".to_string()), None, None, Some("next".to_string())]);
+    }
+
+    #[test]
+    fn test_close_gets_no_reply() {
+        assert!(!backend_input_expects_reply(r#"c1|{"method":"close"}"#));
+        assert!(!backend_input_expects_reply(r#"c1|{ "method" : "\u0063lose", "seqNum": 3 }"#));
+        assert!(backend_input_expects_reply(r#"c1|{"method":"onKeyDown","keyCode":65}"#));
+        assert!(backend_input_expects_reply(r#"c1|{"method":"init","id":"{x}"}"#));
+        // the backend answers what it cannot parse with success:false
+        assert!(backend_input_expects_reply("c1|not json"));
+        assert!(backend_input_expects_reply(r#"c1|["close"]"#));
+        assert!(backend_input_expects_reply(r#"c1|{"method":5}"#));
     }
 
     #[test]
