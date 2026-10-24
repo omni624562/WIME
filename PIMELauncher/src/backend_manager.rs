@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 use tokio::process::Command;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, error, info, warn};
@@ -130,6 +130,7 @@ impl BackendManager {
         let config_clone = config.clone();
 
         tokio::spawn(async move {
+            let mut backoff = crate::backoff::Backoff::for_restarts();
             loop {
                 // The BackendProcess and every client's copy of its sender are gone, so
                 // nothing can reach this backend any more: stop instead of restarting it.
@@ -144,11 +145,13 @@ impl BackendManager {
                 ) {
                     Ok(c) => c,
                     Err(e) => {
-                        error!("Failed to spawn backend {}: {}", backend_name_clone, e);
-                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        let delay = backoff.next_delay(Duration::ZERO);
+                        error!("Failed to spawn backend {}: {}. Retrying in {:?}", backend_name_clone, e, delay);
+                        tokio::time::sleep(delay).await;
                         continue;
                     }
                 };
+                let started = std::time::Instant::now();
 
                 let stdin = child_process.stdin.take().unwrap();
                 let stdout = child_process.stdout.take().unwrap();
@@ -184,8 +187,9 @@ impl BackendManager {
                     // Same as above; the process is killed when child_process drops.
                     break;
                 }
-                warn!("Restarting backend {}", backend_name_clone);
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                let delay = backoff.next_delay(started.elapsed());
+                warn!("Restarting backend {} in {:?}", backend_name_clone, delay);
+                tokio::time::sleep(delay).await;
             }
         });
 
@@ -376,11 +380,13 @@ impl BackendManager {
         false
     }
 
+    /// Milliseconds on a monotonic clock (the hang watchdog compares these). It
+    /// used the wall clock, and a clock set back made `now - req_t` wrap around
+    /// to a huge u64: the healthy backend was killed as hung.
     fn current_ms() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        // never 0: 0 would read as "before any request" in the watchdog
+        START.get_or_init(std::time::Instant::now).elapsed().as_millis() as u64 + 1
     }
 }
 

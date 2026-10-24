@@ -3,6 +3,8 @@ import json
 import time
 
 def main():
+    # the name of 1.3.0-beta19 and older, still served (the current one is
+    # \\.\pipe\PIME\<user SID>\<session id>\Launcher, see tests/e2e_pipe_test.py)
     username = os.environ.get("USERNAME", "pcman")
     pipe_name = fr"\\.\pipe\{username}\PIME\Launcher"
     

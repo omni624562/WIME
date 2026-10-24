@@ -86,6 +86,8 @@ private:
 	bool recoverStaleBackendClient(nlohmann::json& request, nlohmann::json& response);
 
 	bool isPipeCreatedByPIMEServer(HANDLE pipe);
+	bool shouldHoldKeyWhenBackendUnavailable(Ime::KeyEvent& keyEvent) const;
+	void noteBackendAvailable(bool available);
 	bool waitForRpcConnection(int connectTimeoutMs = 3000, int connectAttempts = 3);
 	bool callRpcPipe(HANDLE pipe, const std::string& serializedRequest, std::string& serializedReply, int timeoutMs = 2000);
 	bool callPipeIO(bool isRead, void *buffer, DWORD size, DWORD *rlen, int timeoutMs);
@@ -131,6 +133,12 @@ private:
 	// a request lost the connection since discardOrphanedUi() last ran: the UI on
 	// screen may belong to a backend client that no longer exists
 	bool connectionLost_;
+	// when the backend stopped answering (0 while it answers): printable keys are
+	// held only for a short while after that, then they reach the app again
+	ULONGLONG backendUnavailableSinceTick_;
+	// GetLastError() of the last failed connectPipe(): ERROR_FILE_NOT_FOUND means
+	// no launcher is running (startLauncherIfMissing)
+	DWORD lastConnectError_;
 };
 
 }

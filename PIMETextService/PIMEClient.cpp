@@ -25,6 +25,10 @@
 #include "PIMETextService.h"
 #include <VersionHelpers.h> // Provided by Windows SDK >= 8.1
 #include <Winnls.h> // for IS_HIGH_SURROGATE() macro for checking UTF16 surrogate pairs
+#include <aclapi.h> // GetSecurityInfo: the launcher pipe's owner
+#include <sddl.h> // ConvertSidToStringSidW: the launcher pipe's name
+#include <atomic>
+#include <vector>
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -266,15 +270,12 @@ static bool usesModernCandidateDefault(const std::string& guid) {
 		guid == kCheliuProfileGuid;
 }
 
-static bool shouldHoldKeyWhenBackendUnavailable(const std::string& guid, Ime::KeyEvent& keyEvent) {
-	if (!usesModernCandidateDefault(guid))
-		return false;
-
-	if (keyEvent.isKeyDown(VK_CONTROL) || keyEvent.isKeyDown(VK_MENU))
-		return false;
-
-	return keyEvent.charCode() >= 0x20;
-}
+// Printable keys typed while the backend does not answer are held (not typed as
+// raw letters into the document) for this long after it stopped answering --
+// a restart takes well under a second. Past that the keys reach the app again:
+// they used to be held for as long as the launcher was gone, so nothing at all
+// could be typed until the user signed out and in again.
+static constexpr ULONGLONG kHoldKeysWhileBackendUnavailableMs = 5000;
 
 Client::Client(TextService* service, REFIID langProfileGuid):
 	textService_(service),
@@ -287,7 +288,9 @@ Client::Client(TextService* service, REFIID langProfileGuid):
 	lastSuccessfulRpcTick_{ 0 },
 	lastFocusPingTick_{ 0 },
 	discardingOrphanedUi_{ false },
-	connectionLost_{ false } {
+	connectionLost_{ false },
+	backendUnavailableSinceTick_{ 0 },
+	lastConnectError_{ ERROR_SUCCESS } {
 	if (usesModernCandidateDefault(guid_)) {
 		textService_->setCandPerRow(6);
 		textService_->setCandidateEdgeAvoidance(true);
@@ -317,6 +320,27 @@ Client::~Client(void) {
 
 // pack a keyEvent object into a json value
 //static
+bool Client::shouldHoldKeyWhenBackendUnavailable(Ime::KeyEvent& keyEvent) const {
+	if (!usesModernCandidateDefault(guid_))
+		return false;
+
+	if (keyEvent.isKeyDown(VK_CONTROL) || keyEvent.isKeyDown(VK_MENU))
+		return false;
+
+	if (backendUnavailableSinceTick_ != 0 &&
+		::GetTickCount64() - backendUnavailableSinceTick_ >= kHoldKeysWhileBackendUnavailableMs)
+		return false;
+
+	return keyEvent.charCode() >= 0x20;
+}
+
+void Client::noteBackendAvailable(bool available) {
+	if (available)
+		backendUnavailableSinceTick_ = 0;
+	else if (backendUnavailableSinceTick_ == 0)
+		backendUnavailableSinceTick_ = ::GetTickCount64();
+}
+
 void Client::addKeyEventToRpcRequest(json& request, Ime::KeyEvent& keyEvent) {
 	request["charCode"] = keyEvent.charCode();
 	request["keyCode"] = keyEvent.keyCode();
@@ -951,7 +975,7 @@ bool Client::filterKeyDown(Ime::KeyEvent& keyEvent) {
 		}
 		return eaten;
 	}
-	return shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent);
+	return shouldHoldKeyWhenBackendUnavailable(keyEvent);
 }
 
 bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
@@ -963,7 +987,7 @@ bool Client::onKeyDown(Ime::KeyEvent& keyEvent, Ime::EditSession* session) {
 	if (handleRpcResponse(ret, session)) {
 		return ret.value("return", false);
 	}
-	return shouldHoldKeyWhenBackendUnavailable(guid_, keyEvent);
+	return shouldHoldKeyWhenBackendUnavailable(keyEvent);
 }
 
 bool Client::filterKeyUp(Ime::KeyEvent& keyEvent) {
@@ -1358,6 +1382,7 @@ bool Client::callKeyRpcMethod(json& request, json& response) {
 // a sequence number will be added to the req object automatically.
 bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int connectTimeoutMs, int connectAttempts) {
 	if (shouldWaitConnection_ && !waitForRpcConnection(connectTimeoutMs, connectAttempts)) {
+		noteBackendAvailable(false);
 		return false;
 	}
 
@@ -1392,16 +1417,137 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 		// than here: this can run inside updateStatus() (e.g. the nested
 		// onCompositionTerminated request), in the middle of applying a reply.
 		connectionLost_ = true;
+		noteBackendAvailable(false);
 	}
 	else {
 		lastSuccessfulRpcTick_ = ::GetTickCount64();
+		noteBackendAvailable(true);
 	}
 	return success;
+}
+
+// The current user's SID (TOKEN_USER of this process; an AppContainer token has
+// it too). Empty on failure.
+static std::vector<BYTE> currentUserSid() {
+	std::vector<BYTE> sid;
+	HANDLE token = NULL;
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token))
+		return sid;
+	DWORD size = 0;
+	::GetTokenInformation(token, TokenUser, NULL, 0, &size);
+	std::vector<BYTE> buffer(size);
+	if (size && ::GetTokenInformation(token, TokenUser, buffer.data(), size, &size)) {
+		PSID user = reinterpret_cast<TOKEN_USER*>(buffer.data())->User.Sid;
+		if (::IsValidSid(user)) {
+			sid.resize(::GetLengthSid(user));
+			::CopySid(static_cast<DWORD>(sid.size()), sid.data(), user);
+		}
+	}
+	::CloseHandle(token);
+	return sid;
+}
+
+// The pipe was created by a process of our own account (PIMELauncher sets the
+// owner to its user explicitly, also when it runs elevated; acl.rs).
+static bool isPipeOwnedByCurrentUser(HANDLE pipe) {
+	std::vector<BYTE> user = currentUserSid();
+	if (user.empty())
+		return false;
+	PSID owner = NULL;
+	PSECURITY_DESCRIPTOR sd = NULL;
+	if (::GetSecurityInfo(pipe, SE_KERNEL_OBJECT, OWNER_SECURITY_INFORMATION, &owner, NULL, NULL, NULL, &sd) != ERROR_SUCCESS)
+		return false;
+	bool same = owner != NULL && ::EqualSid(owner, user.data());
+	::LocalFree(sd);
+	return same;
 }
 
 // Anchor used solely to resolve this DLL's own HMODULE via GetModuleHandleExW's
 // "from address" lookup below (needs an ordinary, non-member function address).
 static void thisModuleAnchor() {
+}
+
+// <install dir>\PIMELauncher.exe: this DLL lives in an arch subfolder (x86, x64,
+// arm64) of the install directory. Empty on failure.
+static std::wstring launcherPath() {
+	HMODULE hSelf = NULL;
+	if (!::GetModuleHandleExW(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			reinterpret_cast<LPCWSTR>(&thisModuleAnchor),
+			&hSelf) || hSelf == NULL) {
+		return std::wstring();
+	}
+	wchar_t selfPath[MAX_PATH] = { 0 };
+	if (::GetModuleFileNameW(hSelf, selfPath, MAX_PATH) == 0) {
+		return std::wstring();
+	}
+	std::wstring dllPath(selfPath);
+	size_t archDirSlash = dllPath.find_last_of(L"\\/");
+	if (archDirSlash == std::wstring::npos) {
+		return std::wstring();
+	}
+	std::wstring archDir = dllPath.substr(0, archDirSlash);
+	size_t installDirSlash = archDir.find_last_of(L"\\/");
+	if (installDirSlash == std::wstring::npos) {
+		return std::wstring();
+	}
+	return archDir.substr(0, installDirSlash) + L"\\PIMELauncher.exe";
+}
+
+// This process runs at medium integrity, as the launcher should: started from a
+// low-integrity or AppContainer host it could not write the user's settings,
+// started from an elevated one it would run its backends and the settings tool
+// elevated.
+static bool isMediumIntegrityProcess() {
+	HANDLE token = NULL;
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token))
+		return false;
+	DWORD size = 0;
+	::GetTokenInformation(token, TokenIntegrityLevel, NULL, 0, &size);
+	std::vector<BYTE> buffer(size);
+	bool medium = false;
+	if (size && ::GetTokenInformation(token, TokenIntegrityLevel, buffer.data(), size, &size)) {
+		PSID sid = reinterpret_cast<TOKEN_MANDATORY_LABEL*>(buffer.data())->Label.Sid;
+		DWORD rid = *::GetSidSubAuthority(sid, *::GetSidSubAuthorityCount(sid) - 1);
+		medium = rid >= SECURITY_MANDATORY_MEDIUM_RID && rid < SECURITY_MANDATORY_HIGH_RID;
+	}
+	::CloseHandle(token);
+	return medium;
+}
+
+// No launcher pipe at all: PIMELauncher.exe is not running in this session (it
+// was ended, or an upgrade stopped it here and restarted it only for the user
+// who ran the installer). Start it, at most once every 10 s per process; its
+// single-instance mutex lets only one of several such attempts survive.
+static void startLauncherIfMissing() {
+	static std::atomic<ULONGLONG> lastAttemptTick{ 0 };
+	ULONGLONG now = ::GetTickCount64();
+	ULONGLONG last = lastAttemptTick.load();
+	if (last != 0 && now - last < 10000)
+		return;
+	if (!lastAttemptTick.compare_exchange_strong(last, now))
+		return;
+	if (!isMediumIntegrityProcess())
+		return;
+	std::wstring path = launcherPath();
+	if (path.empty() || ::GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES)
+		return;
+	std::wstring dir = path.substr(0, path.find_last_of(L'\\'));
+	std::wstring commandLine = L"\"" + path + L"\"";
+	STARTUPINFOW si = { sizeof(si) };
+	PROCESS_INFORMATION pi = {};
+	// out of the host's job, if it allows that: a job that ends with the app
+	// would take the launcher (and every other app's input method) along
+	DWORD flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP;
+	BOOL started = ::CreateProcessW(path.c_str(), &commandLine[0], NULL, NULL, FALSE, flags, NULL, dir.c_str(), &si, &pi);
+	if (!started && ::GetLastError() == ERROR_ACCESS_DENIED) {
+		flags &= ~CREATE_BREAKAWAY_FROM_JOB;
+		started = ::CreateProcessW(path.c_str(), &commandLine[0], NULL, NULL, FALSE, flags, NULL, dir.c_str(), &si, &pi);
+	}
+	if (started) {
+		::CloseHandle(pi.hThread);
+		::CloseHandle(pi.hProcess);
+	}
 }
 
 // 目前行程是否跑在 AppContainer 沙箱裡（UWP：SearchHost、設定、Store 應用）。
@@ -1422,11 +1568,25 @@ static bool isRunningInAppContainer() {
 
 bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 	// security check: make sure that we're connecting to the real PIMELauncher
-	// process, not another process running as the same user that pre-created a
-	// pipe with the same predictable name (\\.\pipe\<username>\PIME\Launcher),
-	// e.g. during boot or the launcher's crash-restart window.
+	// process. Pipe names are shared by the whole machine, so another account
+	// (or another process of ours) could create the pipe first.
 
-	// UWP/AppContainer 沙箱行程無法驗證伺服器身分，直接信任管道 ACL 放行
+	// 1. Our own logon session and our own account. These hold in an AppContainer
+	// too. The owner check replaces "OpenProcess was denied, so let it pass",
+	// which was exactly what a server of another account looks like.
+	ULONG serverSession = 0;
+	DWORD ourSession = 0;
+	if (!::GetNamedPipeServerSessionId(pipe, &serverSession) ||
+		!::ProcessIdToSessionId(::GetCurrentProcessId(), &ourSession) ||
+		serverSession != ourSession) {
+		return false;
+	}
+	if (!isPipeOwnedByCurrentUser(pipe))
+		return false;
+
+	// 2. The server is our PIMELauncher.exe. A UWP/AppContainer process cannot
+	// open another process to check that (OpenProcess always fails in the
+	// sandbox); the pipe's ACL and owner are what is left to rely on there.
 	if (isRunningInAppContainer())
 		return true;
 
@@ -1437,8 +1597,8 @@ bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 
 	HANDLE serverProcess = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, serverPid);
 	if (serverProcess == NULL) {
-		// 非 AppContainer 但仍受限的沙箱（例如 low integrity level）同理無從
-		// 驗證，OpenProcess 被拒時放行；其他非權限類失敗維持拒連
+		// a restricted (e.g. low integrity) process cannot open the launcher
+		// either; the owner and session checked above are what it can rely on
 		return ::GetLastError() == ERROR_ACCESS_DENIED;
 	}
 	wchar_t serverPath[MAX_PATH] = { 0 };
@@ -1449,41 +1609,15 @@ bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 		return false;
 	}
 
-	// Resolve our own DLL's directory, then require the server exe to be
-	// "PIMELauncher.exe" one level up (installer layout: PIMETextService.dll
-	// lives in an arch subfolder such as x86/x64/arm64, PIMELauncher.exe sits
-	// directly in the parent install directory).
-	HMODULE hSelf = NULL;
-	if (!::GetModuleHandleExW(
-			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-			reinterpret_cast<LPCWSTR>(&thisModuleAnchor),
-			&hSelf) || hSelf == NULL) {
-		return false;
-	}
-	wchar_t selfPath[MAX_PATH] = { 0 };
-	if (::GetModuleFileNameW(hSelf, selfPath, MAX_PATH) == 0) {
-		return false;
-	}
-
-	std::wstring dllPath(selfPath);
-	size_t archDirSlash = dllPath.find_last_of(L"\\/");
-	if (archDirSlash == std::wstring::npos) {
-		return false;
-	}
-	std::wstring archDir = dllPath.substr(0, archDirSlash);
-	size_t installDirSlash = archDir.find_last_of(L"\\/");
-	if (installDirSlash == std::wstring::npos) {
-		return false;
-	}
-	std::wstring expectedLauncherPath = archDir.substr(0, installDirSlash) + L"\\PIMELauncher.exe";
-
-	return _wcsicmp(serverPath, expectedLauncherPath.c_str()) == 0;
+	std::wstring expectedLauncherPath = launcherPath();
+	return !expectedLauncherPath.empty() && _wcsicmp(serverPath, expectedLauncherPath.c_str()) == 0;
 }
 
 // establish a connection to the specified pipe and returns its handle
 // static
 HANDLE Client::connectPipe(const wchar_t* pipeName, int timeoutMs) {
 	HANDLE pipe = INVALID_HANDLE_VALUE;
+	lastConnectError_ = ERROR_SUCCESS;
 	if (WaitNamedPipe(pipeName, timeoutMs)) {
 		// SECURITY_IDENTIFICATION: the server may learn who we are but never act as
 		// us. Without it a pipe server can impersonate the client at the default
@@ -1492,6 +1626,9 @@ HANDLE Client::connectPipe(const wchar_t* pipeName, int timeoutMs) {
 		// PIMELauncher does not impersonate its clients.
 		pipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
 			FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION, NULL);
+	}
+	else {
+		lastConnectError_ = ::GetLastError();
 	}
 
 	if (pipe != INVALID_HANDLE_VALUE) {
@@ -1519,6 +1656,10 @@ bool Client::waitForRpcConnection(int connectTimeoutMs, int connectAttempts) {
 	for (int attempt = 0; pipe_ == INVALID_HANDLE_VALUE && attempt < attempts; ++attempt) {
 		// try to connect to the server
 		pipe_ = connectPipe(serverPipeName.c_str(), timeoutMs);
+	}
+	if (pipe_ == INVALID_HANDLE_VALUE && lastConnectError_ == ERROR_FILE_NOT_FOUND) {
+		// no launcher in this session: start one for the next key
+		startLauncherIfMissing();
 	}
 
 	if (pipe_ != INVALID_HANDLE_VALUE) {
@@ -1594,19 +1735,25 @@ void Client::closeRpcConnection() {
 	readBuffer_.clear();
 }
 
+// \\.\pipe\PIME\<user SID>\<session id>\<base_name>, the name PIMELauncher listens
+// on (acl.rs launcher_pipe_name). Pipe names are shared by the whole machine:
+// the user name used before let another account take the name first, and the
+// same account signed in twice (RDP) shared one launcher.
 wstring Client::getPipeName(const wchar_t* base_name) {
-	wstring pipeName = L"\\\\.\\pipe\\";
-	DWORD len = 0;
-	::GetUserNameW(NULL, &len); // get the required size of the buffer
-	if (len <= 0)
+	std::vector<BYTE> sid = currentUserSid();
+	LPWSTR sidString = NULL;
+	if (sid.empty() || !::ConvertSidToStringSidW(sid.data(), &sidString))
 		return wstring();
-	// add username to the pipe path so it won't clash with the other users' pipes
-	unique_ptr<wchar_t[]> username(new wchar_t[len]);
-	if (!::GetUserNameW(username.get(), &len))
+	DWORD session = 0;
+	if (!::ProcessIdToSessionId(::GetCurrentProcessId(), &session)) {
+		::LocalFree(sidString);
 		return wstring();
-	pipeName += username.get();
-	pipeName += L"\\PIME\\";
+	}
+	wstring pipeName = L"\\\\.\\pipe\\PIME\\";
+	pipeName += sidString;
+	pipeName += L"\\" + std::to_wstring(session) + L"\\";
 	pipeName += base_name;
+	::LocalFree(sidString);
 	return pipeName;
 }
 

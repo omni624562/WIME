@@ -16,7 +16,7 @@ Build a rust-based, constantly running background service.
   - keep track of connected clients and their states. If the backend dies, do not disconnect client. Just silently restart backend seamlessly.
 
 - setup a windows named pipe for other programs to communicate with this service.
-  - name: \\.\pipe\<current-user>\PIME\Launcher
+  - name: \\.\pipe\PIME\<current user's SID>\<session id>\Launcher (owner: the current user)
   - ACL:
     - allows processes run by current user to connect.
     - allow windows 8+ app containers to connect (metro apps)

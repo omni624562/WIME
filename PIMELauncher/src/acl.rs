@@ -50,43 +50,12 @@ impl PipeSecurityAttributes {
     /// Creates a new PipeSecurityAttributes by detecting the current user's SID
     /// and constructing an appropriate SDDL string.
     pub fn new() -> Option<Self> {
-        // 1. Get the process token
-        let mut process_token = HANDLE::default();
-        unsafe {
-            OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut process_token).ok()?;
-        }
-        let token = AutoHandle(process_token);
+        let user_sid = current_user_sid()?;
 
-        // 2. Get User SID from token
-        let mut buf_size = 0;
-        unsafe {
-            // First call to get required buffer size.
-            let _ = GetTokenInformation(token.0, TokenUser, None, 0, &mut buf_size);
-        }
-
-        let mut token_user_buf = vec![0u8; buf_size as usize];
-        unsafe {
-            GetTokenInformation(
-                token.0,
-                TokenUser,
-                Some(token_user_buf.as_mut_ptr() as *mut c_void),
-                buf_size,
-                &mut buf_size,
-            )
-            .ok()?;
-        }
-
-        let user_sid = unsafe {
-            let token_user = &*(token_user_buf.as_ptr() as *const TOKEN_USER);
-            let mut sid_str_ptr = PWSTR::null();
-            ConvertSidToStringSidW(token_user.User.Sid, &mut sid_str_ptr).ok()?;
-
-            let sid = sid_str_ptr.to_string().ok()?;
-            let _ = LocalFree(Some(HLOCAL(sid_str_ptr.0 as _)));
-            sid
-        };
-
-        // 3. Construct SDDL:
+        // Construct SDDL:
+        // O: owner, the current user also when the launcher runs elevated (whose
+        //    objects default to the Administrators group): PIMETextService
+        //    accepts only a pipe owned by its own user (PIMEClient.cpp)
         // D: DACL
         // (D;;GA;;;NU) - Deny Network
         // (A;;GA;;;SY) - Allow Local System
@@ -96,7 +65,7 @@ impl PipeSecurityAttributes {
         // S: SACL
         // (ML;;NWNR;;;LW) - Low Mandatory Level (Integrity)
         let sddl = format!(
-            "D:(D;;GA;;;NU)(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;AC)(A;;GA;;;{})S:(ML;;NWNR;;;LW)",
+            "O:{0}D:(D;;GA;;;NU)(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;AC)(A;;GA;;;{0})S:(ML;;NWNR;;;LW)",
             user_sid
         );
 
@@ -119,15 +88,81 @@ impl PipeSecurityAttributes {
             sa: SECURITY_ATTRIBUTES {
                 nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
                 lpSecurityDescriptor: sd.0,
-                bInheritHandle: true.into(),
+                // the backends (child processes) have no use for the pipe handles
+                bInheritHandle: false.into(),
             },
         })
     }
 }
 
+/// The current user's SID as a string ("S-1-5-21-...").
+pub fn current_user_sid() -> Option<String> {
+    let mut process_token = HANDLE::default();
+    unsafe {
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut process_token).ok()?;
+    }
+    let token = AutoHandle(process_token);
+
+    let mut buf_size = 0;
+    unsafe {
+        // First call to get required buffer size.
+        let _ = GetTokenInformation(token.0, TokenUser, None, 0, &mut buf_size);
+    }
+    let mut token_user_buf = vec![0u8; buf_size as usize];
+    unsafe {
+        GetTokenInformation(
+            token.0,
+            TokenUser,
+            Some(token_user_buf.as_mut_ptr() as *mut c_void),
+            buf_size,
+            &mut buf_size,
+        )
+        .ok()?;
+    }
+
+    unsafe {
+        let token_user = &*(token_user_buf.as_ptr() as *const TOKEN_USER);
+        let mut sid_str_ptr = PWSTR::null();
+        ConvertSidToStringSidW(token_user.User.Sid, &mut sid_str_ptr).ok()?;
+        let sid = sid_str_ptr.to_string().ok();
+        let _ = LocalFree(Some(HLOCAL(sid_str_ptr.0 as _)));
+        sid
+    }
+}
+
+/// The launcher's pipe: \\.\pipe\PIME\<user SID>\<session id>\Launcher, the name
+/// PIMETextService builds the same way (PIMEClient::getPipeName). Pipe names are
+/// shared by the whole machine: the user name alone let another account create
+/// the pipe first (and the same account signed in twice share one name).
+pub fn launcher_pipe_name() -> Option<String> {
+    use windows::Win32::System::RemoteDesktop::ProcessIdToSessionId;
+    use windows::Win32::System::Threading::GetCurrentProcessId;
+    let sid = current_user_sid()?;
+    let mut session = 0u32;
+    unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut session).ok()? };
+    Some(format!(r"\\.\pipe\PIME\{}\{}\Launcher", sid, session))
+}
+
+/// The pipe of 1.3.0-beta19 and older (\\.\pipe\<user name>\PIME\Launcher),
+/// still served so apps that loaded the old PIMETextService.dll before an
+/// upgrade keep typing until they are restarted. To be dropped in a later release.
+pub fn legacy_launcher_pipe_name() -> Option<String> {
+    let username = std::env::var("USERNAME").ok().filter(|u| !u.is_empty())?;
+    Some(format!(r"\\.\pipe\{}\PIME\Launcher", username))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_pipe_names() {
+        let name = launcher_pipe_name().unwrap();
+        let sid = current_user_sid().unwrap();
+        assert!(sid.starts_with("S-1-"), "{}", sid);
+        assert!(name.starts_with(&format!(r"\\.\pipe\PIME\{}\", sid)), "{}", name);
+        assert!(name.ends_with(r"\Launcher"), "{}", name);
+    }
 
     #[test]
     fn test_create_security_attributes() {

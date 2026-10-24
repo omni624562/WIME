@@ -5,6 +5,7 @@
 //! It handles named pipe communication, backend lifecycle management, and security ACLs.
 
 pub mod acl;
+pub mod backoff;
 pub mod backend_manager;
 pub mod backend_registry;
 pub mod client_session;

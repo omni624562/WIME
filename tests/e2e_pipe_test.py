@@ -12,7 +12,33 @@ import os
 import time
 import unittest
 
-PIPE = r"\\.\pipe\{}\PIME\Launcher".format(os.environ.get("USERNAME", ""))
+def launcher_pipe_name():
+    """\\\\.\\pipe\\PIME\\<user SID>\\<session id>\\Launcher, the name PIMELauncher
+    listens on (acl.rs launcher_pipe_name) and PIMETextService connects to."""
+    import ctypes
+    from ctypes import wintypes
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    token = wintypes.HANDLE()
+    if not advapi32.OpenProcessToken(kernel32.GetCurrentProcess(), 0x0008, ctypes.byref(token)):  # TOKEN_QUERY
+        return ""
+    size = wintypes.DWORD()
+    advapi32.GetTokenInformation(token, 1, None, 0, ctypes.byref(size))  # TokenUser
+    buffer = ctypes.create_string_buffer(size.value)
+    sid_string = wintypes.LPWSTR()
+    ok = advapi32.GetTokenInformation(token, 1, buffer, size, ctypes.byref(size)) and \
+        advapi32.ConvertSidToStringSidW(ctypes.c_void_p.from_buffer(buffer).value, ctypes.byref(sid_string))
+    kernel32.CloseHandle(token)
+    session = wintypes.DWORD()
+    if not ok or not kernel32.ProcessIdToSessionId(kernel32.GetCurrentProcessId(), ctypes.byref(session)):
+        return ""
+    sid = sid_string.value
+    kernel32.LocalFree(sid_string)
+    return r"\\.\pipe\PIME\{}\{}\Launcher".format(sid, session.value)
+
+
+PIPE = launcher_pipe_name()
 CHEWING_GUID = "{f80736aa-28db-423a-92c9-5540f501c939}"
 CHEDAYI_GUID = "{e6943374-70f5-4540-aa0f-3205c7dcca84}"
 DAYI_CAND_SELKEYS = "␣'[]-\\"  # ␣'[]-\
