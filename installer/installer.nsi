@@ -201,7 +201,7 @@ FunctionEnd
 !macro DEFINE_KILL_PROCESSES_IN_INSTDIR UN
 Function ${UN}killProcessesInInstDir
 	Push $0
-	nsExec::ExecToLog `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '$INSTDIR\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
+	nsExec::ExecToLog `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '$INSTDIR\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
 	Pop $0 ; exit code, ignored: best effort
 	Pop $0
 	Sleep 500
@@ -250,7 +250,7 @@ FunctionEnd
 Function checkPendingDeletesInInstDir
 	Push $0
 	Push $1
-	nsExec::ExecToStack `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$$v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations; $$p = ('\??\' + '$INSTDIR' + '\').ToLower(); $$hit = @($$v | Where-Object { $$_ -and $$_.ToLower().StartsWith($$p) } | Where-Object { $$leaf = Split-Path $$_ -Leaf; $$leaf.Contains('.') -and -not $$leaf.ToLower().Contains('.old') }); if ($$hit.Count) { $$hit[0].Substring(4); exit 3 } else { exit 0 }"`
+	nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$$v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations; $$p = ('\??\' + '$INSTDIR' + '\').ToLower(); $$hit = @($$v | Where-Object { $$_ -and $$_.ToLower().StartsWith($$p) } | Where-Object { $$leaf = Split-Path $$_ -Leaf; $$leaf.Contains('.') -and -not $$leaf.ToLower().Contains('.old') }); if ($$hit.Count) { $$hit[0].Substring(4); exit 3 } else { exit 0 }"`
 	Pop $0 ; exit code
 	Pop $1 ; first offending path, if any
 	${If} $0 == 3
@@ -920,7 +920,8 @@ Section "" Register
 	ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\x86\PIMETextService.dll"'
 
 	; Launch the launcher (and through it the backends) on startup
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher" "$INSTDIR\PIMELauncher.exe"
+	; quoted: the path has spaces, and an unquoted Run value could start C:\Program.exe
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "PIMELauncher" '"$INSTDIR\PIMELauncher.exe"'
 
 	;Store installation folder in the registry
 	WriteRegStr HKLM "Software\PIME" "" $INSTDIR

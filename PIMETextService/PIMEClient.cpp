@@ -1485,7 +1485,13 @@ bool Client::isPipeCreatedByPIMEServer(HANDLE pipe) {
 HANDLE Client::connectPipe(const wchar_t* pipeName, int timeoutMs) {
 	HANDLE pipe = INVALID_HANDLE_VALUE;
 	if (WaitNamedPipe(pipeName, timeoutMs)) {
-		pipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+		// SECURITY_IDENTIFICATION: the server may learn who we are but never act as
+		// us. Without it a pipe server can impersonate the client at the default
+		// SecurityImpersonation level -- with the token of an elevated app the
+		// user is typing in, if a rogue process got to create the pipe first.
+		// PIMELauncher does not impersonate its clients.
+		pipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+			FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION, NULL);
 	}
 
 	if (pipe != INVALID_HANDLE_VALUE) {

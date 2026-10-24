@@ -66,7 +66,8 @@ jobs:
       - name: Install NSIS
         uses: repolevedavaj/install-nsis@v1.3.0
         with:
-          nsis-version: 3.08
+          # 3.09+: CVE-2023-37378 (the uninstaller's temp folder ACL); same as the local release builds
+          nsis-version: 3.12
 
       # Builds x86 (everything, incl. PIMELauncher and the C++ tests), plus the
       # x64 and ARM64 PIMETextService.dll and the ARM64 PIMELauncher.exe,
