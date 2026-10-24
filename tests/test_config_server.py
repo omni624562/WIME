@@ -169,6 +169,52 @@ class ConfigToolTestMixin:
             status_line = sock.makefile("rb").readline().decode("ascii")
         self.assertIn(" 413 ", status_line)
 
+    def _raw_status(self, head, body=b""):
+        import socket
+        host, port = self.base[len("http://"):].split(":")
+        with socket.create_connection((host, int(port)), timeout=30) as sock:
+            sock.sendall(head.encode("ascii") + body)
+            return sock.makefile("rb").readline().decode("ascii")
+
+    def test_6f_big_bodies_only_for_a_logged_in_dictionary_upload(self):
+        size = 5 * 1024 * 1024   # over MAX_SMALL_BODY_SIZE (4 MB), under MAX_BODY_SIZE
+        cookie = "Cookie: %s=%s\r\n" % (self.COOKIE_ID, self.token)
+        # refused before the body is read: without a login, or not the upload
+        for path, extra in (("/user_phrase_file", ""), ("/config", cookie), ("/config", "")):
+            with self.subTest(path=path, logged_in=bool(extra)):
+                status = self._raw_status("POST %s HTTP/1.1\r\nHost: 127.0.0.1\r\n%sContent-Length: %d\r\n\r\n"
+                                          % (path, extra, size))
+                self.assertIn(" 413 ", status)
+        # the logged-in upload is read (and then judged on its content)
+        status = self._raw_status("POST /user_phrase_file HTTP/1.1\r\nHost: 127.0.0.1\r\n%s"
+                                  "Content-Type: application/octet-stream\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+                                  % (cookie, size), b"x" * size)
+        self.assertNotIn(" 413 ", status)
+
+    def test_6g_posts_from_other_origins_are_refused(self):
+        opener, _ = self._logged_in_opener()
+        host = self.base[len("http://"):]
+
+        def post(headers):
+            request = urllib.request.Request(self.base + "/config", method="POST", data=b"{}",
+                                             headers=dict({"Content-Type": "application/json"}, **headers))
+            try:
+                response = opener.open(request, timeout=10)
+            except urllib.error.HTTPError as error:
+                response = error
+            with response:
+                return response.code
+
+        for headers in ({"Origin": "http://127.0.0.1:1"}, {"Origin": "http://evil.example"}, {"Origin": "null"},
+                        {"Sec-Fetch-Site": "same-site"}, {"Sec-Fetch-Site": "cross-site"},
+                        {"Origin": "http://" + host, "Sec-Fetch-Site": "cross-site"}):
+            with self.subTest(headers=headers):
+                self.assertEqual(post(headers), 403)
+        for headers in ({}, {"Origin": "http://" + host, "Sec-Fetch-Site": "same-origin"},
+                        {"Origin": "HTTP://" + host.upper()}, {"Sec-Fetch-Site": "none"}):
+            with self.subTest(headers=headers):
+                self.assertEqual(post(headers), 200)
+
     def test_6e_no_python_details_in_headers(self):
         reply = _get(urllib.request.build_opener(), self.base + "/config")
         self.assertNotIn("Python", reply.headers.get("Server", ""))

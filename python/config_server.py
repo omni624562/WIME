@@ -40,6 +40,12 @@ SERVER_TIMEOUT = 120
 
 # 請求本文上限：最大的是新酷音匯入的使用者詞庫（SQLite 檔），其餘都是幾 KB 的 JSON
 MAX_BODY_SIZE = 64 * 1024 * 1024
+# every other request (settings, user phrases): a bigger body is refused unread.
+# Only a logged-in upload to /user_phrase_file may be MAX_BODY_SIZE: any local
+# program could otherwise make the tool allocate 64 MB per connection before
+# the login was even checked.
+MAX_SMALL_BODY_SIZE = 4 * 1024 * 1024
+LARGE_BODY_PATH = "/user_phrase_file"
 
 # 靜態檔案的 Content-Type 用固定的表：mimetypes 會讀登錄檔（使用者的設定可能把
 # .js 對應成 text/plain，頁面就不能執行），第一次查詢還要多花幾十 ms
@@ -76,10 +82,13 @@ class HTTPError(Exception):
 
 def authenticated(method):
     """Like @tornado.web.authenticated: requests without a valid token cookie get 403
-    (there is no interactive login page; see BaseHandler.get_login_url)."""
+    (there is no interactive login page; see BaseHandler.get_login_url). A POST
+    must also come from the tool's own pages (check_same_origin)."""
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
             self.get_login_url()
+        if self.request.method == "POST":
+            self.check_same_origin()
         return method(self, *args, **kwargs)
     wrapper.__name__ = method.__name__
     wrapper.__doc__ = method.__doc__
@@ -164,6 +173,19 @@ class RequestHandler:
 
     def get_login_url(self):
         raise HTTPError(403)
+
+    def check_same_origin(self):
+        """A POST that changes something must come from the tool's own page.
+        SameSite=Strict does not tell ports apart, so a page any local program
+        serves on http://127.0.0.1:<another port> could send the login cookie
+        along. Browsers say where a request comes from (Origin, Sec-Fetch-Site);
+        a request without those (not from a browser) is judged by the cookie."""
+        site = self.request.headers.get("Sec-Fetch-Site")
+        if site and site.lower() not in ("same-origin", "none"):
+            raise HTTPError(403)
+        origin = self.request.headers.get("Origin")
+        if origin is not None and origin.lower() != "http://" + self.request.headers.get("Host", "").lower():
+            raise HTTPError(403)
 
     def get_cookie(self, name, default=None):
         cookie = http.cookies.SimpleCookie()
@@ -358,6 +380,20 @@ class ConfigServerApp:
 
     # --- request handling -----------------------------------------------------
 
+    def _has_login_cookie(self, raw):
+        cookie = http.cookies.SimpleCookie()
+        try:
+            cookie.load(raw.headers.get("Cookie", ""))
+        except http.cookies.CookieError:
+            return False
+        morsel = cookie.get(self.settings["cookie_id"])
+        return morsel is not None and hmac.compare_digest(morsel.value, self.access_token)
+
+    def _body_limit(self, raw):
+        if urllib.parse.urlsplit(raw.path).path == LARGE_BODY_PATH and self._has_login_cookie(raw):
+            return MAX_BODY_SIZE
+        return MAX_SMALL_BODY_SIZE
+
     def _read_body(self, raw):
         if raw.headers.get("Transfer-Encoding"):
             raise HTTPError(411)
@@ -367,7 +403,7 @@ class ConfigServerApp:
             raise HTTPError(400)
         if length < 0:
             raise HTTPError(400)
-        if length > MAX_BODY_SIZE:
+        if length > self._body_limit(raw):
             raise HTTPError(413)
         return raw.rfile.read(length) if length else b""
 
