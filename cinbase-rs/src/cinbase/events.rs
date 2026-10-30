@@ -240,6 +240,15 @@ impl CbTs {
             return Ok(false);
         }
 
+        // composing: Ctrl/Alt shortcuts (Ctrl+V, Ctrl+Z) go to the application and
+        // the roots stay (Ctrl+symbol keys stay symbol input)
+        if (self.is_composing() || self.ts.show_candidates)
+            && (key_event.is_key_down(VK_MENU) || key_event.is_key_down(VK_CONTROL))
+            && !(key_event.is_key_down(VK_CONTROL) && self.is_ctrl_symbols_char(key_event.key_code) && self.lang_mode == CHINESE_MODE)
+        {
+            return Ok(false);
+        }
+
         if self.is_composing() || self.ts.show_candidates {
             return Ok(true);
         }

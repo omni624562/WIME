@@ -109,6 +109,7 @@ DEFAULT = scenarios(
     caps_lock=seq("CAPS a SPACE"),
     ctrl_symbols=seq("C+; SPACE C+[ C+] ENTER C+, C+, SPACE"),
     ctrl_passthrough=seq("C+a C+SPACE A+a a C+a SPACE"),
+    ctrl_shortcut_while_composing=seq("a b C+v A+f SPACE"),
     # §4.16 the ` menu
     menu_open_and_leave=seq("` ` ` DOWN DOWN ESC a SPACE"),
     menu_symbols=seq("` m 1 1 1 ESC"),
@@ -227,6 +228,7 @@ CHECJ_DEFAULT = scenarios(
     shift_toggle=seq("SHIFT a b SPACE SHIFT a SPACE"),
     full_shape=seq(SHIFT_SPACE, "a SPACE , SPACE", SHIFT_SPACE),
     ctrl_symbols=seq("C+; SPACE C+, C+, ENTER"),
+    ctrl_shortcut_while_composing=seq("a b C+v SPACE"),
     menu=seq("` m 1 1 1 ESC ` u 4 e 0 0 SPACE"),
     numpad=seq("NUM1 a NUM2 o n f NUM+"),
     smart_select=seq("h q i SPACE j j 2 h q i SPACE j j 2 h q i SPACE j j SPACE"),

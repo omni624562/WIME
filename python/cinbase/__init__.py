@@ -461,6 +461,14 @@ class CinBase:
             cbTS.setShowCandidates(False)
             return False
 
+        # 組字中（打了字根還沒選字）按 Ctrl/Alt 快捷鍵（Ctrl+V、Ctrl+Z）：交給應用程式，
+        # 字根和候選窗留著。以前一律攔下，快捷鍵被吃掉，貼上沒有反應
+        if ((cbTS.isComposing() or cbTS.showCandidates)
+                and (keyEvent.isKeyDown(VK_MENU) or keyEvent.isKeyDown(VK_CONTROL))
+                and not (keyEvent.isKeyDown(VK_CONTROL) and self.isCtrlSymbolsChar(keyEvent.keyCode)
+                         and cbTS.langMode == CHINESE_MODE)):
+            return False
+
         # 使用者開始輸入，還沒送出前的編輯區內容稱 composition string
         # isComposing() 是 False，表示目前編輯區是空的
         # 若正在編輯中文，則任何按鍵我們都需要送給輸入法處理，直接 return True
