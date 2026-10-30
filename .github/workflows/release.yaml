@@ -1,0 +1,145 @@
+name: Release
+
+# 發版：把 Build（ci.yaml）在 master 某個 commit 建好的安裝檔發成 GitHub release。
+# 從 Actions 頁（或 API）手動執行：
+#   1. 檢查：target 在 master 上、該 commit 的 version.txt 等於 version、tag 還不存在、
+#      ci_run_id 是這個 commit 成功的 Build run；
+#   2. 取出那次 run 的 Installer artifact，算 SHA-256，填進說明的 {{SHA256}}；
+#   3. 在 target 打附註 tag v<version>（tagger 是執行這個 workflow 的人）並推送；
+#   4. 建立 release、上傳安裝檔；
+#   5. tag（連同它的 release）只保留最新的 keep 代，較舊的刪掉。刪掉的 tag 和它指向的
+#      commit 列在這次 run 的摘要裡，需要時可以重建。
+# 不重新建置：發出去的就是 CI 建好、測過的那個檔案。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版本，例如 1.3.0-beta20（須等於 target 的 version.txt）
+        required: true
+      target:
+        description: 要發版的 master commit（完整或簡短 SHA）
+        required: true
+      ci_run_id:
+        description: 這個 commit 成功的 Build run ID（安裝檔從它的 Installer artifact 取）
+        required: true
+      tag_message:
+        description: 附註 tag 的註解
+        required: true
+      release_notes:
+        description: release 說明（Markdown；{{SHA256}} 會換成安裝檔的 SHA-256）
+        required: true
+      prerelease:
+        description: 標為預覽版
+        type: boolean
+        default: true
+      keep:
+        description: tag 與 release 保留最新幾代
+        default: "5"
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # 推 tag、建立與刪除 release、刪除舊 tag
+  actions: read   # 讀 Build run、下載它的 artifact
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      TARGET: ${{ inputs.target }}
+      CI_RUN_ID: ${{ inputs.ci_run_id }}
+      TAG_MESSAGE: ${{ inputs.tag_message }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      PRERELEASE: ${{ inputs.prerelease }}
+      KEEP: ${{ inputs.keep }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Check the inputs
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::version 格式不對：$VERSION"; exit 1; }
+          [[ "$KEEP" =~ ^[1-9][0-9]*$ ]] || { echo "::error::keep 須是正整數：$KEEP"; exit 1; }
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::ci_run_id 須是數字：$CI_RUN_ID"; exit 1; }
+          git fetch --force --tags origin
+          sha=$(git rev-parse --verify --quiet "$TARGET^{commit}") || { echo "::error::找不到 commit $TARGET"; exit 1; }
+          git merge-base --is-ancestor "$sha" origin/master || { echo "::error::$sha 不在 master 上"; exit 1; }
+          file_version=$(git show "$sha:version.txt" | tr -d '\r\n')
+          [ "$file_version" = "$VERSION" ] || { echo "::error::$sha 的 version.txt 是 $file_version，不是 $VERSION"; exit 1; }
+          tag="v$VERSION"
+          ! git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null || { echo "::error::tag $tag 已經存在"; exit 1; }
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: Check the Build run
+        run: |
+          read -r name event conclusion head <<< "$(gh run view "$CI_RUN_ID" --json workflowName,event,conclusion,headSha \
+            --jq '[.workflowName, .event, .conclusion, .headSha] | @tsv')"
+          [ "$name" = "Build" ] || { echo "::error::run $CI_RUN_ID 是 $name，不是 Build"; exit 1; }
+          [ "$conclusion" = "success" ] || { echo "::error::run $CI_RUN_ID 的結果是 $conclusion"; exit 1; }
+          [ "$head" = "$SHA" ] || { echo "::error::run $CI_RUN_ID 建的是 $head，不是 $SHA"; exit 1; }
+          echo "run $CI_RUN_ID（$event）建的就是 $SHA"
+
+      - name: Get the installer
+        run: |
+          gh run download "$CI_RUN_ID" --name Installer --dir dist
+          installer="dist/WIME-$VERSION-dayi-chewing-checj-setup.exe"
+          ls -l dist
+          if [ "$(find dist -mindepth 1 | wc -l)" != 1 ] || [ ! -f "$installer" ]; then
+            echo "::error::Installer artifact 裡應該只有 $(basename "$installer")"
+            exit 1
+          fi
+          hash=$(sha256sum "$installer" | cut -d' ' -f1)
+          echo "INSTALLER=$installer" >> "$GITHUB_ENV"
+          echo "HASH=$hash" >> "$GITHUB_ENV"
+          echo "SHA-256: $hash"
+
+      - name: Tag
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          printf '%s\n' "$TAG_MESSAGE" > "$RUNNER_TEMP/tag-message.txt"
+          git tag -a "$TAG" "$SHA" -F "$RUNNER_TEMP/tag-message.txt"
+          git push origin "refs/tags/$TAG"
+
+      - name: Release
+        run: |
+          printf '%s\n' "${RELEASE_NOTES//\{\{SHA256\}\}/$HASH}" > "$RUNNER_TEMP/notes.md"
+          flags=()
+          [ "$PRERELEASE" = "true" ] && flags+=(--prerelease)
+          gh release create "$TAG" "$INSTALLER" --verify-tag --title "WIME $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"
+          {
+            echo "## $TAG"
+            echo "- commit：\`$SHA\`"
+            echo "- 安裝檔：\`$(basename "$INSTALLER")\`"
+            echo "- SHA-256：\`$HASH\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the newest ${{ inputs.keep }} tags and releases
+        run: |
+          git fetch --force --tags origin
+          mapfile -t old < <(git for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags | tail -n +"$((KEEP + 1))")
+          {
+            echo "## 刪除的舊版（共 ${#old[@]} 個；用 git tag <名稱> <commit> 可以重建）"
+            echo "| tag | commit | release |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for t in "${old[@]}"; do
+            [ "$t" = "$TAG" ] && { echo "::error::不會刪除剛建立的 $TAG"; exit 1; }
+            commit=$(git rev-parse "refs/tags/$t^{commit}")
+            had_release=否
+            if gh release view "$t" >/dev/null 2>&1; then
+              gh release delete "$t" --yes
+              had_release=是
+            fi
+            git push origin --delete "refs/tags/$t"
+            echo "| \`$t\` | \`$commit\` | $had_release |" >> "$GITHUB_STEP_SUMMARY"
+            echo "deleted $t ($commit, release: $had_release)"
+          done
