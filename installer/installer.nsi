@@ -147,6 +147,9 @@ var UPDATEARM64DLL
 ; "True" once the user agreed to replace the installed version (see askRemoveOldVersion)
 var REMOVE_OLD_VERSION
 
+; set by findPendingDeleteInInstDir
+var PENDING_DELETE_PATH
+
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 ; the full build's Python-only input methods (大易/酷倉/新酷音 never need Python)
 var INST_PYTHON
@@ -199,14 +202,62 @@ FunctionEnd
 ; servers (wime-config.exe; configtool.py before) can still be running. Any of them
 ; keeps its files mapped - in an upgrade from a version with Python, python\python3\*.dll
 ; - which blocks removing the old tree. (The uninstaller itself runs from a %TEMP%
-; copy, so it is never matched.)
+; copy, so it is never matched; this process is skipped anyway.)
+; Calls the Windows API through the System plugin: no PowerShell or other child
+; process, which antivirus heuristics flag in an unsigned installer. Best effort:
+; a process that cannot be opened is left alone.
 !macro DEFINE_KILL_PROCESSES_IN_INSTDIR UN
 Function ${UN}killProcessesInInstDir
 	Push $0
-	nsExec::ExecToLog `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '$INSTDIR\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
-	Pop $0 ; exit code, ignored: best effort
+	Push $1
+	Push $2
+	Push $3
+	Push $4
+	Push $5
+	Push $6
+	Push $7
+	Push $R0
+	Push $R1
+	StrCpy $7 "$INSTDIR\"
+	StrLen $6 $7
+	System::Call 'kernel32::GetCurrentProcessId() i .r5'
+	System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0) p .r0' ; TH32CS_SNAPPROCESS
+	${If} $0 P<> -1 ; INVALID_HANDLE_VALUE
+		System::Call '*(&l4, i, i, p, i, i, i, i, i, &w260) p .r1' ; PROCESSENTRY32W
+		System::Call 'kernel32::Process32FirstW(p r0, p r1) i .r2'
+		${DoWhile} $2 <> 0
+			System::Call '*$1(i, i, i .r3)' ; th32ProcessID
+			${If} $3 <> $5
+			${AndIf} $3 <> 0
+				; PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE
+				System::Call 'kernel32::OpenProcess(i 0x101001, i 0, i r3) p .r4'
+				${If} $4 P<> 0
+					System::Call 'kernel32::QueryFullProcessImageNameW(p r4, i 0, w .R0, *i ${NSIS_MAX_STRLEN}) i .r3'
+					${If} $3 <> 0
+						StrCpy $R1 $R0 $6
+						${If} $R1 == $7 ; case-insensitive, like the path compare in Windows
+							System::Call 'kernel32::TerminateProcess(p r4, i 1)'
+							System::Call 'kernel32::WaitForSingleObject(p r4, i 3000)'
+						${EndIf}
+					${EndIf}
+					System::Call 'kernel32::CloseHandle(p r4)'
+				${EndIf}
+			${EndIf}
+			System::Call 'kernel32::Process32NextW(p r0, p r1) i .r2'
+		${Loop}
+		System::Free $1
+		System::Call 'kernel32::CloseHandle(p r0)'
+	${EndIf}
+	Pop $R1
+	Pop $R0
+	Pop $7
+	Pop $6
+	Pop $5
+	Pop $4
+	Pop $3
+	Pop $2
+	Pop $1
 	Pop $0
-	Sleep 500
 FunctionEnd
 !macroend
 !insertmacro DEFINE_KILL_PROCESSES_IN_INSTDIR ""
@@ -250,17 +301,117 @@ FunctionEnd
 ; Renamed-aside *.old files and directories (scheduled by RMDir /REBOOTOK and only
 ; removed at boot if empty) are harmless and ignored.
 Function checkPendingDeletesInInstDir
-	Push $0
-	Push $1
-	nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$$v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations; $$p = ('\??\' + '$INSTDIR' + '\').ToLower(); $$hit = @($$v | Where-Object { $$_ -and $$_.ToLower().StartsWith($$p) } | Where-Object { $$leaf = Split-Path $$_ -Leaf; $$leaf.Contains('.') -and -not $$leaf.ToLower().Contains('.old') }); if ($$hit.Count) { $$hit[0].Substring(4); exit 3 } else { exit 0 }"`
-	Pop $0 ; exit code
-	Pop $1 ; first offending path, if any
-	${If} $0 == 3
-		MessageBox MB_ICONSTOP|MB_OK "$(PENDING_DELETE_MESSAGE)$\r$\n$\r$\n$1" /SD IDOK
+	Call findPendingDeleteInInstDir
+	${If} $PENDING_DELETE_PATH != ""
+		MessageBox MB_ICONSTOP|MB_OK "$(PENDING_DELETE_MESSAGE)$\r$\n$\r$\n$PENDING_DELETE_PATH" /SD IDOK
 		Abort
 	${EndIf}
+FunctionEnd
+
+; Sets PENDING_DELETE_PATH to the first path below $INSTDIR in PendingFileRenameOperations
+; whose name has an extension other than *.old*, or "" if there is none. Reads the REG_MULTI_SZ
+; through the System plugin (no PowerShell); every string is checked, sources and
+; targets alike, and the empty targets of plain deletes are skipped.
+Function findPendingDeleteInInstDir
+	Push $0
+	Push $1
+	Push $2
+	Push $3
+	Push $4
+	Push $5
+	Push $6
+	Push $7
+	Push $8
+	Push $R0
+	Push $R1
+	Push $R2
+	StrCpy $PENDING_DELETE_PATH ""
+	StrCpy $7 "\??\$INSTDIR\"
+	StrLen $6 $7
+	; HKEY_LOCAL_MACHINE, KEY_READ
+	System::Call 'advapi32::RegOpenKeyExW(p 0x80000002, w "SYSTEM\CurrentControlSet\Control\Session Manager", i 0, i 0x20019, *p .r0) i .r1'
+	${If} $1 = 0
+		System::Call 'advapi32::RegQueryValueExW(p r0, w "PendingFileRenameOperations", p 0, *i .r2, p 0, *i 0 r3) i .r1'
+		${If} $1 = 0
+		${AndIf} $2 = 7 ; REG_MULTI_SZ
+		${AndIf} $3 > 0
+			; zero-filled, with room for two more nulls: the data need not end in any
+			IntOp $4 $3 + 4
+			System::Alloc $4
+			Pop $5
+			System::Call 'advapi32::RegQueryValueExW(p r0, w "PendingFileRenameOperations", p 0, p 0, p r5, *i r3 r3) i .r1'
+			${If} $1 = 0
+				IntPtrOp $8 $5 + $3
+				StrCpy $4 $5
+				${DoWhile} $4 P< $8
+					System::Call 'kernel32::lstrlenW(p r4) i .r1'
+					${If} $1 > 0
+						System::Call 'kernel32::lstrcpynW(w .R0, p r4, i ${NSIS_MAX_STRLEN})'
+						StrCpy $R1 $R0 $6
+						${If} $R1 == $7 ; case-insensitive
+							${GetFileName} $R0 $R1
+							Push $R1
+							Call pendingDeleteBlocksInstall
+							Pop $R2
+							${If} $R2 == 1
+								StrCpy $PENDING_DELETE_PATH $R0 "" 4 ; without the \??\ prefix
+								${ExitDo}
+							${EndIf}
+						${EndIf}
+					${EndIf}
+					IntOp $1 $1 + 1
+					IntOp $1 $1 * 2
+					IntPtrOp $4 $4 + $1
+				${Loop}
+			${EndIf}
+			System::Free $5
+		${EndIf}
+		System::Call 'advapi32::RegCloseKey(p r0)'
+	${EndIf}
+	Pop $R2
+	Pop $R1
+	Pop $R0
+	Pop $8
+	Pop $7
+	Pop $6
+	Pop $5
+	Pop $4
+	Pop $3
+	Pop $2
 	Pop $1
 	Pop $0
+FunctionEnd
+
+; Pops a file name and pushes 1 if a boot-time delete of it would take a file this
+; installer is about to install: the name has a "." but no ".old" (any case), so
+; directories and the *.oldN files renamed aside by moveAsideIfLocked do not count.
+Function pendingDeleteBlocksInstall
+	Exch $0 ; the name
+	Push $1
+	Push $2
+	Push $3
+	Push $4
+	StrLen $1 $0
+	StrCpy $2 0 ; index
+	StrCpy $3 0 ; result
+	${DoWhile} $2 < $1
+		StrCpy $4 $0 1 $2
+		${If} $4 == "."
+			StrCpy $3 1
+			StrCpy $4 $0 4 $2
+			${If} $4 == ".old" ; case-insensitive
+				StrCpy $3 0
+				${ExitDo}
+			${EndIf}
+		${EndIf}
+		IntOp $2 $2 + 1
+	${Loop}
+	StrCpy $0 $3
+	Pop $4
+	Pop $3
+	Pop $2
+	Pop $1
+	Exch $0
 FunctionEnd
 
 ; Ask whether to replace the installed version. Called from .onInit, which runs before
