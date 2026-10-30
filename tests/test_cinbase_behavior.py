@@ -178,6 +178,20 @@ class PhraseListTests(unittest.TestCase):
         self.assertIs(reply.get("showCandidates"), False)
         self.assertFalse(service.phrasemode)
 
+    def test_app_shortcut_while_composing_keeps_the_roots(self):
+        for ime in ("chedayi", "checj"):
+            with self.subTest(ime=ime):
+                service = h.make_service(ime)
+                h.type_keys(service, ["a", "b"])
+                candidates = list(service.candidateList)
+                self.assertTrue(candidates)
+                reply = h._send(service, "filterKeyDown", h.key_event("v", ctrl=True), "Ctrl+V")
+                self.assertFalse(reply.get("return"))
+                self.assertEqual(service.compositionChar, "ab")
+                self.assertTrue(service.showCandidates)
+                commits, _ = h.type_keys(service, ["SPACE"])
+                self.assertEqual(commits, [candidates[0]])
+
 
 @h.requires_tables
 class FunctionMenuTests(unittest.TestCase):
