@@ -5,3 +5,20 @@
 # libchewing 0.13 dictionaries (tools/build_libchewing.ps1): never convert line endings
 python/libchewing/data/tsi.dat binary
 python/libchewing/data/word.dat binary
+
+# Third-party code kept in the repo: left out of GitHub's language statistics
+json/** linguist-vendored
+installer/StdUtils.*/** linguist-vendored
+installer/md5dll/** linguist-vendored
+python/cinbase/tools/cpuinfo.py linguist-vendored
+python/cinbase/config/js/jAlert/** linguist-vendored
+python/cinbase/config/js/jquery* linguist-vendored
+python/cinbase/config/js/bootstrap* linguist-vendored
+python/cinbase/config/css/jquery* linguist-vendored
+python/cinbase/config/css/bootstrap* linguist-vendored
+python/input_methods/chewing/js/jquery-*/** linguist-vendored
+python/input_methods/chewing/js/jquery-* linguist-vendored
+python/input_methods/chewing/js/bootstrap* linguist-vendored
+python/input_methods/chewing/js/sweetalert2* linguist-vendored
+python/input_methods/chewing/css/bootstrap* linguist-vendored
+python/input_methods/chewing/css/sweetalert2* linguist-vendored
