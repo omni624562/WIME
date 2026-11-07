@@ -108,7 +108,8 @@ class ReferenceBackendTests(unittest.TestCase):
     def test_wait_moves_the_virtual_clock(self):
         # with auto-commit on, bt commits 孫 at once and a Space within
         # AUTO_COMMIT_SPACE_GRACE (1 s) is swallowed; after 2 s it reaches the app
-        suite = {"ime": "chedayi", "config": {"autoCommitSingleCandidate": True}, "scenarios": [
+        # (phrase list off: with it open, that Space would pick the first phrase 女)
+        suite = {"ime": "chedayi", "config": {"autoCommitSingleCandidate": True, "showPhrase": False}, "scenarios": [
             {"name": "fast", "steps": ["b", "t", "SPACE"]},
             {"name": "slow", "steps": ["b", "t", {"wait": 2.0}, "SPACE"]}]}
         transcript = driver.run_suite(suite, driver.REFERENCE)
