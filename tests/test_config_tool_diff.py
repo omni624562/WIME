@@ -470,7 +470,7 @@ class ChewingProtocolDiffTests(ProtocolDiffMixin, DiffTestBase):
     IME = "chewing"
     COOKIE_ID = "chewing_config_token"
     STATIC = ("/config_tool.html", "/user_phrase_editor.html", "/css/config.css", "/js/config.js",
-              "/images/logo.png", "/js/jquery-ui-1.13.2/jquery-ui.min.js", "/config_tool.py", "/icon.ico")
+              "/images/logo.png", "/js/dialogs.js", "/config_tool.py", "/icon.ico")
 
 
 if __name__ == "__main__":

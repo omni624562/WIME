@@ -42,8 +42,7 @@ $(function () {
                 $("#symbols").val(data.symbols);
                 $("#ez_symbols").val(data.swkb);
                 initializeUI();
-                // 填值完成後才開始追蹤「未儲存」，避免初始化（含 selectpicker
-                // 重整）觸發的 change 被誤判為使用者變更。
+                // 填值完成後才開始追蹤「未儲存」，避免初始化觸發的 change 被誤判為使用者變更。
                 setTimeout(function () { chewingConfigReady = true; }, 0);
             },
             "json"
@@ -461,11 +460,11 @@ $(function () {
                 }
                 $("#ez_symbols").prop("selectionStart", selectionStart);
                 $("#ez_symbols").prop("selectionEnd", selectionStart + ez_symbols_array[i].length + 1);
-                swal.fire(
-                    "輸入錯誤",
-                    "快速符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(ez_symbols_array[i]).html() + "</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元",
-                    "error"
-                );
+                WimeDialog.alert({
+                    title: "輸入錯誤",
+                    message: "快速符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(ez_symbols_array[i]).html() + "</b><br>請使用「英文大寫 + 空格 + 字串」的格式，字串最多10個字元",
+                    icon: "error"
+                });
                 return false;
             }
         }
@@ -482,11 +481,11 @@ $(function () {
                 }
                 $("#symbols").prop("selectionStart", selectionStart);
                 $("#symbols").prop("selectionEnd", selectionStart + symbols_array[i].length);
-                swal.fire(
-                    "輸入錯誤",
-                    "特殊符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(symbols_array[i]).html() + "</b><br>單行不能超過一個字元，或是沒有 = 符號區隔",
-                    "error"
-                );
+                WimeDialog.alert({
+                    title: "輸入錯誤",
+                    message: "特殊符號設定第 " + (i + 1) + " 行格式錯誤：<br><b>" + $("<div>").text(symbols_array[i]).html() + "</b><br>單行不能超過一個字元，或是沒有 = 符號區隔",
+                    icon: "error"
+                });
                 return false;
             }
             // 舊的 C 版新酷音每行最多讀 511 bytes；0.13 版沒有限制，只擋明顯異常的長度
@@ -498,12 +497,12 @@ $(function () {
                 }
                 $("#symbols").prop("selectionStart", lineStart);
                 $("#symbols").prop("selectionEnd", lineStart + symbols_array[i].length);
-                swal.fire(
-                    "輸入錯誤",
-                    "特殊符號設定第 " + (i + 1) + " 行太長：每行最多 " + SYMBOLS_MAX_LINE_BYTES +
+                WimeDialog.alert({
+                    title: "輸入錯誤",
+                    message: "特殊符號設定第 " + (i + 1) + " 行太長：每行最多 " + SYMBOLS_MAX_LINE_BYTES +
                     " bytes，請分成兩個類別",
-                    "error"
-                );
+                    icon: "error"
+                });
                 return false;
             }
         }
@@ -541,11 +540,7 @@ $(function () {
                     message = "儲存設定失敗：設定檔無法寫入（可能正被其他程式開著）。\n" +
                         "頁面上的變更還在，請稍後再按一次「套用設定」。";
                 }
-                if (window.swal) {
-                    swal.fire({ title: "儲存失敗", html: $("<div>").text(message).html().replace(/\n/g, "<br>"), icon: "error" });
-                } else {
-                    alert(message);
-                }
+                WimeDialog.alert({ title: "儲存失敗", message: $("<div>").text(message).html().replace(/\n/g, "<br>"), icon: "error" });
             },
             contentType: "application/json",
             data: JSON.stringify(data),
@@ -661,17 +656,12 @@ $(function () {
         // Setup switchLangWithWhichShift's default disabled property
         $("#switchLangWithWhichShift").prop("disabled", !chewingConfig["switchLangWithShift"]);
 
-        // Bind Bootstrap. Keep candidate-window controls native so they match the Dayi settings UI.
-        if ($.fn.selectpicker) {
-            $(".container select")
-                .not(".candidate-theme-select, .candidate_window_settings select, .candidate-window-settings select")
-                .selectpicker();
-        }
+        // Bind Bootstrap (selects are native <select class="custom-select">, like the Dayi settings UI)
         $('[data-toggle="popover"]').popover();
 
         // When switchLangWithShift's value changed, update switchLangWithWhichShift's disabled property
         $("#switchLangWithShift").on("click", function () {
-            $("#switchLangWithWhichShift").prop("disabled", !this.checked).selectpicker("refresh");
+            $("#switchLangWithWhichShift").prop("disabled", !this.checked);
         });
 
         // Bind shift action event
@@ -683,7 +673,7 @@ $(function () {
         $("#shiftMoveCursor").on("click", function () {
             if (this.checked) {
                 $("#switchLangWithShift").prop("checked", false);
-                $("#switchLangWithWhichShift").prop("disabled", true).selectpicker("refresh");
+                $("#switchLangWithWhichShift").prop("disabled", true);
             }
         });
 
@@ -850,7 +840,7 @@ $(function () {
         updateConfig(); // update the config based on the state of UI elements
         saveConfig(function () {
             $("#unsavedHint").hide();
-            swal.fire("好耶！", "設定成功儲存！", "success");
+            WimeDialog.alert({ title: "好耶！", message: "設定成功儲存！", icon: "success" });
         });
         return false;
     });

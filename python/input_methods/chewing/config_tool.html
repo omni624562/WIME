@@ -8,8 +8,7 @@
     <title>設定新酷音輸入法</title>
     <link rel="icon" type="image/x-icon" href="images/setting.ico">
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/bootstrap-select.min.css">
-    <link rel="stylesheet" href="css/sweetalert2.min.css">
+    <link rel="stylesheet" href="css/dialogs.css">
     <link rel="stylesheet" href="css/config.css">
     <script type="text/javascript">
         function chewingRemoveClassNames(className, names) {
@@ -182,7 +181,7 @@
                             </div>
                             <div class="custom-control position-static">
                                 使用哪一邊的<kbd>Shift</kbd>來切換中英文模式：
-                                <select name="switchLangWithWhichShift" id="switchLangWithWhichShift"></select>
+                                <select name="switchLangWithWhichShift" id="switchLangWithWhichShift" class="custom-select"></select>
                             </div>
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="enableCapsLock" name="enableCapsLock">
@@ -229,7 +228,7 @@
                                 <div class="setting-hint">不建議與上方「使用 Shift 切換中英文模式」同時勾選。</div>
                             </div>
                             使用<kbd>Ctrl</kbd>+<kbd>數字鍵 2 ~ 9</kbd>加入游標
-                            <select name="addPhraseForward" id="addPhraseForward"></select>
+                            <select name="addPhraseForward" id="addPhraseForward" class="custom-select"></select>
                         </div>
                         <div class="config_section">
                             <h1>叫出候選窗時設定</h1>
@@ -238,12 +237,12 @@
                                 <label class="custom-control-label" for="advanceAfterSelection">選字完畢自動跳到下一個字</label>
                             </div>
                             使用<kbd>↑</kbd><kbd>↓</kbd>鍵：
-                            <select name="upDownAction" id="upDownAction"></select><br>
+                            <select name="upDownAction" id="upDownAction" class="custom-select"></select><br>
                             使用<kbd>←</kbd><kbd>→</kbd>鍵：
-                            <select name="leftRightAction" id="leftRightAction"></select><br>
+                            <select name="leftRightAction" id="leftRightAction" class="custom-select"></select><br>
                             使用<kbd>空白鍵</kbd>在打字時：
-                            <select name="spaceKeyAction" id="spaceKeyAction"></select>，在選字時：<select name="spaceKeyCandidatesAction"
-                                id="spaceKeyCandidatesAction"></select><br>
+                            <select name="spaceKeyAction" id="spaceKeyAction" class="custom-select"></select>，在選字時：<select name="spaceKeyCandidatesAction"
+                                id="spaceKeyCandidatesAction" class="custom-select"></select><br>
                             <div class="info">
                                 <ul>
                                     <li>使用<kbd>Ctrl</kbd>+<kbd>Del</kbd>刪除詞彙</li>
@@ -279,7 +278,7 @@
                              新版候選窗每列的字數只看下方的「每列候選字數」(candidatePerRow) -->
                         <div class="form-group row">
                             <label for="selKeyType">候選窗選字鍵：</label>
-                            <select name="selKeyType" id="selKeyType"></select>
+                            <select name="selKeyType" id="selKeyType" class="custom-select"></select>
                         </div>
                         <div class="config_section candidate_window_settings candidate-window-settings">
                             <h1>候選窗外觀</h1>
@@ -389,8 +388,7 @@
 
     <script src="js/jquery-3.7.1.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="js/bootstrap-select.min.js"></script>
-    <script src="js/sweetalert2.min.js"></script>
+    <script src="js/dialogs.js"></script>
     <script src="js/candidate_appearance.js"></script>
     <script src="js/config.js"></script>
 </body>

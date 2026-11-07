@@ -820,11 +820,8 @@ SectionEnd
 	SetOutPath "$INSTDIR\data\input_methods\chewing"
 	File "..\python\input_methods\chewing\config_tool.html"
 	File "..\python\input_methods\chewing\user_phrase_editor.html"
-	; 不打包設定頁沒用到的檔案：原始碼對照 (*.map)、沒引用的圖片，以及 jquery-ui 完整
-	; 下載包裡頁面沒載入的檔案（只用 *.min.js / *.min.css）
+	; 不打包設定頁沒用到的檔案：原始碼對照 (*.map) 與沒引用的圖片
 	File /r /x "simC.ico" /x "*.map" /x "keyborad_layouts_json" /x "logo.ico" \
-		/x "jquery-ui.js" /x "jquery-ui.css" /x "jquery-ui.structure.css" /x "jquery-ui.structure.min.css" \
-		/x "jquery-ui.theme.css" /x "external" /x "index.html" /x "package.json" /x "AUTHORS.txt" \
 		"..\python\input_methods\chewing\css" "..\python\input_methods\chewing\icons" \
 		"..\python\input_methods\chewing\images" "..\python\input_methods\chewing\js"
 	SetOutPath "$INSTDIR\data\libchewing\data"
