@@ -8,42 +8,48 @@
 {"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 8, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "1:o"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 9, "success": true}, "scenario": "order_stays", "step": "1:o"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 10, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["器"], "candidatePageInfo": "1/1", "commitString": "器", "compositionString": "", "return": true, "seqNum": 11, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 12, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 13, "success": true}, "scenario": "order_stays", "step": "3:a"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 14, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "3:a"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 15, "success": true}, "scenario": "order_stays", "step": "3:a"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 16, "success": true}, "scenario": "order_stays", "step": "4:'"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "commitString": "入", "compositionString": "", "return": true, "seqNum": 17, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "4:'"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 18, "success": true}, "scenario": "order_stays", "step": "4:'"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 19, "success": true}, "scenario": "order_stays", "step": "5:o"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口", "candidateList": ["口", "㊣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 20, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "5:o"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 21, "success": true}, "scenario": "order_stays", "step": "5:o"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 22, "success": true}, "scenario": "order_stays", "step": "6:o"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 23, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "6:o"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 24, "success": true}, "scenario": "order_stays", "step": "6:o"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 25, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["器"], "candidatePageInfo": "1/1", "commitString": "器", "compositionString": "", "return": true, "seqNum": 26, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 27, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 28, "success": true}, "scenario": "order_stays", "step": "8:a"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 29, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "8:a"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 30, "success": true}, "scenario": "order_stays", "step": "8:a"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 31, "success": true}, "scenario": "order_stays", "step": "9:'"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "commitString": "入", "compositionString": "", "return": true, "seqNum": 32, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "9:'"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 33, "success": true}, "scenario": "order_stays", "step": "9:'"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 34, "success": true}, "scenario": "order_stays", "step": "10:o"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口", "candidateList": ["口", "㊣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 35, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "10:o"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 36, "success": true}, "scenario": "order_stays", "step": "10:o"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 37, "success": true}, "scenario": "order_stays", "step": "11:o"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 38, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "11:o"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 39, "success": true}, "scenario": "order_stays", "step": "11:o"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 40, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["器"], "candidatePageInfo": "1/1", "commitString": "器", "compositionString": "", "return": true, "seqNum": 41, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 42, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 43, "success": true}, "scenario": "order_stays", "step": "13:a"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 44, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "13:a"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 45, "success": true}, "scenario": "order_stays", "step": "13:a"}
-{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 46, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "commitString": "人", "compositionString": "", "return": true, "seqNum": 47, "showCandidates": false, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 48, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
-{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "removePreservedKey": ["{f1dae0fb-8091-44a7-8a0c-3082a1515447}"], "seqNum": 49, "success": true}, "scenario": "order_stays", "step": "deactivate"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["材", "具", "官", "物", "械", "皿"], "candidatePageInfo": "1/2", "commitString": "器", "compositionString": "", "return": true, "seqNum": 11, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 12, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 13, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "2:SPACE"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 14, "success": true}, "scenario": "order_stays", "step": "3:a"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 15, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "3:a"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 16, "success": true}, "scenario": "order_stays", "step": "3:a"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 17, "success": true}, "scenario": "order_stays", "step": "4:'"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["境", "侵", "學", "獄", "會", "選"], "candidatePageInfo": "1/9", "commitString": "入", "compositionString": "", "return": true, "seqNum": 18, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "4:'"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 19, "success": true}, "scenario": "order_stays", "step": "4:'"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 20, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "4:'"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "order_stays", "step": "5:o"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口", "candidateList": ["口", "㊣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 22, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "5:o"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "order_stays", "step": "5:o"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 24, "success": true}, "scenario": "order_stays", "step": "6:o"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 25, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "6:o"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 26, "success": true}, "scenario": "order_stays", "step": "6:o"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 27, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["材", "具", "官", "物", "械", "皿"], "candidatePageInfo": "1/2", "commitString": "器", "compositionString": "", "return": true, "seqNum": 28, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 29, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 30, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "7:SPACE"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 31, "success": true}, "scenario": "order_stays", "step": "8:a"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 32, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "8:a"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 33, "success": true}, "scenario": "order_stays", "step": "8:a"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 34, "success": true}, "scenario": "order_stays", "step": "9:'"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["境", "侵", "學", "獄", "會", "選"], "candidatePageInfo": "1/9", "commitString": "入", "compositionString": "", "return": true, "seqNum": 35, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "9:'"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "order_stays", "step": "9:'"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 37, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "9:'"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 38, "success": true}, "scenario": "order_stays", "step": "10:o"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口", "candidateList": ["口", "㊣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 39, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "10:o"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 40, "success": true}, "scenario": "order_stays", "step": "10:o"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 41, "success": true}, "scenario": "order_stays", "step": "11:o"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 42, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "11:o"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 43, "success": true}, "scenario": "order_stays", "step": "11:o"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 44, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["材", "具", "官", "物", "械", "皿"], "candidatePageInfo": "1/2", "commitString": "器", "compositionString": "", "return": true, "seqNum": 45, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 46, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 47, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "12:SPACE"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 48, "success": true}, "scenario": "order_stays", "step": "13:a"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 49, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "13:a"}
+{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 50, "success": true}, "scenario": "order_stays", "step": "13:a"}
+{"method": "filterKeyDown", "reply": {"return": true, "seqNum": 51, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["員", "士", "民", "數", "口", "事"], "candidatePageInfo": "1/11", "commitString": "人", "compositionString": "", "return": true, "seqNum": 52, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 53, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 54, "showCandidates": true, "success": true}, "scenario": "order_stays", "step": "14:SPACE"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "removePreservedKey": ["{f1dae0fb-8091-44a7-8a0c-3082a1515447}"], "seqNum": 55, "success": true}, "scenario": "order_stays", "step": "deactivate"}

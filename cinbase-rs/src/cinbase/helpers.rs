@@ -240,6 +240,51 @@ impl CbTs {
         self.sel_keys.chars().any(|k| k as u32 == char_code)
     }
 
+    // CB:3111 isPhraseListOpen: the phrase list is open and nothing is composed
+    pub fn is_phrase_list_open(&self) -> bool {
+        self.show_phrase && self.phrasemode && self.is_show_phrase_candidates && self.composition_char.is_empty()
+    }
+
+    // CB:3115 isPhraseListKey: keys the phrase list handles while it is open
+    // (selection keys: plain for 大易, with Shift elsewhere; cursor and paging
+    // keys, Space, Esc)
+    pub fn is_phrase_list_key(&self, key_event: &KeyEvent, char_code: u32, key_code: u32) -> bool {
+        if [VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_SPACE, VK_ESCAPE].contains(&key_code) {
+            return true;
+        }
+        let shift = key_event.is_key_down(VK_SHIFT);
+        if self.ime_dir_name == "chedayi" {
+            return !shift && self.is_in_sel_keys(char_code);
+        }
+        let char_code = if shift && self.is_number_char(key_code) { key_code } else { char_code };
+        shift && self.is_in_sel_keys(char_code)
+    }
+
+    // CB:3126 closePhraseList
+    pub fn close_phrase_list(&mut self) {
+        self.phrasemode = false;
+        self.is_show_phrase_candidates = false;
+        self.set_candidate_list(Vec::new());
+        self.set_show_candidates(false);
+    }
+
+    // CB:3135 closePhraseListForKey: while the phrase list is open, a printable
+    // key, Enter, Backspace or Delete that the list does not handle closes it
+    // first, so the key then takes the normal path (CB:1097). 大易's onKeyDown
+    // looks at the symbol lead key = before the shared onKeyDown, so it calls
+    // this first too
+    pub fn close_phrase_list_for_key(&mut self, key_event: &KeyEvent) {
+        // NumLock 開著的數字鍵盤由 numpad_while_composing 處理（關掉清單、按鍵交給應用程式）
+        if key_event.is_key_toggled(VK_NUMLOCK) && (VK_NUMPAD0..=VK_DIVIDE).contains(&key_event.key_code) {
+            return;
+        }
+        if self.is_phrase_list_open() && !self.is_phrase_list_key(key_event, key_event.char_code, key_event.key_code) {
+            if key_event.is_printable_char() || [VK_RETURN, VK_BACK, VK_DELETE].contains(&key_event.key_code) {
+                self.close_phrase_list();
+            }
+        }
+    }
+
     // CB:3111 charCodeToFullshape
     pub fn char_code_to_fullshape(&self, char_code: u32, key_code: u32) -> Result<String, String> {
         let mut char_code = char_code;

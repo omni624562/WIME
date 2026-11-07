@@ -151,6 +151,24 @@ PHRASE = scenarios(
     phrase_paging=seq("a SPACE PGDN RIGHT SPACE"),
     phrase_numpad_and_backtick=seq("a SPACE NUM1 a SPACE ` m ESC"),
     phrase_dayi_symbol=seq("a SPACE = , SPACE"),
+    # keys the list does not handle close it and take the normal path: ` opens
+    # the function menu (it was taken as the root 巷), Enter and Backspace go
+    # to the application
+    phrase_backtick_menu=seq("a SPACE ` ` ` ESC"),
+    phrase_enter=seq("a SPACE ENTER a SPACE"),
+    phrase_backspace=seq("a SPACE BACK a SPACE"),
+)
+
+# showPhrase with the composition buffer: Enter commits the buffer (it only
+# closed the list), = starts a 大易 symbol without dropping the buffered
+# character, Backspace edits the buffer, Esc closes only the list
+PHRASE_BUFFER = scenarios(
+    enter_commits_buffer=seq("b l x SPACE ENTER"),
+    dayi_symbol_keeps_buffer=seq("x SPACE = 0 ENTER"),
+    backspace_edits_buffer=seq("x SPACE a SPACE BACK ENTER"),
+    escape_keeps_buffer=seq("x SPACE ESC ENTER"),
+    select_phrase=seq("x SPACE ' ENTER"),
+    backtick_menu=seq("x SPACE ` ` ` ESC ENTER"),
 )
 
 DAYI4 = scenarios(
@@ -252,6 +270,7 @@ CHECJ_OPTIONS = scenarios(
     homophone=seq("o n f ` SPACE o n f ` DOWN SPACE"),
     reverse_lookup=seq("a SPACE h q i SPACE a * SPACE"),
     phrase=seq("o n f SPACE 1 a SPACE ESC"),
+    phrase_other_keys=seq("o n f SPACE ` ` ESC o n f SPACE ENTER o n f SPACE BACK o n f SPACE S+1"),
     autocommit=seq("x SPACE y r m m r SPACE a"),
 )
 
@@ -318,6 +337,8 @@ SUITES = {
     "dayi3_autocommit": {"ime": "chedayi", "config": {"autoCommitSingleCandidate": True},
                          "scenarios": AUTO_COMMIT},
     "dayi3_phrase": {"ime": "chedayi", "config": {"showPhrase": True}, "scenarios": PHRASE},
+    "dayi3_phrase_buffer": {"ime": "chedayi", "config": {"showPhrase": True, "compositionBufferMode": True},
+                            "scenarios": PHRASE_BUFFER},
     "dayi4_homophone": {"ime": "chedayi", "config": {"selCinType": 1, "homophoneQuery": True},
                         "scenarios": DAYI4},
     "thdayi": {"ime": "chedayi", "config": {"selCinType": 0}, "scenarios": THDAYI},

@@ -44,6 +44,9 @@ class CheDayiTextService(CinBaseTextService):
         self.DayiSymbolChar = "=" if self.selDayiSymbolCharType == 0 else "'"
         self.DayiSymbolString = "＝" if self.selDayiSymbolCharType == 0 else "號"
 
+        # 聯想字清單開著時 = 要先關掉清單，才能照下面的規則進入大易符號模式
+        self.cinbase.closePhraseListForKey(self, keyEvent)
+
         if self.langMode == 1 and not self.showmenu:
             if len(self.compositionChar) == 0 and not self.phrasemode and charStr == self.DayiSymbolChar and not keyEvent.isKeyDown(VK_CONTROL):
                 self.compositionChar += charStr

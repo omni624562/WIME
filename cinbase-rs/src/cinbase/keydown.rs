@@ -89,6 +89,9 @@ impl CbTs {
         self.dayi_symbol_char = if self.sel_dayi_symbol_char_type == 0 { "=".into() } else { "'".into() };
         self.dayi_symbol_string = if self.sel_dayi_symbol_char_type == 0 { "＝".into() } else { "號".into() };
 
+        // DY:47 聯想字清單開著時 = 要先關掉清單，才能照下面的規則進入大易符號模式
+        self.close_phrase_list_for_key(key_event);
+
         if self.lang_mode == 1 && !self.showmenu {
             if self.composition_char.is_empty()
                 && !self.phrasemode

@@ -11,6 +11,7 @@
 {"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 11, "showCandidates": true, "success": true}, "scenario": "space_pages", "step": "2:SPACE"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 12, "success": true}, "scenario": "space_pages", "step": "2:SPACE"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 13, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "commitString": "人", "compositionString": "", "return": true, "seqNum": 14, "showCandidates": false, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
-{"method": "filterKeyUp", "reply": {"return": false, "seqNum": 15, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
-{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "removePreservedKey": ["{f1dae0fb-8091-44a7-8a0c-3082a1515447}"], "seqNum": 16, "success": true}, "scenario": "space_pages", "step": "deactivate"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["員", "士", "民", "數", "口", "事"], "candidatePageInfo": "1/11", "commitString": "人", "compositionString": "", "return": true, "seqNum": 14, "showCandidates": true, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
+{"method": "filterKeyUp", "reply": {"return": true, "seqNum": 15, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 16, "showCandidates": true, "success": true}, "scenario": "space_pages", "step": "3:ENTER"}
+{"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "removePreservedKey": ["{f1dae0fb-8091-44a7-8a0c-3082a1515447}"], "seqNum": 17, "success": true}, "scenario": "space_pages", "step": "deactivate"}

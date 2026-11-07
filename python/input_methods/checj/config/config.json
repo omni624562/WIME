@@ -27,7 +27,7 @@
   "reLoadTable": false,
   "directShowCand": true,
   "autoCommitSingleCandidate": true,
-  "showPhrase": false,
+  "showPhrase": true,
   "outputSmallLetterWithShift": false,
   "hideCompositionLabel": "酷倉",
   "imeDisplayName": "酷倉",

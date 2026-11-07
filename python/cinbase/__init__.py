@@ -1103,6 +1103,12 @@ class CinBase:
         cbTS.canSetCommitString = True
         cbTS.keyUsedState = False
 
+        # 聯想字清單開著（字已送出、還沒開始組字）時，不是在清單上操作的鍵先把清單關掉，
+        # 讓按鍵照一般路徑處理。以前這些鍵由後面的聯想字區塊自己處理，跟一般路徑不一致：
+        # ` 被當成字根（大易的「巷」）而進不了功能選單；組字緩衝模式下 Enter 只關清單
+        # 不送出緩衝、= 之後的大易符號會蓋掉緩衝裡前一個字；Backspace 則被吃掉
+        self.closePhraseListForKey(cbTS, keyEvent)
+
         if cbTS.isShowMessage:
             cbTS.isShowMessage = False
             cbTS.hideMessage()
@@ -3115,6 +3121,39 @@ class CinBase:
             if ord(key) == charCode:
                 return True
         return False
+
+    # 聯想字清單開著（沒有組字）？
+    def isPhraseListOpen(self, cbTS):
+        return cbTS.showPhrase and cbTS.phrasemode and cbTS.isShowPhraseCandidates and cbTS.compositionChar == ""
+
+    # 聯想字清單開著時由清單處理的鍵：選字鍵（大易不加 Shift，其它加 Shift）、游標與
+    # 換頁鍵、空白鍵、Esc
+    def isPhraseListKey(self, cbTS, keyEvent, charCode, keyCode):
+        if keyCode in (VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_SPACE, VK_ESCAPE):
+            return True
+        shift = keyEvent.isKeyDown(VK_SHIFT)
+        if cbTS.imeDirName == "chedayi":
+            return not shift and self.isInSelKeys(cbTS, charCode)
+        if shift and self.isNumberChar(keyCode):
+            charCode = keyCode
+        return shift and self.isInSelKeys(cbTS, charCode)
+
+    def closePhraseList(self, cbTS):
+        cbTS.phrasemode = False
+        cbTS.isShowPhraseCandidates = False
+        cbTS.setCandidateList([])
+        cbTS.setShowCandidates(False)
+
+    # 聯想字清單開著時，不是在清單上操作的可見字元鍵、Enter、Backspace、Delete 先把清單
+    # 關掉，按鍵再照一般路徑處理（見 onKeyDown）。大易的 onKeyDown 在 cinbase 之前先看
+    # 符號前導鍵「=」，所以也要先呼叫這裡，否則清單開著時 = 會被當成一般字根
+    def closePhraseListForKey(self, cbTS, keyEvent):
+        # NumLock 開著的數字鍵盤由 numpadWhileComposing 處理（關掉清單、按鍵交給應用程式）
+        if keyEvent.isKeyToggled(VK_NUMLOCK) and VK_NUMPAD0 <= keyEvent.keyCode <= VK_DIVIDE:
+            return
+        if self.isPhraseListOpen(cbTS) and not self.isPhraseListKey(cbTS, keyEvent, keyEvent.charCode, keyEvent.keyCode):
+            if keyEvent.isPrintableChar() or keyEvent.keyCode in (VK_RETURN, VK_BACK, VK_DELETE):
+                self.closePhraseList(cbTS)
 
     # 一般字元轉全形
     def charCodeToFullshape(self, cbTS, charCode, keyCode):

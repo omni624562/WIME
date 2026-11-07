@@ -5,9 +5,9 @@
 {"method": "filterKeyUp", "reply": {"return": true, "seqNum": 5, "success": true}, "scenario": "lookup_after_commit", "step": "0:a"}
 {"method": "onKeyUp", "reply": {"seqNum": 6, "success": true}, "scenario": "lookup_after_commit", "step": "0:a"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 7, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "commitString": "人", "compositionString": "", "return": true, "seqNum": 8, "showCandidates": false, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["員", "士", "民", "數", "口", "事"], "candidatePageInfo": "1/11", "commitString": "人", "compositionString": "", "return": true, "seqNum": 8, "showCandidates": true, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
 {"method": "filterKeyUp", "reply": {"return": true, "seqNum": 9, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
-{"method": "onKeyUp", "reply": {"seqNum": 10, "showMessage": {"duration": 3, "message": "人:　①人"}, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 10, "showCandidates": true, "showMessage": {"duration": 3, "message": "人:　①人"}, "success": true}, "scenario": "lookup_after_commit", "step": "1:SPACE"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 11, "success": true}, "scenario": "lookup_after_commit", "step": "2:o"}
 {"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口", "candidateList": ["口", "㊣"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "hideMessage": true, "return": true, "seqNum": 12, "showCandidates": true, "success": true}, "scenario": "lookup_after_commit", "step": "2:o"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 13, "success": true}, "scenario": "lookup_after_commit", "step": "2:o"}
@@ -15,9 +15,9 @@
 {"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 口口", "candidateList": ["器"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 15, "showCandidates": true, "success": true}, "scenario": "lookup_after_commit", "step": "3:o"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 16, "success": true}, "scenario": "lookup_after_commit", "step": "3:o"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 17, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["器"], "candidatePageInfo": "1/1", "commitString": "器", "compositionString": "", "return": true, "seqNum": 18, "showCandidates": false, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易", "candidateList": ["材", "具", "官", "物", "械", "皿"], "candidatePageInfo": "1/2", "commitString": "器", "compositionString": "", "return": true, "seqNum": 18, "showCandidates": true, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
 {"method": "filterKeyUp", "reply": {"return": true, "seqNum": 19, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
-{"method": "onKeyUp", "reply": {"seqNum": 20, "showMessage": {"duration": 3, "message": "器:　①口口戈大口"}, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
+{"method": "onKeyUp", "reply": {"candidateHeader": "大易", "candidatePageInfo": "", "seqNum": 20, "showCandidates": true, "showMessage": {"duration": 3, "message": "器:　①口口戈大口"}, "success": true}, "scenario": "lookup_after_commit", "step": "4:SPACE"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 21, "success": true}, "scenario": "lookup_after_commit", "step": "5:a"}
 {"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "大易 人", "candidateList": ["人", "入", "亻", "亽"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "hideMessage": true, "return": true, "seqNum": 22, "showCandidates": true, "success": true}, "scenario": "lookup_after_commit", "step": "5:a"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 23, "success": true}, "scenario": "lookup_after_commit", "step": "5:a"}
