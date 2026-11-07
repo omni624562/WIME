@@ -207,6 +207,15 @@ PAGE_WITH_SPACE = scenarios(
     space_pages=seq("a SPACE SPACE ENTER"),
 )
 
+# intelligentSelectFrequency: without a previous character, a candidate picked
+# before moves up (人 a: 人入亻亽; ' picks the second); a previous character
+# with its own record still wins
+FREQUENCY = scenarios(
+    picked_moves_up=seq("a ' a SPACE a SPACE"),
+    context_still_wins=seq("o o SPACE a [ o o SPACE a SPACE a SPACE"),
+    other_code_unaffected=seq("x SPACE x SPACE"),
+)
+
 NO_SMART_SELECT = scenarios(
     order_stays=seq("o o SPACE a ' o o SPACE a ' o o SPACE a SPACE"),
 )
@@ -334,6 +343,8 @@ SUITES = {
                               "scenarios": PAGE_WITH_SPACE},
     "dayi3_no_smart_select": {"ime": "chedayi", "config": {"intelligentSelect": False},
                               "scenarios": NO_SMART_SELECT},
+    "dayi3_frequency": {"ime": "chedayi", "config": {"intelligentSelectFrequency": True},
+                        "scenarios": FREQUENCY},
     "chephonetic_default": {"ime": "chephonetic", "scenarios": CHEPHONETIC_DEFAULT},
     "chephonetic_et_layout": {"ime": "chephonetic", "config": {"keyboardLayout": 1},
                               "scenarios": CHEPHONETIC_ET},

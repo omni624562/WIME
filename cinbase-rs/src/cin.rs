@@ -1434,9 +1434,11 @@ impl Cin {
     }
 
     /// sortByCount: context prediction. Candidates chosen after the same
-    /// previous char move up; everything else keeps table order. Err for the
-    /// math domain error of a count <= -1.
-    pub fn sort_by_count(&self, key: &str, candidates: &[String], previous_char: &str, use_recent: bool, use_context: bool) -> Result<Vec<String>, String> {
+    /// previous char move up; everything else keeps table order, unless
+    /// use_frequency (intelligentSelectFrequency, off by default) ranks the
+    /// candidates without a context hit by their own count and recency. Err
+    /// for the math domain error of a count <= -1.
+    pub fn sort_by_count(&self, key: &str, candidates: &[String], previous_char: &str, use_recent: bool, use_context: bool, use_frequency: bool) -> Result<Vec<String>, String> {
         let Some(counts) = self.cincount.get(key) else {
             return Ok(candidates.to_vec());
         };
@@ -1451,7 +1453,15 @@ impl Cin {
             };
             let context_count = if use_context && !previous_char.is_empty() { prev_count } else { 0 };
             if context_count < 1 {
-                return Ok(0.0);
+                if !use_frequency || count < 1 {
+                    return Ok(0.0);
+                }
+                let mut value = py_log2(1.0 + count as f64)?;
+                if use_recent && last > 0.0 {
+                    let age_days = py_max0((now - last) / 86400.0);
+                    value += 2.0 / (1.0 + age_days / 7.0);
+                }
+                return Ok(value);
             }
             let mut value = py_log2(1.0 + context_count as f64)? * 3.0;
             value += py_log2(1.0 + count as f64)?;

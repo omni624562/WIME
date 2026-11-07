@@ -490,7 +490,7 @@ class Cin(object):
         self.cincount[key][char] = entry
         self._count_dirty = True
 
-    def sortByCount(self, key, candidates, previousChar="", useRecent=True, useContext=True):
+    def sortByCount(self, key, candidates, previousChar="", useRecent=True, useContext=True, useFrequency=False):
         if key not in self.cincount or not isinstance(self.cincount[key], dict):
             return candidates
         counts = self.cincount[key]
@@ -503,8 +503,16 @@ class Cin(object):
             # 訊號時一律維持碼表順序，保護選字鍵的肌肉記憶與空白鍵的
             # 預設輸出。只有在相同前一字之後選過這個字（例如常打
             # 「詹智丞」，打完「詹」再組「智」的字碼），它才會被提前。
+            # useFrequency（intelligentSelectFrequency，預設關）才在沒有上下文
+            # 時改用這個字的總次數與新近度；上下文命中的字仍排在它們前面。
             if contextCount < 1:
-                return 0.0
+                if not useFrequency or count < 1:
+                    return 0.0
+                value = math.log2(1.0 + count)
+                if useRecent and last > 0:
+                    age_days = max(0.0, (now - last) / 86400.0)
+                    value += 2.0 / (1.0 + age_days / 7.0)
+                return value
             value = math.log2(1.0 + contextCount) * 3.0
             # 同一個上下文有多個後續字時，全域次數與新近度當次要訊號
             value += math.log2(1.0 + count)

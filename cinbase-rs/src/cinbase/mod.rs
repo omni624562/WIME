@@ -250,6 +250,7 @@ pub struct CbTs {
     pub intelligent_select: bool,
     pub intelligent_select_recent: bool,
     pub intelligent_select_context: bool,
+    pub intelligent_select_frequency: bool,
     pub hide_composition: bool,
     pub hide_composition_label: String,
     pub ime_display_name: String,
@@ -417,6 +418,7 @@ impl CbTs {
             intelligent_select: false,
             intelligent_select_recent: false,
             intelligent_select_context: false,
+            intelligent_select_frequency: false,
             hide_composition: false,
             hide_composition_label: String::new(),
             ime_display_name: String::new(),
@@ -677,6 +679,7 @@ impl CbTs {
         self.intelligent_select = false;
         self.intelligent_select_recent = false;
         self.intelligent_select_context = false;
+        self.intelligent_select_frequency = false;
         self.hide_composition = false;
         self.hide_composition_label = String::new();
         self.ime_display_name = String::new();
