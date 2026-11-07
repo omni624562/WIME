@@ -31,10 +31,10 @@
 {"method": "onKeyDown", "reply": {"candidateHeader": "酷倉 卜口一一", "candidateList": [], "candidatePageInfo": "", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 31, "showCandidates": true, "success": true}, "scenario": "typing", "step": "9:m"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 32, "success": true}, "scenario": "typing", "step": "9:m"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 33, "success": true}, "scenario": "typing", "step": "10:r"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateHeader": "酷倉 卜口一一口", "candidateList": ["語"], "candidatePageInfo": "1/1", "compositionCursor": 0, "compositionString": "", "return": true, "seqNum": 34, "showCandidates": true, "success": true}, "scenario": "typing", "step": "10:r"}
+{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": [], "commitString": "語", "compositionCursor": 5, "compositionString": "", "return": true, "seqNum": 34, "showCandidates": false, "success": true}, "scenario": "typing", "step": "10:r"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 35, "success": true}, "scenario": "typing", "step": "10:r"}
 {"method": "filterKeyDown", "reply": {"return": true, "seqNum": 36, "success": true}, "scenario": "typing", "step": "11:SPACE"}
-{"method": "onKeyDown", "reply": {"candidateCursor": 0, "candidateList": ["語"], "candidatePageInfo": "1/1", "commitString": "語", "compositionString": "", "return": true, "seqNum": 37, "showCandidates": false, "success": true}, "scenario": "typing", "step": "11:SPACE"}
+{"method": "onKeyDown", "reply": {"return": true, "seqNum": 37, "success": true}, "scenario": "typing", "step": "11:SPACE"}
 {"method": "filterKeyUp", "reply": {"return": false, "seqNum": 38, "success": true}, "scenario": "typing", "step": "11:SPACE"}
 {"method": "onDeactivate", "reply": {"removeButton": ["switch-lang", "switch-shape", "settings", "windows-mode-icon"], "removePreservedKey": ["{f1dae0fb-8091-44a7-8a0c-3082a1515447}"], "seqNum": 39, "success": true}, "scenario": "typing", "step": "deactivate"}
 {"method": "init", "reply": {"seqNum": 1, "success": true}, "scenario": "wildcard_z", "step": "init"}

@@ -206,6 +206,7 @@ settings! {
     intelligent_select: bool = "intelligentSelect" => true;
     intelligent_select_recent: bool = "intelligentSelectRecent" => true;
     intelligent_select_context: bool = "intelligentSelectContext" => true;
+    intelligent_select_frequency: bool = "intelligentSelectFrequency" => false;
     hide_composition: bool = "hideComposition" => false;
     hide_composition_label: String = "hideCompositionLabel" => String::new();
     ime_display_name: String = "imeDisplayName" => String::new();

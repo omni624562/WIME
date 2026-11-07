@@ -219,6 +219,9 @@ function applyCandidateDefaults() {
     if (typeof checjConfig.intelligentSelectContext === "undefined") {
         checjConfig.intelligentSelectContext = true;
     }
+    if (typeof checjConfig.intelligentSelectFrequency === "undefined") {
+        checjConfig.intelligentSelectFrequency = false;
+    }
     // 舊的設定檔與後端都沒有這個鍵時，維持以前一律以 Shift+空白鍵切換全半形的行為
     if (typeof checjConfig.enableShiftSpace === "undefined") {
         checjConfig.enableShiftSpace = true;
@@ -1400,7 +1403,8 @@ function pageReady() {
     // selWildcardType / selRCinType / selHCinType 的停用狀態由 disableControlItem()
     // 同時考量「碼表相容性」與「對應功能核取是否開啟」；見該函式末端的相依連動。
     bindDependentEnable("intelligentSelect", [
-        { field: "intelligentSelectContext", item: "intelligentSelectContext_item" }
+        { field: "intelligentSelectContext", item: "intelligentSelectContext_item" },
+        { field: "intelligentSelectFrequency", item: "intelligentSelectFrequency_item" }
     ]);
     // 近期選字優先只在「前一字上下文」選出的字之間排先後（cin.py sortByCount()），
     // 關掉上下文時它沒有任何作用

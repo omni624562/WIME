@@ -410,7 +410,7 @@ fn sort_by_count_matches_python() {
             let mut c = Cin::from_json(&table, "x", false, dir.clone()).unwrap();
             for q in case["queries"].as_array().unwrap() {
                 let cands = strs(&q[1]);
-                let got = c.sort_by_count(s(&q[0]), &cands, s(&q[2]), q[3].as_bool().unwrap(), q[4].as_bool().unwrap());
+                let got = c.sort_by_count(s(&q[0]), &cands, s(&q[2]), q[3].as_bool().unwrap(), q[4].as_bool().unwrap(), false);
                 assert_eq!(res_json(got), q[5], "sortByCount {} {:?} in {}", delta, q, s(&case["file"]));
             }
             c.closed = true;

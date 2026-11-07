@@ -166,6 +166,7 @@ class CinBase:
         cbTS.intelligentSelect = False
         cbTS.intelligentSelectRecent = False
         cbTS.intelligentSelectContext = False
+        cbTS.intelligentSelectFrequency = False
         cbTS.hideComposition = False
         cbTS.hideCompositionLabel = ''
         cbTS.imeDisplayName = ''
@@ -3170,7 +3171,8 @@ class CinBase:
             candidates,
             self.getIntelligentSelectPreviousChar(cbTS),
             getattr(cbTS, 'intelligentSelectRecent', True),
-            getattr(cbTS, 'intelligentSelectContext', True)
+            getattr(cbTS, 'intelligentSelectContext', True),
+            getattr(cbTS, 'intelligentSelectFrequency', False)
         )
 
     def addIntelligentSelectCount(self, cbTS, key, commitStr):
@@ -3780,6 +3782,7 @@ class CinBase:
         cbTS.intelligentSelect = getattr(cfg, 'intelligentSelect', True)
         cbTS.intelligentSelectRecent = getattr(cfg, 'intelligentSelectRecent', True)
         cbTS.intelligentSelectContext = getattr(cfg, 'intelligentSelectContext', True)
+        cbTS.intelligentSelectFrequency = getattr(cfg, 'intelligentSelectFrequency', False)
 
         # 隱藏組字串 (打字根時不在欄位顯示字根，選字後才 commit)?
         cbTS.hideComposition = getattr(cfg, 'hideComposition', False)

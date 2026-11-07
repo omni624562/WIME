@@ -294,7 +294,7 @@ impl CbTs {
             return Ok(candidates);
         }
         let prev = self.get_intelligent_select_previous_char();
-        self.cin()?.sort_by_count(key, &candidates, &prev, self.intelligent_select_recent, self.intelligent_select_context)
+        self.cin()?.sort_by_count(key, &candidates, &prev, self.intelligent_select_recent, self.intelligent_select_context, self.intelligent_select_frequency)
     }
 
     // CB:3168 addIntelligentSelectCount

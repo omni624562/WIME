@@ -17,7 +17,7 @@
     "fontSize": 12,
     "playSoundWhenNonCand": false,
     "directShowCand": true,
-    "autoCommitSingleCandidate": false,
+    "autoCommitSingleCandidate": true,
     "directCommitSymbol": true,
     "directOutMSymbols": true,
     "supportWildcard": true,

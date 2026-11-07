@@ -69,6 +69,26 @@ class SmartSelectSpecTests(unittest.TestCase):
 
         self.assertEqual(ordered, TABLE_ORDER)
 
+    def test_case1b_frequency_option_reorders_without_context(self):
+        """intelligentSelectFrequency（預設關）才在沒有前一字時依選字次數排序；
+        有前一字紀錄時仍以前一字為準"""
+        cin = self.make_cin()
+        now = 1000000.0
+        self.replay_user_session(cin, now)          # 使 3 次、便 3 次
+        with mock.patch("time.time", return_value=now):
+            cin.addCount("aex", "便", "")           # 便 4 次：句首選的也算
+
+        with mock.patch("time.time", return_value=now + 1):
+            by_count = cin.sortByCount("aex", list(TABLE_ORDER), previousChar="", useFrequency=True)
+            unrelated = cin.sortByCount("aex", list(TABLE_ORDER), previousChar="天", useFrequency=True)
+            with_context = cin.sortByCount("aex", list(TABLE_ORDER), previousChar="使", useFrequency=True)
+            never_picked = cin.sortByCount("zzz", list(TABLE_ORDER), previousChar="", useFrequency=True)
+
+        self.assertEqual(by_count, ["便", "使", "仗"])     # 便 4 次、使 3 次、仗 0 次
+        self.assertEqual(unrelated, ["便", "使", "仗"])
+        self.assertEqual(with_context, ["使", "便", "仗"])  # 使 之後選過 使 2 次、便 1 次
+        self.assertEqual(never_picked, TABLE_ORDER)
+
     def test_case2_unrelated_previous_char_keeps_table_order(self):
         """【全域重排判定】前一字無紀錄（天）→ 碼表順序"""
         cin = self.make_cin()
