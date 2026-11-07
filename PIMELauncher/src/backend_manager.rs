@@ -170,6 +170,7 @@ impl BackendManager {
                         continue;
                     }
                 };
+                crate::power::disable_throttling_for_child(&child_process);
                 let started = std::time::Instant::now();
 
                 let stdin = child_process.stdin.take().unwrap();

@@ -31,8 +31,11 @@
 #include <vector>
 #include <algorithm>
 #include <cctype>
+#include <cstdarg>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <cwchar>
 #include <fstream>
 #include <memory>
 
@@ -47,6 +50,11 @@ static constexpr const char* kChecjProfileGuid = "{f828d2dc-81be-466e-9cfe-24bb0
 static constexpr const char* kCheliuProfileGuid = "{72844b94-5908-4674-8626-4353755bc5db}";
 static constexpr int kKeyEventRpcTimeoutMs = 250;
 static constexpr int kWarmKeyEventRpcTimeoutMs = 1000;
+// The first key after kColdKeyEventIdleMs of idle, or on a new connection: the
+// backend may have been paged out, throttled or be loading its tables, and a
+// reply that comes late is still better than a key that is lost (the app's
+// input waits meanwhile, so this is bounded).
+static constexpr int kColdKeyEventRpcTimeoutMs = 3000;
 static constexpr int kKeyEventConnectTimeoutMs = 500;
 static constexpr int kKeyEventConnectAttempts = 2;
 static constexpr int kLifecycleRpcTimeoutMs = 1000;
@@ -274,8 +282,57 @@ static bool usesModernCandidateDefault(const std::string& guid) {
 // raw letters into the document) for this long after it stopped answering --
 // a restart takes well under a second. Past that the keys reach the app again:
 // they used to be held for as long as the launcher was gone, so nothing at all
-// could be typed until the user signed out and in again.
-static constexpr ULONGLONG kHoldKeysWhileBackendUnavailableMs = 5000;
+// could be typed until the user signed out and in again. (5 s before: one slow
+// reply then swallowed several seconds of typing.)
+static constexpr ULONGLONG kHoldKeysWhileBackendUnavailableMs = 1000;
+
+// Diagnostics for keys that went missing: every failed request, recovery and
+// held key is appended to %LOCALAPPDATA%\PIME\PIMETextService.log, with the
+// app it happened in. At most 20 lines a second; the file starts over past 1 MB.
+static void diagnosticLog(const char* format, ...) {
+	static std::atomic<ULONGLONG> lastSecond{0};
+	static std::atomic<int> linesThisSecond{0};
+	ULONGLONG second = ::GetTickCount64() / 1000;
+	if (lastSecond.exchange(second) != second)
+		linesThisSecond = 0;
+	if (++linesThisSecond > 20)
+		return;
+
+	wchar_t dir[MAX_PATH];
+	DWORD n = ::GetEnvironmentVariableW(L"LOCALAPPDATA", dir, MAX_PATH);
+	if (n == 0 || n >= MAX_PATH)
+		return;
+	std::wstring path = std::wstring(dir) + L"\\PIME";
+	::CreateDirectoryW(path.c_str(), NULL);
+	path += L"\\PIMETextService.log";
+
+	WIN32_FILE_ATTRIBUTE_DATA attributes;
+	bool startOver = ::GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attributes) &&
+		(attributes.nFileSizeHigh != 0 || attributes.nFileSizeLow > 1024 * 1024);
+
+	char message[512];
+	va_list args;
+	va_start(args, format);
+	vsnprintf_s(message, sizeof(message), _TRUNCATE, format, args);
+	va_end(args);
+
+	wchar_t exe[MAX_PATH] = L"";
+	::GetModuleFileNameW(NULL, exe, MAX_PATH);
+	const wchar_t* exeName = wcsrchr(exe, L'\\');
+	exeName = exeName ? exeName + 1 : exe;
+	std::string app = utf16ToUtf8(exeName);
+
+	SYSTEMTIME now;
+	::GetLocalTime(&now);
+	char line[640];
+	sprintf_s(line, "%04u-%02u-%02u %02u:%02u:%02u.%03u %s[%lu] %s\n",
+		now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond, now.wMilliseconds,
+		app.c_str(), (unsigned long)::GetCurrentProcessId(), message);
+
+	std::ofstream file(path, startOver ? std::ios::trunc : std::ios::app);
+	if (file)
+		file << line;
+}
 
 Client::Client(TextService* service, REFIID langProfileGuid):
 	textService_(service),
@@ -327,16 +384,22 @@ bool Client::shouldHoldKeyWhenBackendUnavailable(Ime::KeyEvent& keyEvent) const 
 	if (keyEvent.isKeyDown(VK_CONTROL) || keyEvent.isKeyDown(VK_MENU))
 		return false;
 
-	if (backendUnavailableSinceTick_ != 0 &&
-		::GetTickCount64() - backendUnavailableSinceTick_ >= kHoldKeysWhileBackendUnavailableMs)
+	ULONGLONG unavailableForMs = backendUnavailableSinceTick_ != 0 ? ::GetTickCount64() - backendUnavailableSinceTick_ : 0;
+	if (backendUnavailableSinceTick_ != 0 && unavailableForMs >= kHoldKeysWhileBackendUnavailableMs)
 		return false;
 
-	return keyEvent.charCode() >= 0x20;
+	bool held = keyEvent.charCode() >= 0x20;
+	if (held)
+		diagnosticLog("held key charCode=0x%X keyCode=0x%X: backend unavailable for %llu ms", keyEvent.charCode(), keyEvent.keyCode(), unavailableForMs);
+	return held;
 }
 
 void Client::noteBackendAvailable(bool available) {
-	if (available)
+	if (available) {
+		if (backendUnavailableSinceTick_ != 0)
+			diagnosticLog("backend answers again after %llu ms", ::GetTickCount64() - backendUnavailableSinceTick_);
 		backendUnavailableSinceTick_ = 0;
+	}
 	else if (backendUnavailableSinceTick_ == 0)
 		backendUnavailableSinceTick_ = ::GetTickCount64();
 }
@@ -1338,11 +1401,11 @@ bool Client::isRecoverableBackendStateFailure(const json& response) const {
 
 int Client::keyEventRpcTimeout() const {
 	if (pipe_ == INVALID_HANDLE_VALUE || lastSuccessfulRpcTick_ == 0)
-		return kWarmKeyEventRpcTimeoutMs;
+		return kColdKeyEventRpcTimeoutMs;
 
 	ULONGLONG now = ::GetTickCount64();
 	if (now - lastSuccessfulRpcTick_ > kColdKeyEventIdleMs)
-		return kWarmKeyEventRpcTimeoutMs;
+		return kColdKeyEventRpcTimeoutMs;
 
 	return kKeyEventRpcTimeoutMs;
 }
@@ -1353,12 +1416,14 @@ bool Client::recoverStaleBackendClient(json& request, json& response) {
 	discardOrphanedUi();
 
 	response = json();
-	return callRpcMethod(
+	bool recovered = callRpcMethod(
 		request,
 		response,
 		kWarmKeyEventRpcTimeoutMs,
 		kKeyEventConnectTimeoutMs,
 		kKeyEventConnectAttempts);
+	diagnosticLog("resent %s on a new backend client: %s", request.value("method", "").c_str(), recovered ? "answered" : "failed");
+	return recovered;
 }
 
 bool Client::callKeyRpcMethod(json& request, json& response) {
@@ -1392,6 +1457,8 @@ bool Client::callKeyRpcMethod(json& request, json& response) {
 // a sequence number will be added to the req object automatically.
 bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int connectTimeoutMs, int connectAttempts) {
 	if (shouldWaitConnection_ && !waitForRpcConnection(connectTimeoutMs, connectAttempts)) {
+		diagnosticLog("%s: no connection to the launcher (error %lu, %d x %d ms)",
+			request.value("method", "").c_str(), (unsigned long)lastConnectError_, connectAttempts, connectTimeoutMs);
 		noteBackendAvailable(false);
 		return false;
 	}
@@ -1404,6 +1471,7 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 
 	std::string serializedResponse;
 	bool success = false;
+	ULONGLONG started = ::GetTickCount64();
 	if (callRpcPipe(pipe_, serializedRequest, serializedResponse, timeoutMs)) {
 		try {
 			response = json::parse(serializedResponse);
@@ -1420,6 +1488,8 @@ bool Client::callRpcMethod(json& request, json & response, int timeoutMs, int co
 	}
 
 	if (!success) { // fail to send the request to the server
+		diagnosticLog("%s: no reply within %d ms (waited %llu ms%s)", request.value("method", "").c_str(), timeoutMs,
+			::GetTickCount64() - started, serializedResponse.empty() ? "" : ", reply unusable");
 		closeRpcConnection(); // close the pipe connection since it's broken
 		resetTextServiceState();  // since we lost the connection, the state is unknonw so we reset.
 		// The launcher drops the backend client with the pipe. Its composition and

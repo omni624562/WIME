@@ -12,5 +12,6 @@ pub mod client_session;
 #[doc(hidden)]
 pub mod fuzz;
 pub mod pipe_server;
+pub mod power;
 pub mod protocol;
 pub mod testing;
