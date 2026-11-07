@@ -24,6 +24,11 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      # libchewing 子模組放在 codeberg.org；它偶爾 503，整個 CI 連 checkout 都過不了。
+      # 改從官方 GitHub 鏡像抓同一個 commit（.gitmodules 仍指向 codeberg）
+      - name: Fetch libchewing from its GitHub mirror
+        run: git config --global url.https://github.com/chewing/libchewing.git.insteadOf https://codeberg.org/chewing/libchewing.git
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: 'true'
@@ -140,6 +145,11 @@ jobs:
       WIME_CINBASE_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-cinbase.exe
       WIME_CONFIG_EXE: ${{ github.workspace }}\cinbase-rs\target\aarch64-pc-windows-msvc\release\wime-config.exe
     steps:
+      # libchewing 子模組放在 codeberg.org；它偶爾 503，整個 CI 連 checkout 都過不了。
+      # 改從官方 GitHub 鏡像抓同一個 commit（.gitmodules 仍指向 codeberg）
+      - name: Fetch libchewing from its GitHub mirror
+        run: git config --global url.https://github.com/chewing/libchewing.git.insteadOf https://codeberg.org/chewing/libchewing.git
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: 'true'
