@@ -63,7 +63,7 @@ impl CbTs {
         let mut char_code = key_event.char_code;
         let key_code = key_event.key_code;
         let mut char_str = key_event.char_str();
-        let char_str_low = py_lower(&char_str);
+        let mut char_str_low = py_lower(&char_str);
 
         // CB:1019
         if self.is_space_after_auto_commit(key_event) {
@@ -132,9 +132,13 @@ impl CbTs {
             self.record_buffer_char_at_cursor(&char_str);
         }
 
-        // CB:1074 鍵盤對映 (注音): cbTS.kbtypelist only exists for the phonetic IMEs
-        if self.keyboard_layout != 0 {
-            return Err(super::attr_error("kbtypelist"));
+        // CB:1074 鍵盤對映 (注音): a key of another layout becomes the standard
+        // layout's key at the same position
+        if self.keyboard_layout != 0 && self.layout_has_key(&char_str_low)? && !self.temp_english_mode {
+            if !key_event.is_key_down(VK_SHIFT) && !key_event.is_key_down(VK_CONTROL) {
+                char_str = self.standard_layout_key(&char_str_low)?;
+                char_str_low = py_lower(&char_str);
+            }
         }
 
         // CB:1081
@@ -529,8 +533,25 @@ impl CbTs {
                 } else if self.ime_dir_name == "chedayi" && self.ts.show_candidates && self.is_in_sel_keys(char_code) {
                     // CB:1397 不送出 CIN 所定義的字根
                 } else if self.ime_dir_name == "chephonetic" {
-                    // CB:1402 注音: only the phonetic IMEs (not ported in this backend)
-                    return Err("NotImplementedError: chephonetic onKeyDown".into());
+                    // CB:1402 注音: the key as typed (before the layout remap) must
+                    // be on the layout; one key per part of the syllable
+                    let typed_low = py_lower(&key_event.char_str());
+                    if self.keyboard_layout != 0 && !self.layout_has_key(&typed_low)? {
+                        // CB:1412 不送出 CIN 所定義的字根
+                    } else if !self.composition_char.is_empty() {
+                        self.chephonetic_update_composition_char(&char_str_low)?;
+                    } else {
+                        self.composition_char.push_str(&char_str_low);
+                        let keyname = self.cin()?.get_key_name(&char_str_low).to_string();
+                        if self.composition_buffer_mode {
+                            self.set_composition_buffer_string(&keyname, 0);
+                        } else {
+                            let s = self.ts.composition_string.clone() + &keyname;
+                            self.set_composition_string(&s);
+                            let n = py_len(&self.ts.composition_string);
+                            self.set_composition_cursor(n);
+                        }
+                    }
                 } else if !self.menusymbolsmode {
                     // CB:1418
                     self.composition_char.push_str(&char_str_low);

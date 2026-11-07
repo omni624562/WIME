@@ -339,9 +339,8 @@ impl CbTs {
         }
 
         // roots of another keyboard layout (not the default)
-        if self.keyboard_layout != 0 {
-            // cbTS.kbtypelist only exists for the phonetic IMEs
-            return Err(super::attr_error("kbtypelist"));
+        if self.keyboard_layout != 0 && self.layout_has_key(&char_str.to_lowercase())? {
+            return Ok(true);
         }
 
         // `

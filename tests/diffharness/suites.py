@@ -246,6 +246,54 @@ CHECJ_OPTIONS = scenarios(
     autocommit=seq("x SPACE y r m m r SPACE a"),
 )
 
+# --- 注音 (chephonetic): the cinbase phonetic IME, shipped with 反查大易 on ------
+#
+# Standard layout: 你 s u 3, 好 c l 3, 李 x u 3, 中 5 j (first tone: Space opens
+# the candidates), 文 j p 6, 大 2 8 4, 是 g 4. A tone key (7 6 3 4) ends the
+# syllable and opens the candidates; 1-9 select. Keys of the four parts
+# (initial, medial, final, tone) each replace their part, in any order.
+
+CHEPHONETIC_DEFAULT = scenarios(
+    commit=seq("s u 3 1 c l 3 SPACE"),
+    tone1_space=seq("5 j SPACE 1 j 0 SPACE 2"),
+    replace_part=seq("s x u 3 1 u s 3 1 s u 4 3 1"),
+    too_many_keys=seq("s u 8 ; 3 1"),
+    backspace_escape=seq("s u BACK BACK s u 3 ESC s u 3 1"),
+    paging=seq("5 j SPACE PGDN PGUP DOWN DOWN UP 2 g 4 END HOME 1"),
+    not_found=seq("s j 3 SPACE ESC 1 7 SPACE"),
+    shift_and_punctuation=seq("S+a S+1 , . ; s u 3 S+a 1"),
+    shift_toggle=seq("SHIFT s u 3 SHIFT s u 3 1"),
+    full_shape=seq(SHIFT_SPACE, "s u 3 1 , SPACE", SHIFT_SPACE),
+    ctrl_symbols=seq("C+; SPACE C+, C+, ENTER"),
+    ctrl_shortcut_while_composing=seq("s u C+v 3 1"),
+    menu=seq("` m 1 1 1 ESC ` u 4 e 0 0 SPACE"),
+    numpad=seq("NUM1 s u 3 NUM2"),
+    buttons=seq(CMD(1), "s u 3 1", CMD(1), CMD(2), "s u 3 1", CMD(2), CMD(4), CMD(4, 1),
+                MENU("windows-mode-icon"), MENU("settings")),
+    settings_and_links=seq(CMD(3), CMD(5), CMD(6)),
+)
+
+# ET layout (keyboardLayout 1): 你 n e 3, 好 h s 3, 中 7 u SPACE
+CHEPHONETIC_ET = scenarios(
+    commit=seq("n e 3 1 h s 3 SPACE"),
+    tone1_space=seq("7 u SPACE 1"),
+    standard_keys_ignored=seq("n s u 3 1"),
+    backspace=seq("n e BACK BACK n e 3 1"),
+)
+
+CHEPHONETIC_OPTIONS = scenarios(
+    direct_show=seq("s u 3 SPACE s u 3 1 5 j SPACE 1"),
+    homophone=seq("s u 3 1 ` SPACE ESC"),
+    phrase=seq("s u 3 1 1 c l 3 1 ESC"),
+)
+
+CHEPHONETIC_BUFFER = scenarios(
+    commit=seq("s u 3 1 c l 3 SPACE ENTER"),
+    replace_part=seq("s x u 3 1 ENTER"),
+    edit=seq("s u 3 1 5 j SPACE 1 LEFT BACK ENTER"),
+)
+
+
 SUITES = {
     "checj_default": {"ime": "checj", "scenarios": CHECJ_DEFAULT},
     "checj_options": {"ime": "checj",
@@ -286,6 +334,15 @@ SUITES = {
                               "scenarios": PAGE_WITH_SPACE},
     "dayi3_no_smart_select": {"ime": "chedayi", "config": {"intelligentSelect": False},
                               "scenarios": NO_SMART_SELECT},
+    "chephonetic_default": {"ime": "chephonetic", "scenarios": CHEPHONETIC_DEFAULT},
+    "chephonetic_et_layout": {"ime": "chephonetic", "config": {"keyboardLayout": 1},
+                              "scenarios": CHEPHONETIC_ET},
+    "chephonetic_options": {"ime": "chephonetic",
+                            "config": {"directShowCand": True, "imeReverseLookup": False,
+                                       "homophoneQuery": True, "showPhrase": True},
+                            "scenarios": CHEPHONETIC_OPTIONS},
+    "chephonetic_buffer": {"ime": "chephonetic", "config": {"compositionBufferMode": True},
+                           "scenarios": CHEPHONETIC_BUFFER},
 }
 
 

@@ -9,11 +9,71 @@
 //! index by code point (`pyutil`); a Python exception is `Err(..)` (the request
 //! answers success:false).
 
-use super::pyutil::{py_len, py_slice};
+use super::pyutil::{py_char_at, py_len, py_list_get, py_slice, py_str_index};
 use super::*;
 use crate::keycodes::*;
 
 impl CbTs {
+    /// `cbTS.kbtypelist[cbTS.keyboardLayout]`: the keys of the configured
+    /// layout, indexed like a Python list (AttributeError in an IME without
+    /// kbtypelist, IndexError for a layout that does not exist).
+    fn layout_keys(&self) -> Result<String, String> {
+        if self.kbtypelist.is_empty() {
+            return Err(super::attr_error("kbtypelist"));
+        }
+        py_list_get(&self.kbtypelist, self.keyboard_layout)
+    }
+
+    /// `key in cbTS.kbtypelist[cbTS.keyboardLayout]` (substring test, like Python)
+    pub fn layout_has_key(&self, key: &str) -> Result<bool, String> {
+        Ok(self.layout_keys()?.contains(key))
+    }
+
+    /// CB:1084 `cbTS.kbtypelist[0][kbtypelist[layout].index(key)]`: the standard
+    /// layout's key at the position of `key` on the configured layout
+    pub fn standard_layout_key(&self, key: &str) -> Result<String, String> {
+        let keys = self.layout_keys()?;
+        let index = py_str_index(&keys, key)?;
+        py_char_at(&self.kbtypelist[0], index)
+    }
+
+    /// PH:57 ChePhoneticTextService.updateCompositionChar: a syllable has one key
+    /// per part (initial, medial, final, tone); a new key replaces its part, and
+    /// the parts are shown in that order
+    pub fn chephonetic_update_composition_char(&mut self, char_str: &str) -> Result<(), String> {
+        if self.zhuintab.len() < 4 {
+            return Err(super::attr_error("zhuintab"));
+        }
+        let mut parts: [String; 4] = Default::default();
+        let char_length = py_len(&self.composition_char);
+        let composition_char = self.composition_char.clone();
+        for c in composition_char.chars() {
+            if let Some(i) = self.zhuintab.iter().position(|group| group.contains(c)) {
+                parts[i] = c.to_string();
+            }
+        }
+        if let Some(i) = self.zhuintab.iter().position(|group| group.contains(char_str)) {
+            parts[i] = char_str.to_string();
+        }
+        let mut keynames = String::new();
+        let mut compchar = String::new();
+        for part in &parts {
+            if !part.is_empty() {
+                compchar.push_str(part);
+                keynames.push_str(self.cin()?.get_key_name(part));
+            }
+        }
+        self.composition_char = compchar;
+        if self.composition_buffer_mode {
+            self.set_composition_buffer_string(&keynames, char_length);
+        } else {
+            self.set_composition_string(&keynames);
+            let n = py_len(&self.ts.composition_string);
+            self.set_composition_cursor(n);
+        }
+        Ok(())
+    }
+
     // DY:33 CheDayiTextService.onKeyDown: per-key maxCharLength and the 大易
     // symbol lead key (= or '), then the shared onKeyDown
     pub fn chedayi_on_key_down(&mut self, key_event: &KeyEvent) -> Result<bool, String> {

@@ -31,7 +31,7 @@ from keycodes import VK_HOME, VK_LEFT, VK_NEXT, VK_PRIOR, VK_RETURN, VK_RIGHT  #
 from keycodes import VK_SHIFT, VK_SPACE, VK_UP  # noqa: E402
 
 TABLES_AVAILABLE = all(os.path.exists(os.path.join(JSON_DIR, name))
-                       for name in ("dayi4.json", "checj.json", "thdayi.json"))
+                       for name in ("dayi4.json", "checj.json", "thdayi.json", "bpmf.json"))
 
 requires_tables = unittest.skipUnless(
     TABLES_AVAILABLE, "cinbase/json tables not generated (run python/cinbase/tools/cintojson.py)")
@@ -39,6 +39,7 @@ requires_tables = unittest.skipUnless(
 IME_MODULES = {
     "chedayi": ("chedayi_ime.py", "CheDayiTextService"),
     "checj": ("checj_ime.py", "CheCJTextService"),
+    "chephonetic": ("chephonetic_ime.py", "ChePhoneticTextService"),
 }
 _modules = {}
 
