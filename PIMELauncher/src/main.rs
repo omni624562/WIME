@@ -116,8 +116,15 @@ async fn main() {
     if show_console {
         setup_console();
         tracing_subscriber::fmt().with_ansi(true).init();
+    } else if let Some(log) = pimelauncher::logfile::LogFile::default_location() {
+        // In background mode stdout does not exist (GUI subsystem): warnings and
+        // errors go to %LOCALAPPDATA%\PIME\PIMELauncher.log (see logfile.rs)
+        tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_max_level(tracing::Level::WARN)
+            .with_writer(log)
+            .init();
     } else {
-        // In background mode, we MUST use a sink for tracing.
         // Writing to a non-existent stdout in a GUI subsystem app can cause hangs.
         tracing_subscriber::fmt()
             .with_ansi(false)

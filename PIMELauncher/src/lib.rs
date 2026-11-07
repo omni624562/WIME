@@ -11,6 +11,7 @@ pub mod backend_registry;
 pub mod client_session;
 #[doc(hidden)]
 pub mod fuzz;
+pub mod logfile;
 pub mod pipe_server;
 pub mod power;
 pub mod protocol;
