@@ -173,6 +173,50 @@ class PhraseListTests(unittest.TestCase):
                 self.assertEqual(service.compositionChar, keys[-1])
                 self.assertFalse(service.showCandidates and service.candidateList == phrases)
 
+    def test_backtick_opens_the_menu_while_the_list_is_open(self):
+        # ` is also a 大易 root (巷): with the list open it became that root
+        service = show_phrases_after_commit()
+        commits, _ = h.type_keys(service, ["`"])
+        self.assertEqual(commits, [])
+        self.assertTrue(service.multifunctionmode)
+        self.assertFalse(service.phrasemode)
+
+    def test_enter_and_backspace_go_to_the_application(self):
+        for key in ("ENTER", "BACK"):
+            with self.subTest(key=key):
+                service = show_phrases_after_commit()
+                reply = h.press(service, key)
+                self.assertIs(reply.get("return"), False)
+                self.assertFalse(service.phrasemode)
+                self.assertIs(reply.get("showCandidates"), False)
+
+    def test_buffer_mode_keys_after_the_list(self):
+        def start():
+            service = h.make_service("chedayi", showPhrase=True, directShowCand=True,
+                                     compositionBufferMode=True, autoCommitSingleCandidate=False)
+            h.type_keys(service, ["x", "SPACE"])
+            self.assertTrue(service.phrasemode)
+            self.assertEqual(service.compositionBufferString, "水")
+            return service
+        # Enter commits the buffer (it only closed the list)
+        service = start()
+        commits, _ = h.type_keys(service, ["ENTER"])
+        self.assertEqual(commits, ["水"])
+        # = starts a 大易 symbol without dropping the buffered character
+        service = start()
+        h.type_keys(service, ["=", "0"])
+        self.assertEqual(service.compositionBufferString, "水０")
+        commits, _ = h.type_keys(service, ["ENTER", "ENTER"])   # pick ０, then commit the buffer
+        self.assertEqual(commits, ["水０"])
+        # Backspace edits the buffer, Esc only closes the list
+        service = start()
+        h.type_keys(service, ["BACK"])
+        self.assertEqual(service.compositionBufferString, "")
+        service = start()
+        h.type_keys(service, ["ESC"])
+        self.assertFalse(service.phrasemode)
+        self.assertEqual(service.compositionBufferString, "水")
+
     def test_app_shortcut_closes_the_phrase_list(self):
         service = show_phrases_after_commit()
         reply = h._send(service, "filterKeyDown", h.key_event("s", ctrl=True), "Ctrl+S")

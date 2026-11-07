@@ -23,7 +23,7 @@
     "supportWildcard": true,
     "selWildcardType": 1,
     "candMaxItems": 100,
-    "showPhrase": false,
+    "showPhrase": true,
     "sortByPhrase": true,
     "intelligentSelect": true,
     "intelligentSelectRecent": true,

@@ -166,6 +166,9 @@ impl CbTs {
         self.can_set_commit_string = true;
         self.key_used_state = false;
 
+        // CB:1097 聯想字清單開著時，不是在清單上操作的鍵先把清單關掉，按鍵照一般路徑處理
+        self.close_phrase_list_for_key(key_event);
+
         if self.is_show_message {
             self.is_show_message = false;
             self.hide_message();
