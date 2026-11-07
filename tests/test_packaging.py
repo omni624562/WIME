@@ -306,7 +306,7 @@ class BuiltInstallerTests(unittest.TestCase):
         self.assertEqual(guids, {guid: ime for ime, guid in IMES.items()})
 
     def test_shortcuts_and_apps_entry_resolve(self):
-        self.assertEqual(len(self.layout.shortcuts), 5)
+        self.assertEqual(len(self.layout.shortcuts), 6)     # 4 settings tools, the phrase editor, Uninstall
         for link, target, params, icon in self.layout.shortcuts:
             with self.subTest(link=link):
                 target = self.resolve(target)
