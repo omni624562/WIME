@@ -26,7 +26,7 @@
   "directCommitSymbol": true,
   "reLoadTable": false,
   "directShowCand": true,
-  "autoCommitSingleCandidate": false,
+  "autoCommitSingleCandidate": true,
   "showPhrase": false,
   "outputSmallLetterWithShift": false,
   "hideCompositionLabel": "酷倉",

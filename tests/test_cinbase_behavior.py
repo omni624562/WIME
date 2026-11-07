@@ -26,7 +26,9 @@ def tearDownModule():
 
 
 def show_phrases_after_commit(ime="chedayi"):
-    service = h.make_service(ime, showPhrase=True, directShowCand=True)
+    # autoCommitSingleCandidate off: ' (大易's first selection key) is also a root
+    # with the single candidate 號, which the shipped setting commits at once
+    service = h.make_service(ime, showPhrase=True, directShowCand=True, autoCommitSingleCandidate=False)
     commits, _ = h.type_keys(service, ["x", "SPACE"])
     assert len(commits) == 1, commits
     assert service.phrasemode and service.candidateList, "phrase list not shown"

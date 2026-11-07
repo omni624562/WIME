@@ -157,6 +157,7 @@ class CinBaseConfig:
         self.intelligentSelect = True
         self.intelligentSelectRecent = True
         self.intelligentSelectContext = True
+        self.intelligentSelectFrequency = False
         self.hideComposition = False
         self.hideCompositionLabel = ""
         self.imeDisplayName = ""

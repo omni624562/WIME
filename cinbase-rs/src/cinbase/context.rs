@@ -142,6 +142,7 @@ impl CbTs {
         self.intelligent_select = self.cfg.intelligent_select;
         self.intelligent_select_recent = self.cfg.intelligent_select_recent;
         self.intelligent_select_context = self.cfg.intelligent_select_context;
+        self.intelligent_select_frequency = self.cfg.intelligent_select_frequency;
 
         self.hide_composition = self.cfg.hide_composition;
         self.hide_composition_label = self.cfg.hide_composition_label.clone();
