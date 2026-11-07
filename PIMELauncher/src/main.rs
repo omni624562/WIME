@@ -165,6 +165,7 @@ fn setup_error_mode() {
 
 /// Core logic for the PIME Worker process.
 async fn run_worker() {
+    pimelauncher::power::disable_throttling_for_this_process();
     let pipe_name = pimelauncher::acl::launcher_pipe_name().expect("cannot determine the user SID and session");
     let legacy_pipe_name = pimelauncher::acl::legacy_launcher_pipe_name();
 

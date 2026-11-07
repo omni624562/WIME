@@ -1383,8 +1383,11 @@ impl Cin {
     }
 
     /// saveCountFile(force): at most once a minute unless forced; temp file,
-    /// fsync, replace. Write errors are ignored (the counts stay dirty); Err
-    /// only when the directory cannot be created.
+    /// replace. No fsync: this runs between two keys, and a sync that waits on a
+    /// slow disk or a scanner held the key past the DLL's reply timeout; a power
+    /// loss then costs the last minute of counts, never the file (the replace is
+    /// atomic). Write errors are ignored (the counts stay dirty); Err only when
+    /// the directory cannot be created.
     pub fn save_count_file(&mut self, force: bool) -> Result<(), String> {
         if !self.count_dirty {
             return Ok(());
@@ -1402,7 +1405,6 @@ impl Cin {
             let mut f = std::fs::File::create(&tempname)?;
             f.write_all(payload.as_bytes())?;
             f.flush()?;
-            f.sync_all()?;
             drop(f);
             std::fs::rename(&tempname, &filename)
         })();
