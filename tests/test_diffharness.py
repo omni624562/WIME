@@ -181,7 +181,7 @@ class RustBackendTests(unittest.TestCase):
                 self.assertEqual(driver.compare(expected, driver.run_suite(suite, [RUST_BACKEND])), [])
 
     def test_random_sessions_match_python(self):
-        for ime in ("chedayi", "checj", "chewing"):
+        for ime in ("chedayi", "checj", "chephonetic", "chewing"):
             with self.subTest(ime=ime):
                 suite = driver.generate(seed=2026, count=20, length=80, ime=ime)
                 expected = driver.run_suite(suite, driver.REFERENCE)

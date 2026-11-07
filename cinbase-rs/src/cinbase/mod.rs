@@ -227,6 +227,9 @@ pub struct CbTs {
     /// candselKeys: the selection keys last sent (selkeys.py)
     pub cand_sel_keys: String,
     pub keyboard_layout: i64,
+    /// PH:28 kbtypelist / PH:34 zhuintab: only the phonetic IME has them
+    pub kbtypelist: Vec<String>,
+    pub zhuintab: Vec<String>,
     pub sel_keys: String,
     pub lang_mode: i64,
     pub shape_mode: i64,
@@ -392,6 +395,8 @@ impl CbTs {
             composition_char: String::new(),
             cand_sel_keys: String::new(),
             keyboard_layout: 0,
+            kbtypelist: Vec::new(),
+            zhuintab: Vec::new(),
             sel_keys: String::new(),
             lang_mode: -1,
             shape_mode: -1,
@@ -793,11 +798,66 @@ pub const CHECJ_CIN_FILE_LIST: &[&str] = &[
     "newcj.json", "scj6.json", "cj-fast.json",
 ];
 
-/// DY:20 CheDayiTextService / checj_ime.py CheCJTextService
+pub const CHEPHONETIC_GUID: &str = "{ec866ad1-a8f1-4845-858f-04942ffaf6cd}";
+pub const CHEPHONETIC_IME_DIR_NAME: &str = "chephonetic";
+pub const CHEPHONETIC_MAX_CHAR_LENGTH: i64 = 4;
+pub const CHEPHONETIC_CIN_FILE_LIST: &[&str] = &["thphonetic.json", "CnsPhonetic.json", "bpmf.json"];
+
+/// PH:28 kbtypelist: the keys of each keyboard layout, in the order of the
+/// standard layout's (cfg.keyboardLayout indexes it)
+pub const CHEPHONETIC_KBTYPELIST: &[&str] = &[
+    "1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-7634", // standard kb
+    "bpmfdtnlvkhg7c,./j;'sexuaorwiqzy890-=1234", // ET
+    "1234567890-qwertyuiopasdfghjkl;zxcvbn/m,.", // IBM
+    "2wsx3edcrfvtgb6yhnujm8ik,9ol.0p;/-['=1qaz", // Gin-yieh
+];
+
+/// PH:34 zhuintab: the standard-layout keys of each part of a syllable
+pub const CHEPHONETIC_ZHUINTAB: &[&str] = &[
+    "1qaz2wsxedcrfv5tgbyhn", // ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙ
+    "ujm",                   // ㄧㄨㄩ
+    "8ik,9ol.0p;/-",         // ㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ
+    "7634",                  // ˙ˊˇˋ
+];
+
+/// DY:20 CheDayiTextService / checj_ime.py CheCJTextService /
+/// PH:19 ChePhoneticTextService
 pub struct CinBaseService {
     pub st: CbTs,
     /// 大易 runs DY:33-65 before CinBase.onKeyDown; 酷倉 uses CinBase.onKeyDown as is
     pub dayi: bool,
+    /// 注音 keeps endKeyList in step with the keyboard layout (PH:48)
+    pub phonetic: bool,
+}
+
+/// PH:24-46 ChePhoneticTextService.__init__ after CinBaseTextService.__init__
+fn chephonetic_init(st: &mut CbTs) -> Result<(), String> {
+    st.keyboard_layout = cfg_keyboard_layout(&st.cfg)?;
+    st.kbtypelist = CHEPHONETIC_KBTYPELIST.iter().map(|s| s.to_string()).collect();
+    st.zhuintab = CHEPHONETIC_ZHUINTAB.iter().map(|s| s.to_string()).collect();
+    st.use_end_key = true;
+    st.auto_show_cand_when_max_char = true;
+    st.end_key_list = chephonetic_end_key_list(&st.kbtypelist, st.keyboard_layout)?;
+    Ok(())
+}
+
+/// `cfg.keyboardLayout`: not a CinBaseConfig attribute, it comes from the
+/// shipped config.json (AttributeError without it). Used as a list index, so
+/// only an int (a bool is one in Python) is accepted.
+fn cfg_keyboard_layout(cfg: &CinBaseConfig) -> Result<i64, String> {
+    match cfg.get("keyboardLayout") {
+        None => Err(attr_error("keyboardLayout")),
+        Some(Value::Bool(b)) => Ok(b as i64),
+        Some(Value::Number(n)) if n.is_i64() => Ok(n.as_i64().unwrap_or(0)),
+        Some(_) => Err("TypeError: list indices must be integers or slices".into()),
+    }
+}
+
+/// PH:42-46 endKeyList: the last four keys (the tones) of the layout
+/// (`kbtypelist[keyboardLayout][-4:]`, indexed like a Python list)
+fn chephonetic_end_key_list(kbtypelist: &[String], keyboard_layout: i64) -> Result<Vec<String>, String> {
+    let layout = pyutil::py_list_get(kbtypelist, keyboard_layout)?;
+    Ok(pyutil::py_chars(&pyutil::py_slice(&layout, Some(-4), None)))
 }
 
 /// Kept for code that names the 大易 service
@@ -816,12 +876,18 @@ fn no_init_text_service_extra(_st: &mut CbTs) {}
 impl CinBaseService {
     pub fn new(client: ClientInfo) -> Result<CinBaseService, String> {
         let st = CbTs::new(client, CHEDAYI_IME_DIR_NAME, CHEDAYI_MAX_CHAR_LENGTH, CHEDAYI_CIN_FILE_LIST, chedayi_init_text_service_extra)?;
-        Ok(CinBaseService { st, dayi: true })
+        Ok(CinBaseService { st, dayi: true, phonetic: false })
     }
 
     pub fn new_checj(client: ClientInfo) -> Result<CinBaseService, String> {
         let st = CbTs::new(client, CHECJ_IME_DIR_NAME, CHECJ_MAX_CHAR_LENGTH, CHECJ_CIN_FILE_LIST, no_init_text_service_extra)?;
-        Ok(CinBaseService { st, dayi: false })
+        Ok(CinBaseService { st, dayi: false, phonetic: false })
+    }
+
+    pub fn new_chephonetic(client: ClientInfo) -> Result<CinBaseService, String> {
+        let mut st = CbTs::new(client, CHEPHONETIC_IME_DIR_NAME, CHEPHONETIC_MAX_CHAR_LENGTH, CHEPHONETIC_CIN_FILE_LIST, no_init_text_service_extra)?;
+        chephonetic_init(&mut st)?;
+        Ok(CinBaseService { st, dayi: false, phonetic: true })
     }
 }
 
@@ -832,7 +898,16 @@ impl Service for CinBaseService {
     }
 
     fn check_config_change(&mut self) -> Result<(), String> {
-        self.st.check_config_change()
+        self.st.check_config_change()?;
+        // PH:48 a changed keyboard layout moves the tone (end) keys
+        if self.phonetic {
+            let layout = cfg_keyboard_layout(&self.st.cfg)?;
+            if self.st.keyboard_layout != layout {
+                self.st.keyboard_layout = layout;
+                self.st.end_key_list = chephonetic_end_key_list(&self.st.kbtypelist, layout)?;
+            }
+        }
+        Ok(())
     }
 
     fn on_activate(&mut self) -> Result<(), String> {
@@ -899,6 +974,9 @@ pub fn create_service(guid: &str, client: &ClientInfo) -> Result<Option<Box<dyn 
     }
     if guid == CHECJ_GUID {
         return Ok(Some(Box::new(CinBaseService::new_checj(client.clone())?)));
+    }
+    if guid == CHEPHONETIC_GUID {
+        return Ok(Some(Box::new(CinBaseService::new_chephonetic(client.clone())?)));
     }
     Ok(None)
 }

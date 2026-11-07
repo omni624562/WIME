@@ -182,11 +182,11 @@ class ScriptTests(unittest.TestCase):
     def test_settings_entry_points_are_wime_config(self):
         links = [line for line in self.lines if line.startswith("CreateShortCut")]
         tools = [line for line in links if "Uninstall.exe" not in line]
-        self.assertEqual(len(tools), 4)     # 大易, 酷倉, 新酷音 and its user phrase editor
+        self.assertEqual(len(tools), 5)     # 大易, 酷倉, 注音, 新酷音 and its user phrase editor
         for line in tools:
             with self.subTest(line=line):
                 self.assertIn('"$INSTDIR\\cinbase_rs\\wime-config.exe"', line)
-                self.assertRegex(line, r'wime-config\.exe" "(config (chedayi|checj|chewing)|user_phrase_editor chewing)"')
+                self.assertRegex(line, r'wime-config\.exe" "(config (chedayi|checj|chephonetic|chewing)|user_phrase_editor chewing)"')
 
 
 def _require_build():
@@ -233,7 +233,7 @@ class BuiltInstallerTests(unittest.TestCase):
             self.assertInstalled(r"cinbase_rs\input_methods\%s\icon.ico" % ime)
         for table in TABLES:
             self.assertInstalled(r"data\cinbase\json\%s.json" % table)
-        for ime in ("chedayi", "checj"):
+        for ime in ("chedayi", "checj", "chephonetic"):
             for name in ("config.html", "config.js", "config.json"):
                 self.assertInstalled(r"data\input_methods\%s\config\%s" % (ime, name))
             self.assertInstalled(r"data\input_methods\%s\icon.ico" % ime)
@@ -372,7 +372,7 @@ class StagedInstallTests(unittest.TestCase):
 
     def test_settings_tools_serve_their_pages_from_the_install(self):
         for tool, ime, page in (("config", "chedayi", "config"), ("config", "checj", "config"),
-                                ("config", "chewing", "config_tool"),
+                                ("config", "chephonetic", "config"), ("config", "chewing", "config_tool"),
                                 ("user_phrase_editor", "chewing", "user_phrase_editor")):
             with self.subTest(tool=tool, ime=ime):
                 login = self.start_tool(tool, ime)
@@ -401,8 +401,9 @@ class StagedInstallTests(unittest.TestCase):
 
     def test_backend_types_in_all_three_input_methods(self):
         exe = os.path.join(self.pime, "cinbase_rs", "wime-cinbase.exe")
-        typing = {"chedayi": ("b", "t", "SPACE"), "checj": ("a", "SPACE"), "chewing": ("s", "u", "3", "ENTER")}
-        settings_commands = {"chedayi": [3], "checj": [3], "chewing": [3, 19]}
+        typing = {"chedayi": ("b", "t", "SPACE"), "checj": ("a", "SPACE"), "chephonetic": ("s", "u", "3", "1"),
+                  "chewing": ("s", "u", "3", "ENTER")}
+        settings_commands = {"chedayi": [3], "checj": [3], "chephonetic": [3], "chewing": [3, 19]}
         with unittest.mock.patch.dict(os.environ, self.env, clear=True):
             for ime, keys in typing.items():
                 with self.subTest(ime=ime):

@@ -851,6 +851,12 @@ SectionGroup /e $(IME_SECTION_GROUP) ime_section_group
 			SectionIn 1 2
 			!insertmacro INSTALL_CINBASE_IME chedayi
 		SectionEnd
+
+		; 注音（cinbase 版，和大易共用後端）：打注音查大易字根用，預設反查大易
+		Section $(CHEPHONETIC) chephonetic
+			SectionIn 1 2
+			!insertmacro INSTALL_CINBASE_IME chephonetic
+		SectionEnd
 	SectionGroupEnd
 SectionGroupEnd
 !else
@@ -914,12 +920,10 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 			StrCpy $INST_CINBASE "True"
 		SectionEnd
 
+		; 注音和大易一樣由 Rust 後端服務，列入標準安裝
 		Section $(CHEPHONETIC) chephonetic
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\chephonetic"
-			File /r "..\python\input_methods\chephonetic\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
+			SectionIn 1 2
+			!insertmacro INSTALL_CINBASE_IME chephonetic
 		SectionEnd
 
 		Section $(CHEEZ) cheez
@@ -972,6 +976,7 @@ Function selectLimitedSilentSections
 	!insertmacro SelectSection ${chewing}
 	!insertmacro SelectSection ${checj}
 	!insertmacro SelectSection ${chedayi}
+	!insertmacro SelectSection ${chephonetic}
 FunctionEnd
 !endif
 
@@ -1147,6 +1152,10 @@ Section "" Register
 		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEDAYI).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "config chedayi" "$INSTDIR\cinbase_rs\input_methods\chedayi\icon.ico" 0
 	${EndIf}
 
+	${If} ${SectionIsSelected} ${chephonetic}
+		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPHONETIC).lnk" "$INSTDIR\cinbase_rs\wime-config.exe" "config chephonetic" "$INSTDIR\cinbase_rs\input_methods\chephonetic\icon.ico" 0
+	${EndIf}
+
 !ifndef ONLY_DAYI_CHEWING_CHECJ
 	${If} ${SectionIsSelected} ${chepinyin}
 		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
@@ -1154,10 +1163,6 @@ Section "" Register
 
 	${If} ${SectionIsSelected} ${chesimplex}
 		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${chephonetic}
-		CreateShortCut "$SMPROGRAMS\${START_MENU_FOLDER}\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${cheez}

@@ -89,7 +89,7 @@ impl Input<'_> {
 
 // --- the backend -------------------------------------------------------------
 
-const IMES: [&str; 3] = [cinbase::CHEDAYI_GUID, cinbase::CHECJ_GUID, chewing::CHEWING_GUID];
+const IMES: [&str; 4] = [cinbase::CHEDAYI_GUID, cinbase::CHECJ_GUID, chewing::CHEWING_GUID, cinbase::CHEPHONETIC_GUID];
 const VK_SHIFT: u8 = 0x10;
 const VK_CONTROL: u8 = 0x11;
 const VK_MENU: u8 = 0x12;

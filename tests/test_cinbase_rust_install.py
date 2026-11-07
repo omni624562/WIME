@@ -22,6 +22,7 @@ RUST_IMES = {
     "chedayi": "{E6943374-70F5-4540-AA0F-3205C7DCCA84}",
     "checj": "{F828D2DC-81BE-466E-9CFE-24BB03172693}",
     "chewing": "{F80736AA-28DB-423A-92C9-5540F501C939}",
+    "chephonetic": "{EC866AD1-A8F1-4845-858F-04942FFAF6CD}",
 }
 RUST_BACKEND = {
     "name": "cinbase_rs",
@@ -119,7 +120,8 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("!insertmacro INSTALL_PROFILE ${IME}", self.macro("INSTALL_CINBASE_IME"))
         expected = {"chewing": "!insertmacro INSTALL_CHEWING",
                     "checj": "!insertmacro INSTALL_CINBASE_IME checj",
-                    "chedayi": "!insertmacro INSTALL_CINBASE_IME chedayi"}
+                    "chedayi": "!insertmacro INSTALL_CINBASE_IME chedayi",
+                    "chephonetic": "!insertmacro INSTALL_CINBASE_IME chephonetic"}
         registration = self.nsi.index(r'regsvr32.exe" /s "$INSTDIR\x86\PIMETextService.dll')
         for ime, line in expected.items():
             with self.subTest(ime=ime):
