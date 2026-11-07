@@ -35,17 +35,27 @@ function isHanCodePoint(cp) {
         (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x20000 && cp <= 0x3134F);
 }
 
+// 提示框（js/dialogs.js）：按鈕的處理函式收到 close，呼叫它關閉對話框
+function dialogAlert(options) {
+    return WimeDialog.alert(options);
+}
+
+function closeAddDialog() {
+    let dialog = document.getElementById("add_dialog");
+    if (dialog.open) {
+        dialog.close();
+    }
+}
+
+function showLoading(shown) {
+    document.getElementById("loading_overlay").hidden = !shown;
+}
+
 // Load user phrases
 function loadUserPhrases() {
-    $("#add_dialog").dialog("close");
+    closeAddDialog();
     $("#delete_count").html("");
-
-    // Show loading overlay
-    $.LoadingOverlay("show", {
-        background: "rgba(80, 80, 80, 0.8)",
-        fade: [200, 500],
-        text: "載入詞彙中，請稍候..."
-    });
+    showLoading(true);
 
     // Get user_phrases
     $.get("/user_phrases", function(data, status) {
@@ -64,8 +74,7 @@ function loadUserPhrases() {
             $("#phrase_count").html(`共&nbsp;${data.data.length}&nbsp;個詞彙`);
         }
 
-        // Hide loading overlay
-        $.LoadingOverlay("hide", true);
+        showLoading(false);
 
         // Register click table row to select phrase
         $("#table_content").on("click", function(e) {
@@ -106,8 +115,8 @@ function loadUserPhrases() {
         });
     }, "json").fail(function(xhr) {
         // 以前沒有處理錯誤，「載入詞彙中」的遮罩永遠不會消失
-        $.LoadingOverlay("hide", true);
-        jQueryDialogAlert({
+        showLoading(false);
+        dialogAlert({
             message: escapeHtml(serverErrorText(xhr, "載入詞彙")),
             icon: "error"
         });
@@ -121,7 +130,7 @@ function onAddPhrase() {
 
     // Check phrase not empty
     if (phrase.length < 1) {
-        jQueryDialogAlert({
+        dialogAlert({
             message: "請輸入詞彙",
             icon: "error",
             close: () => {
@@ -139,7 +148,7 @@ function onAddPhrase() {
         let end = offset + phrase_chars[i].length;
         offset = end;
         if (!isHanCodePoint(phrase_chars[i].codePointAt(0))) {
-            jQueryDialogAlert({
+            dialogAlert({
                 message: "詞彙錯誤，有不是中文的字",
                 icon: "error",
                 close: () => {
@@ -153,7 +162,7 @@ function onAddPhrase() {
 
     // Check bopomofo not empty
     if (bopomofo.length < 1) {
-        jQueryDialogAlert({
+        dialogAlert({
             message: "請輸入注音",
             icon: "error",
             close: () => {
@@ -167,7 +176,7 @@ function onAddPhrase() {
     let bopomofo_check_string = "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ ˊˇˋ˙";
     for (let i = 0; i < bopomofo.length; i++) {
         if (bopomofo_check_string.indexOf(bopomofo.substring(i, i + 1)) == -1) {
-            jQueryDialogAlert({
+            dialogAlert({
                 message: "注音符號錯誤，請輸入正確的注音",
                 icon: "error",
                 close: () => {
@@ -182,7 +191,7 @@ function onAddPhrase() {
     // Check bopomofo and phrase count are equal
     let bopomofo_array = bopomofo.split(" ");
     if (bopomofo_array.length != phrase_chars.length && phrase_chars.length > 1 && bopomofo.length > 1) {
-        jQueryDialogAlert({
+        dialogAlert({
             message: "注音符號跟詞彙字數不符",
             icon: "error",
             close: () => {
@@ -204,14 +213,12 @@ function onAddPhrase() {
     });
 
     if (phrase_repeated == true) {
-        let phrase_repeated_item = $(`#table_content input[type=checkbox]:eq(${phrase_repeated_index})`);
-        $("html, body").animate({
-            scrollTop: phrase_repeated_item.offset().top - 200
-        }, 200);
-        phrase_repeated_item.parent().effect("highlight", {
-            color: "#f2f207"
-        }, 5000);
-        jQueryDialogAlert({
+        let phrase_repeated_row = $("#table_content input[type=checkbox]").eq(phrase_repeated_index).closest("tr");
+        phrase_repeated_row[0].scrollIntoView({ block: "center" });
+        phrase_repeated_row.removeClass("phrase_highlight");
+        void phrase_repeated_row[0].offsetWidth;   // restart the animation if it is still running
+        phrase_repeated_row.addClass("phrase_highlight");
+        dialogAlert({
             message: "詞彙已經存在，請重新輸入",
             icon: "error",
             close: () => {
@@ -235,17 +242,17 @@ function onAddPhrase() {
         dataType: "json",
         complete: function(response) {
             if (!response.responseJSON) {  // HTTP 錯誤或連不到設定工具
-                jQueryDialogAlert({
+                dialogAlert({
                     message: escapeHtml(serverErrorText(response, "新增詞彙")),
                     icon: "error"
                 });
             } else if (response.responseJSON.result == 0) {
-                jQueryDialogAlert({
+                dialogAlert({
                     message: "新增失敗，請檢查詞彙跟注音格式是否正確",
                     icon: "error"
                 });
             } else {
-                jQueryDialogAlert({
+                dialogAlert({
                     message: "新增詞彙成功！",
                     icon: "success",
                     close: () => {
@@ -260,7 +267,7 @@ function onAddPhrase() {
 // Execute remove phrase
 function onRemovePhrase() {
     if ($("#table_content input[type=checkbox]:checked").length === 0) {
-        jQueryDialogAlert({
+        dialogAlert({
             message: "請先選擇要刪除的詞彙",
             icon: "error"
         });
@@ -286,12 +293,13 @@ function onRemovePhrase() {
         });
         confirm_text += "</ul>";
 
-        jQueryDialogAlert({
+        dialogAlert({
             title: "確認刪除詞彙",
             message: `<div style="text-align: left;">${confirm_text}</div>`,
             icon: "warning",
             buttons: {
-                "繼續": function() {
+                "繼續": function(close) {
+                    close();
                     $.ajax({
                         url: "/user_phrases",
                         method: "POST",
@@ -303,7 +311,7 @@ function onRemovePhrase() {
                         success: function(data) {
                             // 以前不看結果，刪除失敗也顯示成功
                             let ok = data && data.result != 0;
-                            jQueryDialogAlert({
+                            dialogAlert({
                                 message: ok ? "刪除詞彙成功！" : "有些詞彙刪除失敗，請重新載入後再試一次",
                                 icon: ok ? "success" : "error",
                                 close: () => {
@@ -312,15 +320,15 @@ function onRemovePhrase() {
                             });
                         },
                         error: function(xhr) {
-                            jQueryDialogAlert({
+                            dialogAlert({
                                 message: escapeHtml(serverErrorText(xhr, "刪除詞彙")),
                                 icon: "error"
                             });
                         }
                     });
                 },
-                "取消": function() {
-                    $(this).dialog('close');
+                "取消": function(close) {
+                    close();
                 }
             }
         });
@@ -335,19 +343,20 @@ function onExportPhrase() {
 // Execute import user phrases
 // AJAX file upload
 function onImportPhrase() {
-    jQueryDialogAlert({
+    dialogAlert({
         title: "確認匯入詞彙",
         message: "警告！匯入詞庫會<b>清除現有詞庫</b>，以匯入的詞庫取代，要繼續嗎？",
         icon: "warning",
         buttons: {
-            "繼續": function() {
-                $("#import_user_phrase").on("change", function() {
+            "繼續": function(close) {
+                close();
+                $("#import_user_phrase").off("change").on("change", function() {
                     // chewing.dat (新版)，或舊版匯出的 chewing.sqlite3 (匯入時轉換)
                     var ext = this.files[0].name.split(".").pop().toLowerCase();
                     if (ext === "dat" || ext === "sqlite3") {
                         $("#import_user_phrase_form").submit();
                     } else {
-                        jQueryDialogAlert({
+                        dialogAlert({
                             message: "副檔名錯誤！只允許 .dat 或 .sqlite3 檔案上傳！",
                             icon: "error"
                         });
@@ -355,48 +364,10 @@ function onImportPhrase() {
                 });
                 $("#import_user_phrase").click();
             },
-            "取消": function() {
-                $(this).dialog('close');
+            "取消": function(close) {
+                close();
             }
         }
-    });
-}
-
-function jQueryDialogAlert(options) {
-    let title = (options.title !== undefined) ? options.title : "";
-    switch (options.icon) {
-        case "error":
-            options.title = `❌ ${title}`;
-            break;
-        case "warning":
-            options.title = `⚠️ ${title}`;
-            break;
-        case "success":
-            options.title = `✔️ ${title}`;
-            break;
-        default:
-            options.title = `📘 ${title}`;
-            break;
-    }
-    $("#jquery_alert").html(options.message).dialog({
-        show: {
-            effect: "scale",
-            duration: 300
-        },
-        hide: {
-            effect: "scale",
-            duration: 300
-        },
-        width: 600,
-        resizable: false,
-        modal: true,
-        title: title,
-        buttons: {
-            'Ok': function() {
-                $(this).dialog('close');
-            }
-        },
-        ...options
     });
 }
 
@@ -406,41 +377,21 @@ $(function() {
     // http://stackoverflow.com/questions/7852225/is-it-safe-to-use-support-cors-true-in-jquery
     $.support.cors = true;
 
-    // setup UI
-    $("#user_phrase_buttons").controlgroup({
-        direction: "vertical"
-    });
-
-    // add phrase dialog
-    $("#add_dialog").dialog({
-        show: {
-            effect: "scale",
-            duration: 400
-        },
-        hide: {
-            effect: "scale",
-            duration: 400
-        },
-        autoOpen: false,
-        resizable: false,
-        modal: true,
-        dialogClass: "fixed_dialog",
-        width: 500,
-        buttons: [{
-            text: "確定",
-            click: onAddPhrase
-        }, {
-            text: "取消",
-            click: function() {
-                $(this).dialog("close");
-            }
-        }]
+    // add phrase dialog (<dialog>, see user_phrase_editor.html)
+    $("#add_ok").on("click", onAddPhrase);
+    $("#add_cancel").on("click", closeAddDialog);
+    $("#add_dialog").on("keydown", function(event) {
+        if (event.key === "Enter" && event.target.tagName === "INPUT") {
+            event.preventDefault();
+            onAddPhrase();
+        }
     });
 
     $("#add").on("click", function() {
         $("#phrase_input").val("");
         $("#bopomofo_input").val("");
-        $("#add_dialog").dialog("open");
+        document.getElementById("add_dialog").showModal();
+        $("#phrase_input").trigger("focus");
     });
     $("#remove").on("click", onRemovePhrase);
     $("#reload").on("click", function() {

@@ -190,6 +190,32 @@ class ConfigPageTests(unittest.TestCase):
         self.assertIn('.text("加入：你好")', preview)
         self.assertNotIn('"查無組字"', preview)
 
+    def test_chewing_pages_load_only_shipped_light_assets(self):
+        # The settings page and the phrase editor ship Bootstrap and jQuery only:
+        # jQuery UI, LoadingOverlay, sweetalert2 and bootstrap-select were dropped
+        # for a <dialog>-based prompt (js/dialogs.js). Every script and stylesheet
+        # a page loads must exist next to it (the installer packs css/ and js/).
+        retired = ("jquery-ui", "loadingoverlay", "sweetalert", "bootstrap-select")
+        for name in ("config_tool.html", "user_phrase_editor.html"):
+            with self.subTest(page=name):
+                with open(os.path.join(CHEWING_DIR, name), encoding="utf-8-sig") as f:
+                    html = f.read()
+                refs = re.findall(r'<(?:script[^>]*\ssrc|link[^>]*\shref)="([^"]+)"', html)
+                self.assertTrue(refs)
+                for ref in refs:
+                    self.assertTrue(os.path.exists(os.path.join(CHEWING_DIR, ref)), ref)
+                    for lib in retired:
+                        self.assertNotIn(lib, ref.lower())
+                self.assertIn('js/dialogs.js', refs)
+        for sub in ("js", "css"):
+            for root, _, files in os.walk(os.path.join(CHEWING_DIR, sub)):
+                for file in files:
+                    for lib in retired:
+                        self.assertNotIn(lib, file.lower(), os.path.join(root, file))
+        for script in ("config.js", "user_phrase.js"):
+            self.assertEqual(script_lines(os.path.join(CHEWING_DIR, "js", script),
+                                          r"\bswal\b|selectpicker|LoadingOverlay|\.dialog\(|\.effect\("), [])
+
     def test_chewing_about_dialog_links(self):
         # the 龔律全 page answers 403, the 陳康本 Google+ profile redirects to a Google
         # blog post, and the ICOS 2004 slides are a Flash file no browser plays

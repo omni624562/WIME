@@ -1,3 +1,8 @@
+body {
+    font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+    margin: 8px;
+}
+
 #top_box {
     margin-left: 17em;
 }
@@ -11,12 +16,54 @@
     width: 15em;
 }
 
+#user_phrase_buttons button {
+    background: #f7f7f7;
+    border: 1px solid #c5c5c5;
+    border-radius: 0;
+    color: #0b6fc2;
+    cursor: pointer;
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: -1px;
+    padding: 8px 12px;
+    text-align: left;
+    width: 100%;
+}
+
+#user_phrase_buttons button:first-of-type,
+#user_phrase_buttons hr + button {
+    border-radius: 4px 4px 0 0;
+    margin-top: 0;
+}
+
+#user_phrase_buttons button:last-of-type,
+#user_phrase_buttons button:has(+ hr) {
+    border-radius: 0 0 4px 4px;
+}
+
+#user_phrase_buttons button:hover {
+    background: #e9f1fb;
+}
+
+#user_phrase_buttons button:focus-visible {
+    outline: 2px solid #2f6fed;
+    outline-offset: -2px;
+}
+
+#user_phrase_buttons hr {
+    border: 0;
+    border-top: 1px solid #c5c5c5;
+    margin: 12px 0;
+}
+
 #user_phrase_buttons #phrase_count {
     padding: 1em;
     position: absolute;
 }
 
 #phrase_table {
+    border-collapse: collapse;
     width: 100%;
 }
 
@@ -52,8 +99,41 @@
     font-weight: bold;
 }
 
-.fixed_dialog {
+/* 新增時發現詞彙已存在：把那一列閃一下 */
+@keyframes phrase_flash {
+    0% { background-color: #f2f207; }
+    100% { background-color: transparent; }
+}
+
+#table_content tr.phrase_highlight {
+    animation: phrase_flash 5s ease-out;
+}
+
+#add_dialog input[type=text] {
+    font-size: 15px;
+    margin: 4px 0 8px;
+    padding: 4px 6px;
+}
+
+#add_dialog #phrase_input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#loading_overlay {
+    align-items: center;
+    background: rgba(80, 80, 80, 0.8);
+    color: #fff;
+    display: flex;
+    font-size: 18px;
+    inset: 0;
+    justify-content: center;
     position: fixed;
+    z-index: 100;
+}
+
+#loading_overlay[hidden] {
+    display: none;
 }
 
 .bopomofo_display {

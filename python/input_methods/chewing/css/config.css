@@ -755,3 +755,12 @@ textarea {
         color: #7ea2f0;
     }
 }
+
+/* 一般下拉選單用 Bootstrap 的 custom-select（以前是 bootstrap-select 的按鈕），
+   放在句子中間，寬度照內容 */
+.config_section select.custom-select {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+    padding-right: 2.25rem;
+}
