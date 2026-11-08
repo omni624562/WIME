@@ -474,7 +474,7 @@ class ExtendTableCodeKeysTests(unittest.TestCase):
                 self.assertEqual("".join(sorted(set(declared[ime]))), "".join(sorted(keys)))
                 checked += 1
         if not checked:
-            self.skipTest("cinbase/json tables not generated (run python/cinbase/tools/cintojson.py)")
+            self.skipTest("cinbase/json tables not generated (cargo run --manifest-path tools/cintojson/Cargo.toml)")
 
 
 @unittest.skipUnless(NODE, "node is not installed")

@@ -52,9 +52,11 @@ jobs:
       # The CinBase keystroke/loading tests (tests/cinbase_harness.py) drive the
       # real 大易/酷倉 tables and are skipped without them; build.bat generates the
       # same files again later (it skips tables that are already up to date).
-      - name: Generate CinBase tables
+      # tests/test_cin_tables.py then checks the Rust tool's output against the
+      # Python original's, byte for byte.
+      - name: Generate CinBase tables (tools/cintojson, Rust)
         run: |
-          .\python\python3\python.exe python\cinbase\tools\cintojson.py
+          cargo run --release --locked --manifest-path tools\cintojson\Cargo.toml
 
       # Rust 版後端與設定工具（大易、酷倉、新酷音）：單元測試（含和 Python 逐項比對），
       # 並建出 release 版，讓下面的 tests/test_diffharness.py 拿它和 golden 標準答案比對
@@ -166,9 +168,9 @@ jobs:
           cargo test --locked --release --target aarch64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Generate CinBase tables
+      - name: Generate CinBase tables (tools/cintojson, Rust)
         run: |
-          .\python\python3\python.exe python\cinbase\tools\cintojson.py
+          cargo run --release --locked --manifest-path tools\cintojson\Cargo.toml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build and test cinbase-rs (ARM64)

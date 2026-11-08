@@ -5,10 +5,11 @@ REM in the console code page, and non-ASCII text or LF-only lines break it.
 REM No -G: CMake picks the newest installed Visual Studio (2022 locally; CI images
 REM may only have a newer one). Existing build dirs keep their cached generator.
 
-REM Generate the cinbase table JSON cache (cin/ -> json/; up-to-date files are skipped).
-REM The repo's embedded Python is only a build and test tool: the installer ships
-REM the generated tables (python\cinbase\json) under data\, and no Python at all.
-python\python3\python.exe python\cinbase\tools\cintojson.py || exit /b 1
+REM Generate the cinbase table JSON cache (cin/ -> json/; up-to-date files are skipped)
+REM with the Rust tool tools\cintojson (a port of python\cinbase\tools\cintojson.py;
+REM the build needs no Python). The installer ships the generated tables
+REM (python\cinbase\json) under data\, and no Python at all.
+cargo run --release --locked --manifest-path tools\cintojson\Cargo.toml || exit /b 1
 
 cmake . -Bbuild -A Win32 || exit /b 1
 cmake --build build --config Release || exit /b 1
