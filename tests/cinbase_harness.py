@@ -2,7 +2,7 @@
 tables, the same way the C++ side does per keystroke:
 filterKeyDown -> onKeyDown -> filterKeyUp -> onKeyUp through TextService.handleRequest.
 
-Tables come from python/cinbase/json/, which build.bat (tools/cintojson.py)
+Tables come from python/cinbase/json/, which build.bat (tools/cintojson)
 generates and git ignores; tests using this harness are skipped if they are
 missing. APPDATA is redirected to a temporary directory for the whole test
 class, so the user's real config.json / cincount.json are never read or written,
@@ -34,7 +34,7 @@ TABLES_AVAILABLE = all(os.path.exists(os.path.join(JSON_DIR, name))
                        for name in ("dayi4.json", "checj.json", "thdayi.json", "bpmf.json"))
 
 requires_tables = unittest.skipUnless(
-    TABLES_AVAILABLE, "cinbase/json tables not generated (run python/cinbase/tools/cintojson.py)")
+    TABLES_AVAILABLE, "cinbase/json tables not generated (cargo run --manifest-path tools/cintojson/Cargo.toml)")
 
 IME_MODULES = {
     "chedayi": ("chedayi_ime.py", "CheDayiTextService"),

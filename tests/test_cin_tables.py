@@ -36,7 +36,7 @@ class ShippedTableTests(unittest.TestCase):
             self.assertIn(name, tables)
 
     @unittest.skipUnless(all(os.path.exists(os.path.join(h.JSON_DIR, name)) for name in shipped_tables()),
-                         "cinbase/json tables not generated (run python/cinbase/tools/cintojson.py)")
+                         "cinbase/json tables not generated (cargo run --manifest-path tools/cintojson/Cargo.toml)")
     def test_no_quoted_candidates(self):
         for name in shipped_tables():
             with self.subTest(table=name):
@@ -54,6 +54,74 @@ class ShippedTableTests(unittest.TestCase):
         self.assertIn("鍆", chardefs["06"])
         for key in (";;", "06"):
             self.assertFalse(any('"' in value for value in chardefs[key]), key)
+
+
+CIN_DIR = os.path.join(h.PYTHON_DIR, "cinbase", "cin")
+TOOLS_DIR = os.path.join(h.PYTHON_DIR, "cinbase", "tools")
+RUST_TOOL_DIR = os.path.join(h.ROOT, "tools", "cintojson")
+
+
+def rust_cintojson_exe():
+    """The built Rust converter, or None: the WIME_CINTOJSON_EXE variable, else
+    tools/cintojson/target/release (build.bat and CI build it with cargo run)."""
+    candidates = [os.environ.get("WIME_CINTOJSON_EXE") or ""]
+    for name in ("wime-cintojson.exe", "wime-cintojson"):
+        candidates.append(os.path.join(RUST_TOOL_DIR, "target", "release", name))
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
+class RustConverterTests(unittest.TestCase):
+    """tools/cintojson (Rust, used by build.bat and CI) must write exactly what
+    python/cinbase/tools/cintojson.py writes: the backend loads these files
+    and the Python reference implementation is tested against the same tables."""
+
+    @unittest.skipUnless(rust_cintojson_exe(), "tools/cintojson is not built")
+    def test_same_output_as_the_python_converter(self):
+        import shutil
+        import subprocess
+        import sys
+        import tempfile
+        sys.path.insert(0, TOOLS_DIR)
+        try:
+            import cintojson
+        finally:
+            sys.path.remove(TOOLS_DIR)
+        sorted_tables = ("cnscj.cin", "CnsPhonetic.cin")
+        with tempfile.TemporaryDirectory() as tmp:
+            py_dir = os.path.join(tmp, "py")
+            rs_dir = os.path.join(tmp, "rs")
+            os.makedirs(py_dir)
+
+            class ToDir(cintojson.CinToJson):
+                def getJsonDir(self):
+                    return py_dir
+
+            for name in sorted(os.listdir(CIN_DIR)):
+                if name.endswith(".cin"):
+                    app = ToDir()
+                    app.run(name, os.path.join(CIN_DIR, name), name in sorted_tables)
+                elif name.endswith(".txt"):
+                    shutil.copy2(os.path.join(CIN_DIR, name), os.path.join(py_dir, name))
+            subprocess.run([rust_cintojson_exe(), "--cin-dir", CIN_DIR, "--json-dir", rs_dir],
+                           check=True, stdout=subprocess.DEVNULL)
+            self.assertEqual(sorted(os.listdir(py_dir)), sorted(os.listdir(rs_dir)))
+            for name in sorted(os.listdir(py_dir)):
+                with self.subTest(file=name):
+                    with open(os.path.join(py_dir, name), "rb") as f:
+                        expected = f.read()
+                    with open(os.path.join(rs_dir, name), "rb") as f:
+                        actual = f.read()
+                    self.assertEqual(expected, actual)
+            # single-table mode (the installer's liu.cin path) and the "sort" flag
+            subprocess.run([rust_cintojson_exe(), "--cin-dir", CIN_DIR, "--json-dir", os.path.join(tmp, "one"),
+                            "cnscj.cin", "sort"], check=True, stdout=subprocess.DEVNULL)
+            with open(os.path.join(py_dir, "cnscj.json"), "rb") as f:
+                expected = f.read()
+            with open(os.path.join(tmp, "one", "cnscj.json"), "rb") as f:
+                self.assertEqual(expected, f.read())
 
 
 if __name__ == "__main__":

@@ -1,3 +1,9 @@
+"""The original table converter (cin/*.cin -> json/*.json).
+
+build.bat and CI generate the tables with its Rust port, tools/cintojson (no
+Python needed to build); tests/test_cin_tables.py checks the port against this
+file byte for byte. The full installer still runs this one for liu.cin.
+"""
 from __future__ import print_function
 from __future__ import unicode_literals
 import io

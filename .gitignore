@@ -6,6 +6,7 @@ installer/*.exe
 # node backend was removed from the repo; ignore any local build output left behind
 /node/
 PIMELauncher/target/
+tools/cintojson/target/
 .claude/
 cleanup_x64.ps1
 replace_x64_dll.ps1
@@ -22,5 +23,5 @@ candidate-*mockup*
 *-preview.html
 *-demo.html
 
-# cinbase json tables are generated from python/cinbase/cin/ by tools/cintojson.py (run build.bat)
+# cinbase json tables are generated from python/cinbase/cin/ by tools/cintojson (run build.bat)
 python/cinbase/json/
