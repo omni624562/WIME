@@ -124,7 +124,9 @@ struct CinToJson {
 }
 
 fn push(defs: &mut Defs, key: &str, root: &str) {
-    defs.entry(key.to_string()).or_default().push(root.to_string());
+    defs.entry(key.to_string())
+        .or_default()
+        .push(root.to_string());
 }
 
 /// line[len(head):].strip()
@@ -233,12 +235,29 @@ impl CinToJson {
                 self.count(count);
                 return;
             }
-            if matches!(m, 0xFA0E | 0xFA0F | 0xFA11 | 0xFA13 | 0xFA14 | 0xFA1F | 0xFA21 | 0xFA23 | 0xFA24 | 0xFA27 | 0xFA28 | 0xFA29) {
+            if matches!(
+                m,
+                0xFA0E
+                    | 0xFA0F
+                    | 0xFA11
+                    | 0xFA13
+                    | 0xFA14
+                    | 0xFA1F
+                    | 0xFA21
+                    | 0xFA23
+                    | 0xFA24
+                    | 0xFA27
+                    | 0xFA28
+                    | 0xFA29
+            ) {
                 self.add(Set::CjkCIibm, key, root);
                 self.count("cjkCI");
                 return;
             }
-            if (0xE000..0xF900).contains(&m) || (0xF0000..0xFFFFE).contains(&m) || (0x100000..0x10FFFE).contains(&m) {
+            if (0xE000..0xF900).contains(&m)
+                || (0xF0000..0xFFFFE).contains(&m)
+                || (0x100000..0x10FFFE).contains(&m)
+            {
                 self.add(Set::Privateuse, key, root);
                 self.count("privateuse");
                 return;
@@ -246,7 +265,26 @@ impl CinToJson {
             if (0xF900..0xFA0E).contains(&m)
                 || matches!(
                     m,
-                    0xFA10 | 0xFA12 | 0xFA15 | 0xFA16 | 0xFA17 | 0xFA18 | 0xFA19 | 0xFA1A | 0xFA1B | 0xFA1C | 0xFA1D | 0xFA1E | 0xFA20 | 0xFA22 | 0xFA25 | 0xFA26 | 0xFA2A | 0xFA2B | 0xFA2C | 0xFA2D
+                    0xFA10
+                        | 0xFA12
+                        | 0xFA15
+                        | 0xFA16
+                        | 0xFA17
+                        | 0xFA18
+                        | 0xFA19
+                        | 0xFA1A
+                        | 0xFA1B
+                        | 0xFA1C
+                        | 0xFA1D
+                        | 0xFA1E
+                        | 0xFA20
+                        | 0xFA22
+                        | 0xFA25
+                        | 0xFA26
+                        | 0xFA2A
+                        | 0xFA2B
+                        | 0xFA2C
+                        | 0xFA2D
                 )
                 || (0xFA2E..0xFB00).contains(&m)
             {
@@ -285,7 +323,10 @@ impl CinToJson {
         // \r\n yields an extra empty piece here, which is skipped like any
         // empty line)
         for raw in text.split_inclusive(['\n', '\r']) {
-            let raw = raw.strip_suffix('\n').or_else(|| raw.strip_suffix('\r')).unwrap_or(raw);
+            let raw = raw
+                .strip_suffix('\n')
+                .or_else(|| raw.strip_suffix('\r'))
+                .unwrap_or(raw);
             let line = trim_one_space(raw);
             if hashtag_keynames {
                 if line.is_empty() || (line.starts_with('#') && state == State::Head) {
@@ -312,11 +353,19 @@ impl CinToJson {
                     self.selkey = head_rest(SELKEY_HEAD, line);
                 }
                 if line.contains(CHARDEF_HEAD) {
-                    state = if line.contains("begin") { State::Chardef } else { State::Head };
+                    state = if line.contains("begin") {
+                        State::Chardef
+                    } else {
+                        State::Head
+                    };
                     continue;
                 }
                 if line.contains(KEYNAME_HEAD) {
-                    state = if line.contains("begin") { State::Keyname } else { State::Head };
+                    state = if line.contains("begin") {
+                        State::Keyname
+                    } else {
+                        State::Head
+                    };
                     continue;
                 }
                 if state == State::Keyname {
@@ -361,7 +410,9 @@ impl CinToJson {
     /// dictionaries become the chardefs, in that order
     fn merge_dicts(&mut self) {
         for set in MERGE_ORDER {
-            let Some(defs) = self.sets.remove(&set) else { continue };
+            let Some(defs) = self.sets.remove(&set) else {
+                continue;
+            };
             // the order of the keys does not matter for the output (sorted):
             // only each key's root order does, and that is per dictionary
             let mut keys: Vec<&String> = defs.keys().collect();
@@ -409,14 +460,20 @@ fn mtime(path: &Path) -> Option<SystemTime> {
 /// _jsonUpToDate: the JSON is newer than the table and than this tool
 fn up_to_date(cin_file: &Path, json_file: &Path, tool: Option<SystemTime>) -> bool {
     match (mtime(json_file), mtime(cin_file)) {
-        (Some(json), Some(cin)) => json >= cin && tool.map_or(true, |t| json >= t),
+        (Some(json), Some(cin)) => json >= cin && tool.is_none_or(|t| json >= t),
         _ => false,
     }
 }
 
-fn convert(cin_dir: &Path, json_dir: &Path, file_name: &str, sort_by_charset: bool) -> Result<(), String> {
+fn convert(
+    cin_dir: &Path,
+    json_dir: &Path,
+    file_name: &str,
+    sort_by_charset: bool,
+) -> Result<(), String> {
     let cin_file = cin_dir.join(file_name);
-    let text = fs::read_to_string(&cin_file).map_err(|e| format!("{}: {}", cin_file.display(), e))?;
+    let text =
+        fs::read_to_string(&cin_file).map_err(|e| format!("{}: {}", cin_file.display(), e))?;
     let mut app = CinToJson::new();
     app.run(file_name, &text, sort_by_charset);
     make_json_dir(json_dir)?;
@@ -432,7 +489,9 @@ fn make_json_dir(json_dir: &Path) -> Result<(), String> {
         use std::os::unix::fs::DirBuilderExt;
         builder.mode(0o700);
     }
-    builder.create(json_dir).map_err(|e| format!("{}: {}", json_dir.display(), e))
+    builder
+        .create(json_dir)
+        .map_err(|e| format!("{}: {}", json_dir.display(), e))
 }
 
 /// Batch mode: every *.cin whose JSON is missing or older, and the *.txt
@@ -453,7 +512,10 @@ fn convert_all(cin_dir: &Path, json_dir: &Path) -> Result<(), String> {
             if !up_to_date(&src, &dst, None) {
                 fs::copy(&src, &dst).map_err(|e| format!("{}: {}", dst.display(), e))?;
                 if let Some(t) = mtime(&src) {
-                    let _ = fs::File::options().write(true).open(&dst).and_then(|f| f.set_modified(t));
+                    let _ = fs::File::options()
+                        .write(true)
+                        .open(&dst)
+                        .and_then(|f| f.set_modified(t));
                 }
             }
         }
@@ -469,7 +531,11 @@ fn convert_all(cin_dir: &Path, json_dir: &Path) -> Result<(), String> {
 }
 
 fn main() {
-    let repo_cinbase = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("python").join("cinbase");
+    let repo_cinbase = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("python")
+        .join("cinbase");
     let mut cin_dir = repo_cinbase.join("cin");
     let mut json_dir = repo_cinbase.join("json");
     let mut positional: Vec<String> = Vec::new();
@@ -479,7 +545,9 @@ fn main() {
             "--cin-dir" => cin_dir = PathBuf::from(args.next().unwrap_or_default()),
             "--json-dir" => json_dir = PathBuf::from(args.next().unwrap_or_default()),
             "-h" | "--help" => {
-                println!("usage: wime-cintojson [--cin-dir DIR] [--json-dir DIR] [<file.cin> [sort]]");
+                println!(
+                    "usage: wime-cintojson [--cin-dir DIR] [--json-dir DIR] [<file.cin> [sort]]"
+                );
                 return;
             }
             _ => positional.push(arg),
@@ -490,7 +558,12 @@ fn main() {
         [] => convert_all(&cin_dir, &json_dir),
         [file, rest @ ..] => {
             if cin_dir.join(file).exists() {
-                convert(&cin_dir, &json_dir, file, rest.first().map(String::as_str) == Some("sort"))
+                convert(
+                    &cin_dir,
+                    &json_dir,
+                    file,
+                    rest.first().map(String::as_str) == Some("sort"),
+                )
             } else {
                 Ok(()) // like the Python tool: a missing table is not an error
             }
@@ -522,7 +595,10 @@ mod tests {
         assert_eq!(v["cname"], "測試");
         assert_eq!(v["selkey"], "1234");
         assert_eq!(v["keynames"], json!({"a": "日", "b": "月"}));
-        assert_eq!(v["chardefs"], json!({"a": ["日", "明"], "ab": ["日月"], "b": ["\u{3000}"], "c": ["鿰"]}));
+        assert_eq!(
+            v["chardefs"],
+            json!({"a": ["日", "明"], "ab": ["日月"], "b": ["\u{3000}"], "c": ["鿰"]})
+        );
         assert_eq!(v["dupchardefs"], json!({"a": ["日"]}));
         assert_eq!(v["cincount"]["totalchardefs"], 5);
         assert_eq!(v["cincount"]["phrases"], 1);
@@ -534,7 +610,11 @@ mod tests {
     fn cjk_not_in_big5_counts_as_cjk() {
         let i = BIG5_CLASSES.iter().position(|&c| c == 0).unwrap();
         let ch = char::from_u32(CJK_FIRST + i as u32).unwrap();
-        let (_, v) = run("t.cin", &format!("%chardef begin\na {}\n%chardef end\n", ch), false);
+        let (_, v) = run(
+            "t.cin",
+            &format!("%chardef begin\na {}\n%chardef end\n", ch),
+            false,
+        );
         assert_eq!(v["cincount"]["cjk"], 1);
         assert_eq!(v["cincount"]["big5F"], 0);
     }
@@ -542,7 +622,11 @@ mod tests {
     #[test]
     fn output_is_compact_sorted_and_unescaped() {
         let mut app = CinToJson::new();
-        app.run("test.cin", "%cname 中\n%chardef begin\nz 字\n%chardef end\n", false);
+        app.run(
+            "test.cin",
+            "%cname 中\n%chardef begin\nz 字\n%chardef end\n",
+            false,
+        );
         let text = app.to_json();
         assert!(text.starts_with(r#"{"chardefs":{"z":["字"]},"cincount":{"big5F":1,"#));
         assert!(text.ends_with(r#""privateuse":{},"selkey":""}"#));
@@ -553,7 +637,11 @@ mod tests {
     #[test]
     fn sort_mode_merges_by_charset() {
         // 鿰 (cjk) before 日 (big5F) in the file; merged order puts big5F first
-        let (_, v) = run("cnscj.cin", "%chardef begin\na 鿰\na 日\na 日\n%chardef end\n", true);
+        let (_, v) = run(
+            "cnscj.cin",
+            "%chardef begin\na 鿰\na 日\na 日\n%chardef end\n",
+            true,
+        );
         assert_eq!(v["chardefs"], json!({"a": ["日", "鿰"]}));
         assert_eq!(v["dupchardefs"], json!({"a": ["日"]}));
         assert_eq!(v["cincount"]["totalchardefs"], 2);
@@ -561,7 +649,8 @@ mod tests {
 
     #[test]
     fn hashtag_tables_keep_comment_like_roots() {
-        let text = "# notice\n%keyname begin\n# 井\n%keyname end\n%chardef begin\n# 井\n%chardef end\n";
+        let text =
+            "# notice\n%keyname begin\n# 井\n%keyname end\n%chardef begin\n# 井\n%chardef end\n";
         let (_, v) = run("ez.cin", text, false);
         assert_eq!(v["keynames"], json!({"#": "井"}));
         assert_eq!(v["chardefs"], json!({"#": ["井"]}));
@@ -571,21 +660,36 @@ mod tests {
 
     #[test]
     fn error_root_stops_the_file_and_zhongbiao_strips_comments() {
-        let (_, v) = run("t.cin", "%cname 中標倉頡\n%chardef begin\na 日#註解\nbroken\nb 月\n%chardef end\n", false);
+        let (_, v) = run(
+            "t.cin",
+            "%cname 中標倉頡\n%chardef begin\na 日#註解\nbroken\nb 月\n%chardef end\n",
+            false,
+        );
         assert_eq!(v["chardefs"], json!({"a": ["日"]}));
     }
 
     #[test]
     fn windows_newlines_and_one_space_trim() {
-        let (_, v) = run("t.cin", "%ename x\r\n%chardef begin\r\n a 日 \r\n%chardef end\r\n", false);
+        let (_, v) = run(
+            "t.cin",
+            "%ename x\r\n%chardef begin\r\n a 日 \r\n%chardef end\r\n",
+            false,
+        );
         assert_eq!(v["ename"], "x");
         assert_eq!(v["chardefs"], json!({"a": ["日"]}));
     }
 
     #[test]
     fn private_use_and_compatibility_counts() {
-        let (_, v) = run("t.cin", "%chardef begin\na \u{E000}\nb \u{FA0E}\nc \u{F900}\nd \u{2F800}\ne ㄅ\n%chardef end\n", false);
-        assert_eq!(v["privateuse"], json!({"a": ["\u{E000}"], "c": ["\u{F900}"], "d": ["\u{2F800}"]}));
+        let (_, v) = run(
+            "t.cin",
+            "%chardef begin\na \u{E000}\nb \u{FA0E}\nc \u{F900}\nd \u{2F800}\ne ㄅ\n%chardef end\n",
+            false,
+        );
+        assert_eq!(
+            v["privateuse"],
+            json!({"a": ["\u{E000}"], "c": ["\u{F900}"], "d": ["\u{2F800}"]})
+        );
         assert_eq!(v["cincount"]["privateuse"], 1);
         assert_eq!(v["cincount"]["cjkCI"], 2);
         assert_eq!(v["cincount"]["cjkCIS"], 1);
